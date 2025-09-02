@@ -1,10 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using EntityGraphQL.Schema;
 
 namespace EntityGraphQL;
 
-public class QueryResult : Dictionary<string, object>
+public class QueryResult : Dictionary<string, object?>
 {
     private static readonly string DataKey = "data";
     private static readonly string ErrorsKey = "errors";
@@ -43,7 +42,7 @@ public class QueryResult : Dictionary<string, object>
             this[ErrorsKey] = new List<GraphQLError>();
         }
 
-        ((List<GraphQLError>)this[ErrorsKey]).Add(error);
+        ((List<GraphQLError>)this[ErrorsKey]!).Add(error);
     }
 
     public void AddErrors(IEnumerable<GraphQLError> errors)
@@ -52,13 +51,15 @@ public class QueryResult : Dictionary<string, object>
         {
             this[ErrorsKey] = new List<GraphQLError>();
         }
-        ((List<GraphQLError>)this[ErrorsKey]).AddRange(errors);
+        ((List<GraphQLError>)this[ErrorsKey]!).AddRange(errors);
     }
 
-    public void SetData(IDictionary<string, object?> data)
+    public void SetData(IDictionary<string, object?>? data)
     {
-        this[DataKey] = data.ToDictionary(d => d.Key, d => d.Value);
+        this[DataKey] = data?.ToDictionary(d => d.Key, d => d.Value) ?? null;
     }
+
+    public bool HasDataKey => ContainsKey(DataKey);
 
     public void RemoveDataKey()
     {
@@ -80,7 +81,7 @@ public class QueryResult : Dictionary<string, object>
             this[ExtensionsKey] = new Dictionary<string, object>();
         }
 
-        var extensions = (Dictionary<string, object>)this[ExtensionsKey];
+        var extensions = (Dictionary<string, object>)this[ExtensionsKey]!;
         extensions["queryInfo"] = queryInfo;
     }
 }

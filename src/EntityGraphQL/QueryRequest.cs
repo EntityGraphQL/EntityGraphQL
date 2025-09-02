@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace EntityGraphQL;
 
@@ -62,24 +63,5 @@ public class QueryVariables : Dictionary<string, object?>
     public object? GetValueFor(string varKey)
     {
         return ContainsKey(varKey) ? this[varKey] : null;
-    }
-}
-
-/// <summary>
-/// Describes any errors that might happen while resolving the query request
-/// </summary>
-public class GraphQLError : Dictionary<string, object>
-{
-    private static readonly string MessageKey = "message";
-
-    public string Message => (string)this[MessageKey];
-
-    public Dictionary<string, object>? Extensions => (Dictionary<string, object>?)this.GetValueOrDefault(QueryResult.ExtensionsKey);
-
-    public GraphQLError(string message, IDictionary<string, object>? extensions)
-    {
-        this[MessageKey] = message;
-        if (extensions != null)
-            this[QueryResult.ExtensionsKey] = new Dictionary<string, object>(extensions);
     }
 }

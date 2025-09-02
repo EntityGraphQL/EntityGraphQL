@@ -27,7 +27,7 @@ public class GraphQLSubscriptionField : BaseGraphQLQueryField
         this.SubscriptionField = subscriptionField;
     }
 
-    public Task<object?> ExecuteSubscriptionAsync<TContext>(
+    public Task<(object? data, IGraphQLValidator? methodValidator)> ExecuteSubscriptionAsync<TContext>(
         TContext context,
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,

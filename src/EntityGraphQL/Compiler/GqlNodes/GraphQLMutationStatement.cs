@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
@@ -21,87 +18,41 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     public GraphQLMutationStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
-        TContext? context,
+    protected override ExecutableDirectiveLocation ExecutableDirectiveLocation => ExecutableDirectiveLocation.MUTATION;
+    protected override ISchemaType SchemaType => Schema.GetSchemaType(Schema.MutationType, false, null)!;
+
+    protected override async Task<(object? data, bool didExecute, List<GraphQLError> errors)> ExecuteOperationField<TContext>(
+        CompileContext compileContext,
+        BaseGraphQLField field,
+        TContext context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        Func<string, string> fieldNamer,
         ExecutionOptions options,
-        QueryVariables? variables,
-        QueryRequestContext requestContext,
-        CancellationToken cancellationToken = default
+        IArgumentsTracker? docVariables
     )
-        where TContext : default
     {
-        if (context == null && serviceProvider == null)
-            throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
+        if (field is not GraphQLMutationField node)
+            throw new EntityGraphQLException($"Expected a mutation field but got {field.GetType().Name}");
 
-        Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.MutationType, false, null), requestContext);
+        var errors = new List<GraphQLError>();
 
-        var result = new ConcurrentDictionary<string, object?>();
-        // pass to directives
-        foreach (var directive in Directives)
+        // For mutations, we need to expand and execute each mutation field individually
+        var (data, didExecute, methodValidator) = await ExecuteAsync(compileContext, (GraphQLMutationField)field, context, serviceProvider, fragments, options, docVariables);
+
+        if (methodValidator?.HasErrors == true)
         {
-            if (directive.VisitNode(ExecutableDirectiveLocation.MUTATION, Schema, this, Arguments, null, null) == null)
-                return result;
+            foreach (var error in methodValidator.Errors)
+                error.Path = [node.Name];
+            errors.AddRange(methodValidator.Errors);
         }
 
-        // Mutation fields don't directly have services to collect. This is handled after the mutation is executed.
-        // When we are building/executing the selection on the mutation result services are handled
-        CompileContext compileContext = new(options, null, requestContext, cancellationToken);
-        foreach (var field in QueryFields)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            try
-            {
-                IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
-                foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLMutationField>())
-                {
-#if DEBUG
-                    Stopwatch? timer = null;
-                    if (options.IncludeDebugInfo)
-                    {
-                        timer = new Stopwatch();
-                        timer.Start();
-                    }
-#endif
-
-                    var contextToUse = GetContextToUse(context, serviceProvider!, field)!;
-                    var data = await ExecuteAsync(compileContext, node, contextToUse, serviceProvider, fragments, options, docVariables);
-#if DEBUG
-                    if (options.IncludeDebugInfo)
-                    {
-                        timer?.Stop();
-                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
-                    }
-#endif
-                    // often use return null if mutation failed and added errors to validation
-                    // don't include it if it is not a nullable field
-                    if (data == null && node.Field!.ReturnType.TypeNotNullable)
-                        continue;
-                    result[node.Name] = data;
-                }
-            }
-            catch (EntityGraphQLValidationException)
-            {
-                throw;
-            }
-            catch (EntityGraphQLFieldException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new EntityGraphQLFieldException(field.Name, ex);
-            }
-        }
-        return result;
+        return (data, didExecute, errors);
     }
 
     /// <summary>
     /// Execute the current mutation
     /// </summary>
+    /// <param name="compileContext">The compile context</param>
     /// <param name="node">The mutation field to execute</param>
     /// <param name="context">The context instance that will be used</param>
     /// <param name="serviceProvider">A service provider to look up any dependencies</param>
@@ -110,7 +61,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     /// <param name="docVariables">Resolved values of variables pass in request</param>
     /// <typeparam name="TContext"></typeparam>
     /// <returns></returns>
-    private async Task<object?> ExecuteAsync<TContext>(
+    private async Task<(object? data, bool didExecute, IGraphQLValidator? methodValidator)> ExecuteAsync<TContext>(
         CompileContext compileContext,
         GraphQLMutationField node,
         TContext context,
@@ -122,17 +73,25 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     {
         BaseGraphQLField.CheckFieldAccess(Schema, node.Field, compileContext.RequestContext);
         if (context == null)
-            return null;
+            return (null, false, null);
+
+        // apply directives
+        foreach (var directive in node.Directives)
+        {
+            if (directive.VisitNode(ExecutableDirectiveLocation.FIELD, Schema, node, Arguments, null, null) == null)
+                return (null, false, null);
+        }
+
         // run the mutation to get the context for the query select
-        var result = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
+        var (data, validatorErrors) = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
 
         if (
-            result == null
+            data == null
             || // result is null and don't need to do anything more
             node.ResultSelection == null
         ) // mutation must return a scalar type
-            return result;
-        return await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, docVariables, result);
+            return (data, true, validatorErrors);
+        return (await MakeSelectionFromResultAsync(compileContext, node, node.ResultSelection!, context, serviceProvider, fragments, docVariables, data), true, validatorErrors);
     }
 
     protected async Task<object?> MakeSelectionFromResultAsync<TContext>(

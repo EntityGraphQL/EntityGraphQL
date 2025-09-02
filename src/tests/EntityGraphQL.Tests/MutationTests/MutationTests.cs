@@ -193,7 +193,7 @@ public class MutationTests
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
-        Assert.Equal("Field 'addPersonInput' - Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
+        Assert.Equal("Supplied variable 'names' can not be applied to defined variable type '[String]'", result.Errors.First().Message);
     }
 
     [Fact]
@@ -618,9 +618,8 @@ public class MutationTests
         {
             Query =
                 @"mutation {
-          needsGuid
-        }
-        ",
+                    needsGuid
+                }",
         };
 
         var testSchema = new TestDataContext();
@@ -968,7 +967,7 @@ public class MutationTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, serviceCollection.BuildServiceProvider(), null);
         Assert.NotNull(results.Errors);
-        Assert.Equal("Field 'nullableGuidArgs' - Supplied variable 'id' can not be applied to defined variable type 'ID'", results.Errors[0].Message);
+        Assert.Equal("Supplied variable 'id' can not be applied to defined variable type 'ID'", results.Errors[0].Message);
     }
 
     [Fact]
@@ -1077,7 +1076,7 @@ public class MutationTests
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
 
-        Assert.Equal(34, schemaProvider.Mutation().SchemaType.GetFields().Count());
+        Assert.Equal(35, schemaProvider.Mutation().SchemaType.GetFields().Count());
     }
 
     public class NonAttributeMarkedMethod

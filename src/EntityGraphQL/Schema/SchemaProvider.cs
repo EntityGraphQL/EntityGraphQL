@@ -344,31 +344,29 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             logErrorMessage(logger, exception);
 
         var result = new QueryResult();
-        foreach (var (errorMessage, extensions) in GenerateMessage(exception).Distinct())
-            result.AddError(errorMessage, extensions);
+        result.AddErrors(GenerateErrors(exception).Distinct());
+
         return result;
     }
 
-    private IEnumerable<(string errorMessage, IDictionary<string, object>? extensions)> GenerateMessage(Exception exception)
+    public IEnumerable<GraphQLError> GenerateErrors(Exception exception)
     {
-        switch (exception)
+        return exception switch
         {
-            case EntityGraphQLValidationException validationException:
-                return validationException.ValidationErrors.Select(v => (v, (IDictionary<string, object>?)null));
-            case AggregateException aggregateException:
-                return aggregateException.InnerExceptions.SelectMany(GenerateMessage);
-            case EntityGraphQLException graphqlException:
-                return new[] { (graphqlException.Message, (IDictionary<string, object>?)graphqlException.Extensions) };
-            case TargetInvocationException targetInvocationException:
-                return GenerateMessage(targetInvocationException.InnerException!);
-            case EntityGraphQLFieldException fieldException:
-                return GenerateMessage(fieldException.InnerException!).Select(f => ($"Field '{fieldException.FieldName}' - {f.errorMessage}", f.extensions));
-            default:
-                if (isDevelopment || AllowedExceptions.Any(e => e.IsAllowed(exception)) || exception.GetType().GetCustomAttribute<AllowedExceptionAttribute>() != null)
-                    return new[] { (exception.Message, (IDictionary<string, object>?)null) };
-                return new[] { ("Error occurred", (IDictionary<string, object>?)null) };
-        }
+            EntityGraphQLValidationException validationException => validationException.ValidationErrors.Select(v => new GraphQLError(v, null)),
+            AggregateException aggregateException => aggregateException.InnerExceptions.SelectMany(GenerateErrors),
+            EntityGraphQLException graphqlException => [new GraphQLError(graphqlException.Message, null, (IDictionary<string, object>?)graphqlException.Extensions)],
+            TargetInvocationException targetInvocationException => GenerateErrors(targetInvocationException.InnerException!),
+            EntityGraphQLFieldException fieldException => GenerateErrors(fieldException.InnerException!)
+                .Select(f => new GraphQLError($"Field '{fieldException.FieldName}' - {f.Message}", fieldException.Path, f.Extensions)),
+            _ => [new GraphQLError(AllowedExceptionMessage(exception), null, null)],
+        };
     }
+
+    private string AllowedExceptionMessage(Exception exception) => IsAllowedException(exception) ? exception.Message : "Error occurred";
+
+    private bool IsAllowedException(Exception exception) =>
+        isDevelopment || AllowedExceptions.Any(e => e.IsAllowed(exception)) || exception.GetType().GetCustomAttribute<AllowedExceptionAttribute>() != null;
 
     private GraphQLDocument CompileQueryWithCache(QueryRequest gql, ExecutionOptions executionOptions)
     {

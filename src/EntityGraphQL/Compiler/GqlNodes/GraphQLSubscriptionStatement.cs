@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -26,7 +25,10 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     public GraphQLSubscriptionStatement(ISchemaProvider schema, string? name, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, rootParameter, rootParameter, variables) { }
 
-    public override async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    protected override ExecutableDirectiveLocation ExecutableDirectiveLocation => ExecutableDirectiveLocation.SUBSCRIPTION;
+    protected override ISchemaType SchemaType => Schema.GetSchemaType(Schema.SubscriptionType, false, null)!;
+
+    public override async Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -38,72 +40,36 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     )
         where TContext : default
     {
-        if (context == null && serviceProvider == null)
-            throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
-
-        Schema.CheckTypeAccess(Schema.GetSchemaType(Schema.SubscriptionType, false, null), requestContext);
-
+        // Store these for later use in subscription event execution
         this.fragments = fragments.ToDictionary(f => f.Key, f => f.Value);
         this.options = options;
         this.docVariables = BuildDocumentVariables(ref variables);
 
-        var result = new ConcurrentDictionary<string, object?>();
-        // pass to directives
-        foreach (var directive in Directives)
+        return await base.ExecuteAsync(context, serviceProvider, fragments, fieldNamer, options, variables, requestContext, cancellationToken);
+    }
+
+    protected override async Task<(object? data, bool didExecute, List<GraphQLError> errors)> ExecuteOperationField<TContext>(
+        CompileContext compileContext,
+        BaseGraphQLField field,
+        TContext context,
+        IServiceProvider? serviceProvider,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
+        ExecutionOptions options,
+        IArgumentsTracker? docVariables
+    )
+    {
+        if (field is not GraphQLSubscriptionField)
+            throw new EntityGraphQLException($"Expected a subscription field but got {field.GetType().Name}");
+
+        foreach (var directive in field.Directives)
         {
-            if (directive.VisitNode(ExecutableDirectiveLocation.SUBSCRIPTION, Schema, this, Arguments, null, null) == null)
-                return result;
+            if (directive.VisitNode(ExecutableDirectiveLocation.FIELD, Schema, field, Arguments, null, null) == null)
+                return (null, false, []);
         }
 
-        CompileContext compileContext = new(options, null, requestContext);
-        foreach (var field in QueryFields)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            try
-            {
-                foreach (var node in field.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<GraphQLSubscriptionField>())
-                {
-#if DEBUG
-                    Stopwatch? timer = null;
-                    if (options.IncludeDebugInfo)
-                    {
-                        timer = new Stopwatch();
-                        timer.Start();
-                    }
-#endif
-                    var contextToUse = GetContextToUse(context, serviceProvider!, node)!;
-                    var data = await ExecuteAsync(node, contextToUse, serviceProvider, docVariables, options, requestContext, cancellationToken);
-#if DEBUG
-                    if (options.IncludeDebugInfo)
-                    {
-                        timer?.Stop();
-                        result[$"__{node.Name}_timeMs"] = timer?.ElapsedMilliseconds;
-                    }
-#endif
-
-                    // often use return null if mutation failed and added errors to validation
-                    // don't include it if it is not a nullable field
-                    if (data == null && node.Field!.ReturnType.TypeNotNullable)
-                        continue;
-
-                    result[node.Name] = data;
-                }
-            }
-            catch (EntityGraphQLValidationException)
-            {
-                throw;
-            }
-            catch (EntityGraphQLFieldException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new EntityGraphQLFieldException(field.Name, ex);
-            }
-        }
-        return result;
+        // For subscriptions, we need to expand and execute each subscription field individually
+        var data = await ExecuteAsync((GraphQLSubscriptionField)field, context, serviceProvider, docVariables, options, compileContext.RequestContext);
+        return (data, true, new List<GraphQLError>());
     }
 
     private async Task<object?> ExecuteAsync<TContext>(
@@ -112,8 +78,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         IServiceProvider? serviceProvider,
         IArgumentsTracker? docVariables,
         ExecutionOptions executionOptions,
-        QueryRequestContext requestContext,
-        CancellationToken cancellationToken = default
+        QueryRequestContext requestContext
     )
     {
         if (context == null)
@@ -122,7 +87,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         BaseGraphQLField.CheckFieldAccess(Schema, node.Field, requestContext);
 
         // execute the subscription set up method. It returns in IObservable<T>
-        var result = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables, executionOptions);
+        var (result, _) = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables, executionOptions);
 
         if (result == null || node.ResultSelection == null)
             throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");

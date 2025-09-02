@@ -25,7 +25,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
 {
     public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
     public ISchemaProvider Schema { get; protected set; }
-    protected List<GraphQLDirective> Directives { get; set; } = [];
+    public List<GraphQLDirective> Directives { get; set; } = [];
     protected string? OpName { get; set; }
     public virtual bool IsRootField { get; set; }
 

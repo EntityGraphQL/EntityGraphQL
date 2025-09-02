@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -49,6 +50,16 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// </summary>
     public bool IsRootField => false;
 
+    /// <summary>
+    /// The executable directive location for this operation type
+    /// </summary>
+    protected abstract ExecutableDirectiveLocation ExecutableDirectiveLocation { get; }
+
+    /// <summary>
+    /// The schema type for this operation
+    /// </summary>
+    protected abstract ISchemaType SchemaType { get; }
+
     public ExecutableGraphQLStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> opVariables)
     {
         Name = name;
@@ -66,7 +77,20 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
     }
 
-    public virtual async Task<ConcurrentDictionary<string, object?>> ExecuteAsync<TContext>(
+    /// <summary>
+    /// Abstract method that each operation type must implement to execute their specific field type
+    /// </summary>
+    protected abstract Task<(object? data, bool didExecute, List<GraphQLError> errors)> ExecuteOperationField<TContext>(
+        CompileContext compileContext,
+        BaseGraphQLField field,
+        TContext context,
+        IServiceProvider? serviceProvider,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
+        ExecutionOptions options,
+        IArgumentsTracker? docVariables
+    );
+
+    public virtual async Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
         TContext? context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -80,6 +104,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (context == null && serviceProvider == null)
             throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
 
+        Schema.CheckTypeAccess(this.SchemaType, requestContext);
+
         // build separate expression for all root level nodes in the op e.g. op is
         // query Op1 {
         //      people { name id }
@@ -87,63 +113,108 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // }
         // people & movies will be the 2 fields that will be 2 separate expressions
         var result = new ConcurrentDictionary<string, object?>();
+        var allErrors = new List<GraphQLError>();
 
-        IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
-
-        foreach (var fieldNode in QueryFields)
+        // pass to directives
+        foreach (var directive in Directives)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            if (directive.VisitNode(ExecutableDirectiveLocation, Schema, this, Arguments, null, null) == null)
+                return (result, allErrors);
+        }
+        try
+        {
+            IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
+            CompileContext compileContext = new(options, null, requestContext, cancellationToken);
 
-            try
+            foreach (var fieldNode in QueryFields)
             {
-#if DEBUG
-                Stopwatch? timer = null;
-                if (options.IncludeDebugInfo)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
                 {
-                    timer = new Stopwatch();
-                    timer.Start();
-                }
-#endif
-                var contextToUse = GetContextToUse(context, serviceProvider!, fieldNode)!;
+                    var contextToUse = GetContextToUse(context, serviceProvider!, fieldNode)!;
 
-                (var data, var didExecute) = await CompileAndExecuteNodeAsync(
-                    new CompileContext(options, null, requestContext, cancellationToken),
-                    contextToUse,
-                    serviceProvider,
-                    fragments,
-                    fieldNode,
-                    docVariables
-                );
+                    var expandedFields = fieldNode.Expand(compileContext, fragments, false, NextFieldContext!, OpVariableParameter, docVariables).Cast<BaseGraphQLField>();
+                    if (!expandedFields.Any())
+                        continue;
+
+                    foreach (var expandedField in expandedFields)
+                    {
+                        try
+                        {
 #if DEBUG
-                if (options.IncludeDebugInfo)
-                {
-                    timer?.Stop();
-                    result[$"__{fieldNode.Name}_timeMs"] = timer?.ElapsedMilliseconds;
-                }
+                            Stopwatch? timer = null;
+                            if (options.IncludeDebugInfo)
+                            {
+                                timer = new Stopwatch();
+                                timer.Start();
+                            }
 #endif
 
-                // often use return null if mutation failed and added errors to validation
-                // don't include it if it is not a nullable field
-                if (data == null && fieldNode.Field?.ReturnType.TypeNotNullable == true)
-                    continue;
+                            var (data, didExecute, fieldErrors) = await ExecuteOperationField(compileContext, expandedField, contextToUse, serviceProvider, fragments, options, docVariables);
 
-                if (didExecute)
-                    result[fieldNode.Name] = data;
-            }
-            catch (EntityGraphQLValidationException)
-            {
-                throw;
-            }
-            catch (EntityGraphQLFieldException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                throw new EntityGraphQLFieldException(fieldNode.Name, ex);
+#if DEBUG
+                            if (options.IncludeDebugInfo)
+                            {
+                                timer?.Stop();
+                                result[$"__{expandedField.Name}_timeMs"] = timer?.ElapsedMilliseconds;
+                            }
+#endif
+
+                            if (fieldErrors.Count > 0)
+                            {
+                                // if the type is nullable the error bubbles up
+                                // should be be on the inner field but the way we resolve full expression trees we don't get the error at that level
+                                if (expandedField.Field?.ReturnType.TypeNotNullable == false)
+                                    result[expandedField.Name] = null;
+
+                                allErrors.AddRange(fieldErrors);
+                            }
+
+                            // often use return null if mutation failed and added errors to validation
+                            // don't include it if it is not a nullable field
+                            if (data == null && expandedField.Field?.ReturnType.TypeNotNullable == true)
+                                continue;
+
+                            if (didExecute)
+                                result[expandedField.Name] = data;
+                        }
+                        catch (EntityGraphQLValidationException ve)
+                        {
+                            allErrors.AddRange(Schema.GenerateErrors(ve));
+                            if (expandedField.Field?.ReturnType.TypeNotNullable == false)
+                                result[expandedField.Name] = null;
+                        }
+                        catch (EntityGraphQLFieldException fe)
+                        {
+                            allErrors.AddRange(Schema.GenerateErrors(fe));
+                            if (expandedField.Field?.ReturnType.TypeNotNullable == false)
+                                result[expandedField.Name] = null;
+                        }
+                        catch (Exception ex)
+                        {
+                            allErrors.AddRange(Schema.GenerateErrors(new EntityGraphQLFieldException(expandedField.Name, [expandedField.Name], ex)));
+                            if (expandedField.Field?.ReturnType.TypeNotNullable == false)
+                                result[expandedField.Name] = null;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new EntityGraphQLFieldException(fieldNode.Name, [fieldNode.Name], ex);
+                }
             }
         }
-        return result;
+        // building the variables could cause this
+        catch (EntityGraphQLCompilerException ce)
+        {
+            allErrors.AddRange(Schema.GenerateErrors(ce));
+        }
+
+        if (allErrors.Count > 0 && result.IsEmpty)
+            result = null!; // if we have errors and no data, return null for data
+
+        return (result, allErrors);
     }
 
     protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)
