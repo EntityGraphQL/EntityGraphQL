@@ -19,7 +19,8 @@ public static class ArgumentUtil
         Type? argumentsType,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
-        List<string> validationErrors
+        List<string> validationErrors,
+        CompileContext? compileContext = null
     )
     {
         if (argumentsType == null)
@@ -53,14 +54,14 @@ public static class ArgumentUtil
                         val = argExpression;
                         setValues.Add(argField.Name);
                     }
-                    values.Add(argField.Name, ExpressionUtil.ConvertObjectType(val, argField.RawType, schema, null));
+                    values.Add(argField.Name, ExpressionUtil.ConvertObjectType(val, argField.RawType, schema));
                 }
                 else
                 {
-                    (var isSet, val) = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                    (var isSet, val) = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors, compileContext);
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
-                        val = ExpressionUtil.ConvertObjectType(val, argField.RawType, schema, null);
+                        val = ExpressionUtil.ConvertObjectType(val, argField.RawType, schema);
                     values.Add(argField.Name, val);
                     if (val != null || argField.DefaultValue.IsSet)
                         setValues.Add(argField.Name);
@@ -146,7 +147,8 @@ public static class ArgumentUtil
         string memberName,
         Type memberType,
         DefaultArgValue defaultValue,
-        IList<string> validationErrors
+        IList<string> validationErrors,
+        CompileContext? compileContext
     )
     {
         string argName = memberName;
@@ -172,7 +174,7 @@ public static class ArgumentUtil
                     var parameters = c.GetParameters();
                     if (parameters.Length == 1)
                     {
-                        item = ExpressionUtil.ConvertObjectType(item, parameters[0].ParameterType, schema, null);
+                        item = ExpressionUtil.ConvertObjectType(item, parameters[0].ParameterType, schema);
                         constructor = memberType.GetConstructor(new[] { item!.GetType() });
                         break;
                     }
@@ -188,7 +190,7 @@ public static class ArgumentUtil
             var typedVal = constructor.Invoke([item]);
             return (true, typedVal);
         }
-        else if (defaultValue.IsSet && defaultValue.Value != null && defaultValue.GetType().IsConstructedGenericType && defaultValue.GetType().GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+        else if (defaultValue.IsSet && defaultValue.Value != null && defaultValue.GetType() == typeof(EntityQueryType))
         {
             return (true, args != null && args.ContainsKey(argName) ? args[argName] : Activator.CreateInstance(memberType));
         }

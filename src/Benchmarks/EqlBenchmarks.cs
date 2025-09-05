@@ -47,7 +47,13 @@ public class EqlBenchmarks : BaseBenchmark
     public object SimpleExpression()
     {
         var expressionStr = "name == \"foo\"";
-        var expression = EntityQueryCompiler.CompileWith(expressionStr, _context, Schema, new QueryRequestContext(null, null), new ExecutionOptions());
+        var expression = EntityQueryCompiler.CompileWith(
+            expressionStr,
+            _context,
+            Schema,
+            new QueryRequestContext(null, null),
+            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)))
+        );
 
         return expression;
     }
@@ -56,7 +62,13 @@ public class EqlBenchmarks : BaseBenchmark
     public object ComplexExpression()
     {
         var expressionStr = "name == \"foo\" && director.name == \"Jimmy\" && director.dob > \"1978-02-04\" && genre.name == \"Action\" && rating > 3";
-        var expression = EntityQueryCompiler.CompileWith(expressionStr, _context, Schema, new QueryRequestContext(null, null), new ExecutionOptions());
+        var expression = EntityQueryCompiler.CompileWith(
+            expressionStr,
+            _context,
+            Schema,
+            new QueryRequestContext(null, null),
+            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)))
+        );
 
         return expression;
     }
@@ -66,7 +78,13 @@ public class EqlBenchmarks : BaseBenchmark
     {
         var expressionStr =
             "name.contains(\"fo\") && director.name.toLower().startsWith(\"ji\") && director.dob > \"1978-01-01\" && actors.orderBy(name).first().name.startsWith(\"bob\") && rating > 3";
-        var expression = EntityQueryCompiler.CompileWith(expressionStr, _context, Schema, new QueryRequestContext(null, null), new ExecutionOptions());
+        var expression = EntityQueryCompiler.CompileWith(
+            expressionStr,
+            _context,
+            Schema,
+            new QueryRequestContext(null, null),
+            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)))
+        );
 
         return expression;
     }

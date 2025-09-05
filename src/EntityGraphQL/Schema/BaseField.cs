@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -104,6 +103,7 @@ public abstract class BaseField : IField
         Expression fieldExpression,
         Expression? fieldContext,
         IGraphQLNode? parentNode,
+        BaseGraphQLField? fieldNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,
         IReadOnlyDictionary<string, object?> args,

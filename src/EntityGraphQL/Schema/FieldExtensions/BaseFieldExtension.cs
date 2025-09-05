@@ -54,6 +54,7 @@ public abstract class BaseFieldExtension : IFieldExtension
 
     public virtual (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
+        BaseGraphQLField fieldNode,
         Expression expression,
         ParameterExpression? argumentParam,
         dynamic? arguments,

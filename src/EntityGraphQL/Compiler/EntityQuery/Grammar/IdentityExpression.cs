@@ -6,7 +6,7 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
-public class IdentityExpression(string name, CompileContext compileContext) : IExpression
+public class IdentityExpression(string name, EqlCompileContext compileContext) : IExpression
 {
     public Type Type => throw new NotImplementedException();
 
@@ -17,7 +17,7 @@ public class IdentityExpression(string name, CompileContext compileContext) : IE
         return MakePropertyCall(context!, schema, Name, requestContext, compileContext);
     }
 
-    internal static Expression MakePropertyCall(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, CompileContext compileContext)
+    internal static Expression MakePropertyCall(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, EqlCompileContext compileContext)
     {
         if (schema == null)
         {
@@ -43,7 +43,58 @@ public class IdentityExpression(string name, CompileContext compileContext) : IE
             return Expression.Constant(Enum.Parse(schemaType.TypeDotnet, name));
         }
         var gqlField = schemaType.GetField(name, requestContext);
-        (var exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, context, null, null, compileContext, new Dictionary<string, object?>(), null, null, [], false, new Util.ParameterReplacer());
+
+        var isServiceField = gqlField.Services.Count > 0;
+
+        Expression? exp;
+
+        if (isServiceField && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
+            // null context so the service expression param is not replaced and we can replace it in the filter extension
+            (exp, _) = gqlField.GetExpression(
+                gqlField.ResolveExpression!,
+                null,
+                null,
+                null,
+                null,
+                compileContext,
+                new Dictionary<string, object?>(),
+                null,
+                null,
+                [],
+                false,
+                new Util.ParameterReplacer()
+            );
+        else
+            (exp, _) = gqlField.GetExpression(
+                gqlField.ResolveExpression!,
+                context,
+                null,
+                null,
+                null,
+                compileContext,
+                new Dictionary<string, object?>(),
+                null,
+                null,
+                [],
+                false,
+                new Util.ParameterReplacer()
+            );
+
+        // Track service-backed fields for later filter splitting and wrap with a marker only
+        // when we are executing in split mode (EF pass + services pass).
+        if (isServiceField && exp != null && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
+        {
+            // Create a unique key and store the extracted fields for this service field on the compile context
+            if (gqlField.ExtractedFieldsFromServices != null)
+            {
+                compileContext.ServiceFieldDependencies.Add(gqlField);
+                compileContext.OriginalContext = context;
+            }
+
+            var marker = typeof(Util.ServiceExpressionMarker).GetMethod(nameof(Util.ServiceExpressionMarker.MarkService))!.MakeGenericMethod(exp.Type);
+            exp = Expression.Call(marker, exp);
+        }
+
         return exp!;
     }
 

@@ -13,75 +13,75 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests;
 /// </summary>
 public class EntityQueryCompilerTests
 {
-    private readonly ExecutionOptions executionOptions = new();
+    private readonly EqlCompileContext compileContext = new(new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)));
 
     [Fact]
     public void CompilesNumberConstant()
     {
-        var exp = EntityQueryCompiler.Compile("3", executionOptions);
+        var exp = EntityQueryCompiler.Compile("3", compileContext);
         Assert.Equal((long)3, exp.Execute());
     }
 
     [Fact]
     public void CompilesNegativeNumberConstant()
     {
-        var exp = EntityQueryCompiler.Compile("-43", executionOptions);
+        var exp = EntityQueryCompiler.Compile("-43", compileContext);
         Assert.Equal((long)-43, exp.Execute());
     }
 
     [Fact]
     public void CompilesNumberDecimalConstant()
     {
-        var exp = EntityQueryCompiler.Compile("23.3", executionOptions);
+        var exp = EntityQueryCompiler.Compile("23.3", compileContext);
         Assert.Equal(23.3m, exp.Execute());
     }
 
     [Fact]
     public void CompilesNullConstant()
     {
-        var exp = EntityQueryCompiler.Compile("null", executionOptions);
+        var exp = EntityQueryCompiler.Compile("null", compileContext);
         Assert.Null(exp.Execute());
     }
 
     [Fact]
     public void CompilesTrueConstant()
     {
-        var exp = EntityQueryCompiler.Compile("true", executionOptions);
+        var exp = EntityQueryCompiler.Compile("true", compileContext);
         Assert.True((bool)exp.Execute()!);
     }
 
     [Fact]
     public void CompilesFalseConstant()
     {
-        var exp = EntityQueryCompiler.Compile("false", executionOptions);
+        var exp = EntityQueryCompiler.Compile("false", compileContext);
         Assert.False((bool)exp.Execute()!);
     }
 
     [Fact]
     public void CompilesStringConstant()
     {
-        var exp = EntityQueryCompiler.Compile("\"Hello there_987-%#&	;;s\"", executionOptions);
+        var exp = EntityQueryCompiler.Compile("\"Hello there_987-%#&	;;s\"", compileContext);
         Assert.Equal("Hello there_987-%#&	;;s", exp.Execute());
     }
 
     [Fact]
     public void CompilesStringConstant2()
     {
-        var exp = EntityQueryCompiler.Compile("\"\\\"Hello\\\" there\"", executionOptions);
+        var exp = EntityQueryCompiler.Compile("\"\\\"Hello\\\" there\"", compileContext);
         Assert.Equal("\"Hello\" there", exp.Execute());
     }
 
     [Fact]
     public void CompilesStringConstant3()
     {
-        var exp = EntityQueryCompiler.Compile("\" \\\"\\n\\r\\0\\a\\b\\f\\t\\v \"", executionOptions);
+        var exp = EntityQueryCompiler.Compile("\" \\\"\\n\\r\\0\\a\\b\\f\\t\\v \"", compileContext);
         Assert.Equal(" \"\n\r\0\a\b\f\t\v ", exp.Execute());
     }
 
     [Fact]
     public void CompilesIdentityCall()
     {
-        var exp = EntityQueryCompiler.Compile("hello", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("hello", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal("returned value", exp.Execute(new TestSchema()));
     }
 
@@ -89,63 +89,63 @@ public class EntityQueryCompilerTests
     public void CompilesIdentityCallWithKeyWord()
     {
         // null is the keyword
-        var exp = EntityQueryCompiler.Compile("nullableInt", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("nullableInt", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal(55, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void FailsIdentityNotThere()
     {
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>(), executionOptions));
+        var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>(), compileContext));
         Assert.Equal("Field 'wrongField' not found on type 'Query'", ex.Message);
     }
 
     [Fact]
     public void CompilesIdentityCallFullPath()
     {
-        var exp = EntityQueryCompiler.Compile("someRelation.field1", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("someRelation.field1", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal(2, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesIdentityCallFullPathDeep()
     {
-        var exp = EntityQueryCompiler.Compile("someRelation.relation.id", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("someRelation.relation.id", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal(99, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesBinaryExpressionEquals()
     {
-        var exp = EntityQueryCompiler.Compile("someRelation.relation.id == 99", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("someRelation.relation.id == 99", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.True((bool)exp.Execute(new TestSchema())!);
     }
 
     [Fact]
     public void CompilesBinaryExpressionPlus()
     {
-        var exp = EntityQueryCompiler.Compile("someRelation.relation.id + 99", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("someRelation.relation.id + 99", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal(198, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesBinaryExpressionEqualsRoot()
     {
-        var exp = EntityQueryCompiler.Compile("num == 34", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("num == 34", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.False((bool)exp.Execute(new TestSchema())!);
     }
 
     [Fact]
     public void CompilesBinaryExpressionEqualsAndAddRoot()
     {
-        var exp = EntityQueryCompiler.Compile("num == (90 - 57)", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("num == (90 - 57)", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.True((bool)exp.Execute(new TestSchema())!);
     }
 
     [Fact]
     public void CompilesBinaryExpressionEqualsAndAdd()
     {
-        var exp = EntityQueryCompiler.Compile("someRelation.relation.id == (99 - 32)", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("someRelation.relation.id == (99 - 32)", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.False((bool)exp.Execute(new TestSchema())!);
     }
 
@@ -154,7 +154,7 @@ public class EntityQueryCompilerTests
     {
         // no brackets so it reads it as someRelation.relation.id == (99 ? 'wooh' : 66) and fails as 99 is not a bool
         var ex = Assert.Throws<EntityGraphQLCompilerException>(() =>
-            EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions)
+            EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext)
         );
         Assert.Equal("Conditional result types mismatch. Types 'String' and 'Int64' must be the same.", ex.Message);
     }
@@ -163,7 +163,7 @@ public class EntityQueryCompilerTests
     public void CompilesIfThenElseInlineTrueBrackets()
     {
         // tells it how to read it
-        var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 99) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 99) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal((long)100, exp.Execute(new TestSchema()));
     }
 
@@ -171,49 +171,49 @@ public class EntityQueryCompilerTests
     public void CompilesIfThenElseInlineFalseBrackets()
     {
         // tells it how to read it
-        var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 98) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 98) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal((long)66, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesIfThenElseTrue()
     {
-        var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 99 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 99 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal((long)100, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesIfThenElseFalse()
     {
-        var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal((long)66, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesBinaryWithIntAndUint()
     {
-        var exp = EntityQueryCompiler.Compile("if someRelation.unisgnedInt == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("if someRelation.unisgnedInt == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal((long)66, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesBinaryWithNullableAndNonNullable()
     {
-        var exp = EntityQueryCompiler.Compile("if someRelation.nullableInt == 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("if someRelation.nullableInt == 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal((long)100, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesBinaryAnd()
     {
-        var exp = EntityQueryCompiler.Compile("(someRelation.nullableInt == 9) && (hello == \"Hi\")", SchemaBuilder.FromObject<TestSchema>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("(someRelation.nullableInt == 9) && (hello == \"Hi\")", SchemaBuilder.FromObject<TestSchema>(), compileContext);
         Assert.Equal(false, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CanUseCompiledExpressionInWhereMethod()
     {
-        var exp = EntityQueryCompiler.Compile("name == \"Bob\"", SchemaBuilder.FromObject<TestEntity>(), executionOptions);
+        var exp = EntityQueryCompiler.Compile("name == \"Bob\"", SchemaBuilder.FromObject<TestEntity>(), compileContext);
         var objects = new List<TestEntity> { new TestEntity("Sally"), new TestEntity("Bob") };
         Assert.Equal(2, objects.Count);
         var results = objects.Where((Func<TestEntity, bool>)exp.LambdaExpression.Compile());
@@ -225,7 +225,7 @@ public class EntityQueryCompilerTests
     public void TestEntityQueryWorks()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestEntity>();
-        var compiledResult = EntityQueryCompiler.Compile("(relation.id == 1) || (relation.id == 2)", schemaProvider, executionOptions);
+        var compiledResult = EntityQueryCompiler.Compile("(relation.id == 1) || (relation.id == 2)", schemaProvider, compileContext);
         var list = new List<TestEntity>
         {
             new TestEntity("bob") { Relation = new Person { Id = 1 } },
@@ -248,7 +248,7 @@ public class EntityQueryCompilerTests
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
         schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
-        var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, executionOptions);
+        var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, compileContext);
         var list = new List<Entry>
         {
             new("First") { When = new DateTime(2020, 08, 10) },
@@ -272,7 +272,7 @@ public class EntityQueryCompilerTests
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
         schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
-        var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, executionOptions);
+        var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, compileContext);
         var list = new List<Entry> { new Entry("First") { When = new DateTime(2020, 08, 10) } };
         Assert.Single(list);
         var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
@@ -290,7 +290,7 @@ public class EntityQueryCompilerTests
     public void TestEntityQueryWorksWithDateTimes(string dateValue)
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
-        var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, executionOptions);
+        var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, compileContext);
         var list = new List<Entry>
         {
             new("First") { When = new DateTime(2020, 08, 10, 0, 0, 0) },
@@ -311,7 +311,7 @@ public class EntityQueryCompilerTests
     public void TestEntityQueryWorksWithDateTimeOffsets(string dateValue, int count)
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
-        var compiledResult = EntityQueryCompiler.Compile($"whenOffset >= {dateValue}", schemaProvider, executionOptions);
+        var compiledResult = EntityQueryCompiler.Compile($"whenOffset >= {dateValue}", schemaProvider, compileContext);
         var list = new List<Entry>
         {
             new("First") { WhenOffset = new DateTimeOffset(2020, 08, 10, 0, 0, 0, TimeSpan.FromTicks(0)) },
@@ -332,14 +332,7 @@ public class EntityQueryCompilerTests
         var schema = SchemaBuilder.FromObject<TestSchema>();
         var param = Expression.Parameter(typeof(Person));
 
-        var exp = EntityQueryParser.Instance.Parse(
-            "gender == Female",
-            param,
-            schema,
-            new QueryRequestContext(null, null),
-            new EqlMethodProvider(),
-            new CompileContext(executionOptions, null, new QueryRequestContext(null, null))
-        );
+        var exp = EntityQueryParser.Instance.Parse("gender == Female", param, schema, new QueryRequestContext(null, null), new EqlMethodProvider(), compileContext);
 
         var res = (bool?)Expression.Lambda(exp, param).Compile().DynamicInvoke(new Person { Gender = Gender.Female });
         Assert.NotNull(res);
@@ -350,7 +343,7 @@ public class EntityQueryCompilerTests
     public void CompilesEnum()
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
-        var exp = EntityQueryCompiler.Compile("people.where(gender == Female)", schema, executionOptions);
+        var exp = EntityQueryCompiler.Compile("people.where(gender == Female)", schema, compileContext);
         var res = (IEnumerable<Person>?)exp.Execute(new TestSchema());
         Assert.NotNull(res);
         Assert.Empty(res);
@@ -360,7 +353,7 @@ public class EntityQueryCompilerTests
     public void CompilesEnum2()
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
-        var exp = EntityQueryCompiler.Compile("people.where(gender == Other)", schema, executionOptions);
+        var exp = EntityQueryCompiler.Compile("people.where(gender == Other)", schema, compileContext);
         var res = (IEnumerable<Person>?)
             exp.Execute(
                 new TestSchema
@@ -381,7 +374,7 @@ public class EntityQueryCompilerTests
     public void CompilesEnum3()
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
-        var exp = EntityQueryCompiler.Compile("people.where(gender == Gender.Other)", schema, executionOptions);
+        var exp = EntityQueryCompiler.Compile("people.where(gender == Gender.Other)", schema, compileContext);
         var res = (IEnumerable<Person>?)
             exp.Execute(
                 new TestSchema
@@ -406,7 +399,7 @@ public class EntityQueryCompilerTests
 
         Assert.Throws<EntityGraphQLCompilerException>(() =>
         {
-            EntityQueryCompiler.Compile("people.where(gender == Size.Other)", schema, executionOptions);
+            EntityQueryCompiler.Compile("people.where(gender == Size.Other)", schema, compileContext);
         });
     }
 
@@ -415,7 +408,7 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
 
-        var res = EntityQueryCompiler.Compile("[1, 4,5]", schema, executionOptions).Execute(new TestSchema());
+        var res = EntityQueryCompiler.Compile("[1, 4,5]", schema, compileContext).Execute(new TestSchema());
         Assert.Collection((IEnumerable<long>)res!, i => Assert.Equal(1, i), i => Assert.Equal(4, i), i => Assert.Equal(5, i));
     }
 
@@ -424,7 +417,7 @@ public class EntityQueryCompilerTests
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
 
-        var res = EntityQueryCompiler.Compile("[\"Hi\", \"World\"]", schema, executionOptions).Execute(new TestSchema());
+        var res = EntityQueryCompiler.Compile("[\"Hi\", \"World\"]", schema, compileContext).Execute(new TestSchema());
         Assert.Collection((IEnumerable<string>)res!, i => Assert.Equal("Hi", i), i => Assert.Equal("World", i));
     }
 

@@ -340,12 +340,6 @@ public class ToGraphQLSchemaStringTests
     }
 
     [Fact]
-    public void TestGetArgDefaultValue_Filter()
-    {
-        Assert.Equal("", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new EntityQueryType<Task>()), (e) => e));
-    }
-
-    [Fact]
     public void TestGetArgDefaultValue_Object()
     {
         Assert.Equal("{ Id: 5, Name: \"Test\", Genre: Rock, Old: 0 }", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new Album { Id = 5, Name = "Test" }), (e) => e));

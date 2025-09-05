@@ -86,12 +86,29 @@ public sealed class EntityQueryParser
         var callArgs = openParen.And(Separated(comma, expression)).And(closeParen).Then(static x => x.Item2);
         var emptyCallArgs = openParen.And(closeParen).Then(static x => new List<IExpression>() as IReadOnlyList<IExpression>);
 
-        var identifier = SkipWhiteSpace(new Identifier()).And(Not(emptyCallArgs)).Then<IExpression>(static (c, x) => new IdentityExpression(x.Item1.ToString()!, ((EntityQueryParseContext)c).CompileContext));
+        var identifier = SkipWhiteSpace(new Identifier())
+            .And(Not(emptyCallArgs))
+            .Then<IExpression>(static (c, x) => new IdentityExpression(x.Item1.ToString()!, ((EntityQueryParseContext)c).CompileContext));
 
         var constArray = openArray
             .And(Separated(comma, expression))
             .And(closeArray)
-            .Then<IExpression>(static (c, x) => new EqlExpression(Expression.NewArrayInit(x.Item2[0].Type, x.Item2.Select(e => e.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))));
+            .Then<IExpression>(
+                static (c, x) =>
+                    new EqlExpression(
+                        Expression.NewArrayInit(
+                            x.Item2[0].Type,
+                            x.Item2.Select(e =>
+                                e.Compile(
+                                    ((EntityQueryParseContext)c).Context,
+                                    ((EntityQueryParseContext)c).Schema,
+                                    ((EntityQueryParseContext)c).RequestContext,
+                                    ((EntityQueryParseContext)c).MethodProvider
+                                )
+                            )
+                        )
+                    )
+            );
 
         var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1!.ToString()!, x.Item2));
 
@@ -107,7 +124,23 @@ public sealed class EntityQueryParser
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;
         var unary = Recursive<IExpression>(
-            (u) => minus.And(u).Then<IExpression>(static (c, x) => new EqlExpression(Expression.Negate(x.Item2.Compile(((EntityQueryParseContext)c).Context, ((EntityQueryParseContext)c).Schema, ((EntityQueryParseContext)c).RequestContext, ((EntityQueryParseContext)c).MethodProvider)))).Or(primary)
+            (u) =>
+                minus
+                    .And(u)
+                    .Then<IExpression>(
+                        static (c, x) =>
+                            new EqlExpression(
+                                Expression.Negate(
+                                    x.Item2.Compile(
+                                        ((EntityQueryParseContext)c).Context,
+                                        ((EntityQueryParseContext)c).Schema,
+                                        ((EntityQueryParseContext)c).RequestContext,
+                                        ((EntityQueryParseContext)c).MethodProvider
+                                    )
+                                )
+                            )
+                    )
+                    .Or(primary)
         );
 
         // factor => unary ( ( "*" | "/" | ... ) unary )* ;
@@ -198,7 +231,8 @@ public sealed class EntityQueryParser
 
     private sealed class EntityQueryParseContext : ParseContext
     {
-        public EntityQueryParseContext(string query, Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, CompileContext compileContext) : base(new Parlot.Scanner(query))
+        public EntityQueryParseContext(string query, Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, EqlCompileContext compileContext)
+            : base(new Parlot.Scanner(query))
         {
             Context = context;
             Schema = schema;
@@ -211,10 +245,10 @@ public sealed class EntityQueryParser
         public ISchemaProvider? Schema { get; }
         public QueryRequestContext RequestContext { get; }
         public IMethodProvider MethodProvider { get; }
-        public CompileContext CompileContext { get; }
+        public EqlCompileContext CompileContext { get; }
     }
 
-    public Expression Parse(string query, Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, CompileContext compileContext)
+    public Expression Parse(string query, Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, EqlCompileContext compileContext)
     {
         var parseContext = new EntityQueryParseContext(query, context, schema, requestContext, methodProvider, compileContext);
 

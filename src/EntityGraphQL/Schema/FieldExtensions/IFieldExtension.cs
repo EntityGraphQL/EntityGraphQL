@@ -44,6 +44,7 @@ public interface IFieldExtension
     /// <returns></returns>
     (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
+        BaseGraphQLField fieldNode,
         Expression expression,
         ParameterExpression? argumentParam,
         dynamic? arguments,

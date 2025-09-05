@@ -60,6 +60,7 @@ public class GraphQLScalarField : BaseGraphQLField
             nextFieldContext,
             replacementNextFieldContext,
             ParentNode!,
+            this,
             schemaContext,
             compileContext,
             Arguments,

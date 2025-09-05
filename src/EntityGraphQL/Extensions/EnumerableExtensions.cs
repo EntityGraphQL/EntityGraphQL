@@ -35,13 +35,6 @@ public static class EnumerableExtensions
         return source;
     }
 
-    public static IEnumerable<TSource> WhereWhen<TSource>(this IEnumerable<TSource> source, EntityQueryType<TSource> filter, bool applyPredicate)
-    {
-        if (applyPredicate)
-            return Queryable.Where(source.AsQueryable(), filter.Query!);
-        return source;
-    }
-
     /// <summary>
     /// Does a null check on source. Returns null if source is null, otherwise returns source.ToList()
     /// If returnEmptyList is true, returns an empty list if source is null

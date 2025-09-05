@@ -69,7 +69,7 @@ public static class QueryWalkerHelper
             }
         }
 
-        return ExpressionUtil.ConvertObjectType(argValue, argType, schema, null);
+        return ExpressionUtil.ConvertObjectType(argValue, argType, schema);
     }
 
     private static object ProcessObjectValue(ISchemaProvider schema, IValueNode argumentValue, string argName, Type argType)

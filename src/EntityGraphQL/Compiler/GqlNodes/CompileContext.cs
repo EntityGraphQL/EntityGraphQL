@@ -96,7 +96,7 @@ public class CompileContext
         {
             // we need to make a copy of the argument parameter as if they select the same field multiple times
             // i.e. with different alias & arguments we need to have different ParameterExpression instances
-            argumentValue = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, newArgParam?.Type, docParam, docVariables, validationErrors);
+            argumentValue = ArgumentUtil.BuildArgumentsObject(field.Schema, field.Name, field, args, field.Arguments.Values, newArgParam?.Type, docParam, docVariables, validationErrors, this);
             if (argumentValue != null)
                 AddConstant(field, newArgParam!, argumentValue);
         }

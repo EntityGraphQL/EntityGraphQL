@@ -34,13 +34,6 @@ public static class QueryableExtensions
         return source;
     }
 
-    public static IQueryable<TSource> WhereWhen<TSource>(this IQueryable<TSource> source, EntityQueryType<TSource> filter, bool applyPredicate)
-    {
-        if (applyPredicate)
-            return Queryable.Where(source, filter.Query!);
-        return source;
-    }
-
     public static IQueryable<TResult>? SelectWithNullCheck<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector)
     {
         if (source == null)

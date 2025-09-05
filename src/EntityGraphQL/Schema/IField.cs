@@ -92,6 +92,7 @@ public interface IField
         Expression fieldExpression,
         Expression? fieldContext,
         IGraphQLNode? parentNode,
+        BaseGraphQLField? fieldNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,
         IReadOnlyDictionary<string, object?> args,

@@ -272,7 +272,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             GraphQLDocument? compiledQuery = null;
             if (options.EnablePersistedQueries)
             {
-                var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options);
+                var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null);
                 if (persistedQuery != null && persistedQuery.Version != 1)
                     throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
 
@@ -311,9 +311,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 // no cache
                 if (gql.Query == null)
                 {
-                    string? hash = (
-                        (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, options)
-                    )?.Sha256Hash;
+                    string? hash = ((PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null))?.Sha256Hash;
                     if (hash != null)
                         throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
 
@@ -378,9 +376,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         // cache the result
         if (gql.Query == null)
         {
-            string? phash = (
-                (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null, executionOptions)
-            )?.Sha256Hash;
+            string? phash = ((PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null))?.Sha256Hash;
             if (phash != null)
                 throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
             throw new EntityGraphQLException("Query field must be set unless you are using persisted queries");

@@ -32,12 +32,12 @@ public class GraphQLSubscriptionField : BaseGraphQLQueryField
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
         IArgumentsTracker? variablesToUse,
-        ExecutionOptions executionOptions
+        CompileContext compileContext
     )
     {
         try
         {
-            return SubscriptionField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, executionOptions);
+            return SubscriptionField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, compileContext);
         }
         catch (EntityQuerySchemaException e)
         {

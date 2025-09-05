@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using static EntityGraphQL.Schema.ArgumentHelper;
 
 namespace EntityGraphQL.Tests;
 
@@ -15,7 +14,7 @@ public class FilterExtensionTests
     public void SupportEntityQuery()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        schemaProvider.Query().GetField("users", null).UseFilter();
         var gql = new QueryRequest
         {
             Query =
@@ -37,7 +36,7 @@ public class FilterExtensionTests
     public void SupportEntityQueryEmptyString()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        schemaProvider.Query().GetField("users", null).UseFilter();
         var gql = new QueryRequest
         {
             Query =
@@ -57,7 +56,7 @@ public class FilterExtensionTests
     public void SupportEntityQueryStringWhitespace()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        schemaProvider.Query().GetField("users", null).UseFilter();
         var gql = new QueryRequest
         {
             Query =
@@ -77,7 +76,7 @@ public class FilterExtensionTests
     public void SupportEntityQueryArgument()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        schemaProvider.Query().GetField("users", null).UseFilter();
         var gql = new QueryRequest
         {
             Query =
@@ -100,7 +99,7 @@ public class FilterExtensionTests
     public void FilterExpressionWithNoValue()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        schemaProvider.Query().GetField("users", null).UseFilter();
         var gql = new QueryRequest
         {
             Query =
@@ -126,7 +125,7 @@ public class FilterExtensionTests
     public void FilterExpressionWithNoValueNoDocVar()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        schemaProvider.Query().GetField("users", null).UseFilter();
         var gql = new QueryRequest
         {
             Query =
@@ -236,7 +235,7 @@ public class FilterExtensionTests
     public void SupportUseFilterWithIsAnyStatementInts()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.Query().ReplaceField("users", new { filter = EntityQuery<User>() }, (ctx, p) => ctx.Users.WhereWhen(p.filter, p.filter.HasValue), "Return filtered users");
+        schemaProvider.Query().GetField("users", null).UseFilter();
         var gql = new QueryRequest
         {
             Query =
@@ -564,6 +563,70 @@ public class FilterExtensionTests
         Assert.Equal(1, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal(Gender.Male, person.gender);
+    }
+
+    [Fact]
+    public void SupportUseFilterWithServiceAndNonServiceFields()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        // Expose people with UseFilter
+        schema.Query().ReplaceField("people", ctx => ctx.People, "Return list of people").UseFilter();
+        // Add a service-backed field on Person
+        schema.Type<Person>().AddField("age", "Person's age").Resolve<AgeService>((p, age) => age.GetAge(p.Birthday));
+
+        // Mixed filter: non-service (lastName, name) and service field (age)
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people(filter: ""lastName == \""Frank\"" and (age > 21 or name == \""Tom\"")"") {
+                        id name lastName age
+                    }
+                }",
+        };
+
+        // Test data: only Jill should match after both passes
+        var data = new TestDataContext();
+        data.People.Add(
+            new Person
+            {
+                Id = 1,
+                Name = "Jill",
+                LastName = "Frank",
+                Birthday = DateTime.Now.AddYears(-22),
+            }
+        );
+        data.People.Add(
+            new Person
+            {
+                Id = 2,
+                Name = "Cheryl",
+                LastName = "Frank",
+                Birthday = DateTime.Now.AddYears(-10),
+            }
+        );
+        data.People.Add(
+            new Person
+            {
+                Id = 3,
+                Name = "Tom",
+                LastName = "Smith",
+                Birthday = DateTime.Now.AddYears(-30),
+            }
+        );
+
+        // Provide the service for the service-backed field
+        var services = new ServiceCollection();
+        services.AddSingleton(new AgeService());
+
+        var result = schema.ExecuteRequestWithContext(gql, data, services.BuildServiceProvider(), null);
+
+        Assert.Null(result.Errors);
+        dynamic people = ((IDictionary<string, object>)result.Data!)["people"];
+        Assert.Equal(1, Enumerable.Count(people));
+        var person = Enumerable.First(people);
+        Assert.Equal("Jill", person.name);
+        Assert.Equal("Frank", person.lastName);
     }
 
     [Fact]

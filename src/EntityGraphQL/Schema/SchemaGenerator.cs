@@ -187,15 +187,6 @@ public class SchemaGenerator
         {
             return $"[{string.Join(", ", e.Cast<object>().Select(item => GetArgDefaultValue(new DefaultArgValue(true, item), fieldNamer)).Where(item => item != null))}]";
         }
-        else if (valueType.IsConstructedGenericType && valueType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
-        {
-            if (((BaseEntityQueryType)defaultArgValue.Value).HasValue)
-            {
-                var property = valueType.GetProperty("Query");
-                return $"\"{property!.GetValue(defaultArgValue.Value)}\"";
-            }
-            return string.Empty;
-        }
         else if (defaultArgValue.Value is object o)
         {
             ret += "{ ";

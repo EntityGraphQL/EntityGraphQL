@@ -165,6 +165,7 @@ public class Field : BaseField
         Expression fieldExpression,
         Expression? fieldContext,
         IGraphQLNode? parentNode,
+        BaseGraphQLField? fieldNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,
         IReadOnlyDictionary<string, object?> args,
@@ -177,7 +178,7 @@ public class Field : BaseField
     {
         Expression? expression = fieldExpression;
         // don't store parameterReplacer as a class field as GetExpression is called in compiling - i.e. across threads
-        (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, parentNode, docParam, docVariables, contextChanged, compileContext);
+        (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, parentNode, fieldNode, docParam, docVariables, contextChanged, compileContext);
         if (result == null)
             return (null, null);
         // the expressions we collect have a different starting parameter. We need to change that
@@ -202,6 +203,7 @@ public class Field : BaseField
         ParameterReplacer replacer,
         Expression context,
         IGraphQLNode? parentNode,
+        BaseGraphQLField? fieldNode,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         bool servicesPass,
@@ -224,11 +226,11 @@ public class Field : BaseField
         {
             foreach (var extension in Extensions)
             {
-                // TODO merge with GetExpression below in 6.0
                 if (result != null)
                 {
                     (result, originalArgParam, newArgParam, argumentValue) = extension.GetExpressionAndArguments(
                         this,
+                        fieldNode!,
                         result!,
                         newArgParam,
                         argumentValue,

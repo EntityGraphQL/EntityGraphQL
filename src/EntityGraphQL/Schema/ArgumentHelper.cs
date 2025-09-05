@@ -1,5 +1,4 @@
 using System;
-using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema;
@@ -18,17 +17,6 @@ public static class ArgumentHelper
     public static RequiredField<TType> Required<TType>()
     {
         return new RequiredField<TType>();
-    }
-
-    /// <summary>
-    /// Creates a field argument that takes a String value which will be compiled into an expression and used to filter the collection
-    /// The argument will not be null if not supplied. Has .HasValue on this argument to test if it have a filter expression.
-    /// </summary>
-    /// <typeparam name="TType"></typeparam>
-    /// <returns></returns>
-    public static EntityQueryType<TType> EntityQuery<TType>()
-    {
-        return new EntityQueryType<TType>();
     }
 }
 
@@ -69,39 +57,4 @@ public class RequiredField<TType>
     {
         return Value?.ToString() ?? "null";
     }
-}
-
-public class EntityQueryType<TType> : BaseEntityQueryType
-{
-    /// <summary>
-    /// The compiler will end up setting this to the compiled lambda that can be used in LINQ functions
-    /// </summary>
-    /// <value></value>
-    public Expression<Func<TType, bool>>? Query { get; set; }
-    public override bool HasValue => Query != null;
-
-    public EntityQueryType()
-        : base(typeof(TType)) { }
-
-    public static implicit operator Expression<Func<TType, bool>>(EntityQueryType<TType> q)
-    {
-        if (q.Query == null)
-            throw new InvalidOperationException("Query is null");
-        return q.Query;
-    }
-}
-
-public abstract class BaseEntityQueryType
-{
-    public BaseEntityQueryType(Type type)
-    {
-        QueryType = type;
-    }
-
-    /// <summary>
-    /// Use this in your expression to make a choice
-    /// </summary>
-    /// <value></value>
-    public abstract bool HasValue { get; }
-    public Type QueryType { get; private set; }
 }

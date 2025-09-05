@@ -53,7 +53,6 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         TContext context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        ExecutionOptions options,
         IArgumentsTracker? docVariables
     )
     {
@@ -67,7 +66,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         }
 
         // For subscriptions, we need to expand and execute each subscription field individually
-        var data = await ExecuteAsync((GraphQLSubscriptionField)field, context, serviceProvider, docVariables, options, compileContext.RequestContext);
+        var data = await ExecuteAsync((GraphQLSubscriptionField)field, context, serviceProvider, docVariables, compileContext);
         return (data, true, new List<GraphQLError>());
     }
 
@@ -76,17 +75,16 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         TContext context,
         IServiceProvider? serviceProvider,
         IArgumentsTracker? docVariables,
-        ExecutionOptions executionOptions,
-        QueryRequestContext requestContext
+        CompileContext compileContext
     )
     {
         if (context == null)
             return null;
 
-        BaseGraphQLField.CheckFieldAccess(Schema, node.Field, requestContext);
+        BaseGraphQLField.CheckFieldAccess(Schema, node.Field, compileContext.RequestContext);
 
         // execute the subscription set up method. It returns in IObservable<T>
-        var (result, _) = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables, executionOptions);
+        var (result, _) = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables, compileContext);
 
         if (result == null || node.ResultSelection == null)
             throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");

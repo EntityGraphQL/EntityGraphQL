@@ -55,7 +55,7 @@ public class ArgumentsBenchmarks
 
         for (int i = 0; i < 10000; i++)
         {
-            ExpressionUtil.ConvertObjectType(variables["names"], typeof(InputType), null, null);
+            ExpressionUtil.ConvertObjectType(variables["names"], typeof(InputType), null);
         }
     }
 
@@ -75,7 +75,7 @@ public class ArgumentsBenchmarks
 
         for (int i = 0; i < 10000; i++)
         {
-            ExpressionUtil.ConvertObjectType(variables["names"], typeof(List<InputType>), null, null);
+            ExpressionUtil.ConvertObjectType(variables["names"], typeof(List<InputType>), null);
         }
     }
 }

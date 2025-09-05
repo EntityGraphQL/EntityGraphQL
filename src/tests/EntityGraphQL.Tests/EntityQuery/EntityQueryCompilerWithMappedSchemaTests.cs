@@ -10,10 +10,12 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests;
 /// Tests that our compiler correctly compiles all the basic parts of our language against a given schema provider
 public class EntityQueryCompilerWithMappedSchemaTests
 {
+    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null));
+
     [Fact]
     public void TestConversionToGuid()
     {
-        var exp = EntityQueryCompiler.Compile("people.where(guid == \"6492f5fe-0869-4279-88df-7f82f8e87a67\")", new TestObjectGraphSchema(), new ExecutionOptions());
+        var exp = EntityQueryCompiler.Compile("people.where(guid == \"6492f5fe-0869-4279-88df-7f82f8e87a67\")", new TestObjectGraphSchema(), compileContext);
         dynamic result = exp.Execute(GetDataContext())!;
         Assert.Equal(1, Enumerable.Count(result));
     }
@@ -21,7 +23,7 @@ public class EntityQueryCompilerWithMappedSchemaTests
     [Fact]
     public void CompilesIdentityCall()
     {
-        var exp = EntityQueryCompiler.Compile("people", new TestObjectGraphSchema(), new ExecutionOptions());
+        var exp = EntityQueryCompiler.Compile("people", new TestObjectGraphSchema(), compileContext);
         dynamic result = exp.Execute(GetDataContext())!;
         Assert.Equal(1, Enumerable.Count(result));
     }
@@ -30,9 +32,9 @@ public class EntityQueryCompilerWithMappedSchemaTests
     public void CompilesIdentityCallFullPath()
     {
         var schema = new TestObjectGraphSchema();
-        var exp = EntityQueryCompiler.Compile("privateProjects.where(id == 8).count()", schema, new ExecutionOptions());
+        var exp = EntityQueryCompiler.Compile("privateProjects.where(id == 8).count()", schema, compileContext);
         Assert.Equal(0, exp.Execute(GetDataContext()));
-        var exp2 = EntityQueryCompiler.Compile("privateProjects.count()", schema, new ExecutionOptions());
+        var exp2 = EntityQueryCompiler.Compile("privateProjects.count()", schema, compileContext);
         Assert.Equal(1, exp2.Execute(GetDataContext()));
     }
 
@@ -40,28 +42,28 @@ public class EntityQueryCompilerWithMappedSchemaTests
     public void CompilesTypeBuiltFromObject()
     {
         // no brackets so it reads it as someRelation.relation.id = (99 ? 'wooh' : 66) and fails as 99 is not a bool
-        var exp = EntityQueryCompiler.Compile("defaultLocation.id == 10", new TestObjectGraphSchema(), new ExecutionOptions());
+        var exp = EntityQueryCompiler.Compile("defaultLocation.id == 10", new TestObjectGraphSchema(), compileContext);
         Assert.True((bool)exp.Execute(GetDataContext())!);
     }
 
     [Fact]
     public void CompilesIfThenElseInlineFalseBrackets()
     {
-        var exp = EntityQueryCompiler.Compile("(publicProjects.Count(id == 90) == 1) ? \"Yes\" : \"No\"", new TestObjectGraphSchema(), new ExecutionOptions());
+        var exp = EntityQueryCompiler.Compile("(publicProjects.Count(id == 90) == 1) ? \"Yes\" : \"No\"", new TestObjectGraphSchema(), compileContext);
         Assert.Equal("Yes", exp.Execute(GetDataContext()));
     }
 
     [Fact]
     public void CompilesIfThenElseTrue()
     {
-        var exp = EntityQueryCompiler.Compile("if publicProjects.Count() > 1 then \"Yes\" else \"No\"", new TestObjectGraphSchema(), new ExecutionOptions());
+        var exp = EntityQueryCompiler.Compile("if publicProjects.Count() > 1 then \"Yes\" else \"No\"", new TestObjectGraphSchema(), compileContext);
         Assert.Equal("No", exp.Execute(GetDataContext()));
     }
 
     [Fact]
     public void CompilesAny()
     {
-        var exp = EntityQueryCompiler.Compile("people.any(id > 90)", new TestObjectGraphSchema(), new ExecutionOptions());
+        var exp = EntityQueryCompiler.Compile("people.any(id > 90)", new TestObjectGraphSchema(), compileContext);
         dynamic data = exp.Execute(GetDataContext())!;
         Assert.Equal(false, data);
     }

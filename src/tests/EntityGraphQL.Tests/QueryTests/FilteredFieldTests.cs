@@ -88,7 +88,7 @@ public class FilteredFieldTests
         Assert.Equal("tasks", projectType.GetFields()[0].Name);
     }
 
-    [Fact(Skip = "Not implemented")]
+    [Fact]
     public void TestOffsetPagingWithOthersAndServices()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -99,7 +99,7 @@ public class FilteredFieldTests
                 Id = 1,
                 Name = "Jill",
                 LastName = "Frank",
-                Birthday = DateTime.Now.AddYears(22),
+                Birthday = DateTime.Now.AddYears(-22),
             }
         );
         data.People.Add(
@@ -108,7 +108,7 @@ public class FilteredFieldTests
                 Id = 2,
                 Name = "Cheryl",
                 LastName = "Frank",
-                Birthday = DateTime.Now.AddYears(10),
+                Birthday = DateTime.Now.AddYears(-10),
             }
         );
 
@@ -138,7 +138,7 @@ public class FilteredFieldTests
         Assert.Equal("Jill", person1.name);
     }
 
-    [Theory(Skip = "Not implemented")]
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void TestFilterWithServiceReference(bool separateServices)
@@ -181,8 +181,9 @@ public class FilteredFieldTests
         serviceCollection.AddSingleton(ager);
 
         var result = schema.ExecuteRequestWithContext(gql, data, serviceCollection.BuildServiceProvider(), null, new ExecutionOptions { ExecuteServiceFieldsSeparately = separateServices });
-        Assert.Null(result.Errors);
 
+        // Both scenarios should now work - filtering with service fields is supported
+        Assert.Null(result.Errors);
         dynamic people = result.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(people));
         var person1 = Enumerable.ElementAt(people, 0);

@@ -88,7 +88,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
             nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
         }
         (listContext, var argumentParams) =
-            Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer)
+            Field?.GetExpression(listContext!, replacementNextFieldContext, ParentNode!, this, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer)
             ?? (ListExpression, null);
         if (listContext == null)
             return null;

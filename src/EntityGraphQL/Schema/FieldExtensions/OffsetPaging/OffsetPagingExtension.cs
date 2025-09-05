@@ -103,6 +103,7 @@ public class OffsetPagingExtension : BaseFieldExtension
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
+        BaseGraphQLField fieldNode,
         Expression expression,
         ParameterExpression? argumentParam,
         dynamic? arguments,
@@ -128,7 +129,19 @@ public class OffsetPagingExtension : BaseFieldExtension
         // update the context
         foreach (var extension in Extensions)
         {
-            var res = extension.GetExpressionAndArguments(field, newItemsExp, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
+            var res = extension.GetExpressionAndArguments(
+                field,
+                fieldNode,
+                newItemsExp,
+                argumentParam,
+                arguments,
+                context,
+                parentNode,
+                servicesPass,
+                parameterReplacer,
+                originalArgParam,
+                compileContext
+            );
             (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
 

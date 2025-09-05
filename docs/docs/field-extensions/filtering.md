@@ -180,3 +180,64 @@ The expression language supports ternary and conditional:
 
 - `__ ? __ : __`
 - `if __ then __ else __`
+
+## Service Fields in Filters
+
+When using the filter extension with fields that resolve data from services (using `Resolve<TService>()`) and have two-pass execution enabled (`ExecuteServiceFieldsSeparately = true`, which is the default), EntityGraphQL automatically handles filter splitting to optimize query performance.
+
+### How Filter Splitting Works
+
+The filter extension uses a `FilterSplitter` that automatically separates filter expressions into two parts:
+
+1. **Database-safe filters**: Expressions that only reference database fields, executed directly against the database (e.g., Entity Framework)
+2. **Service-dependent filters**: Expressions that reference service fields, executed in-memory after the service data is resolved
+
+This ensures that:
+
+- Entity Framework can optimize database queries with only the database-safe portion of the filter
+- Service fields work correctly in filters without causing EF translation errors
+- Performance is optimized by filtering as much as possible at the database level
+
+### Example with Service Fields
+
+Given a `Person` type with a service field:
+
+```cs
+schema.UpdateType<Person>(type => {
+    type.AddField("age", "Person's calculated age")
+        .Resolve<IAgeService>((person, ager) => ager.GetAge(person.Birthday));
+});
+```
+
+You can use filters that mix database and service fields:
+
+```graphql
+{
+  # Filter combining database field (name) and service field (age)
+  people(filter: "name.startsWith('John') && age > 21") {
+    name
+    age
+  }
+}
+```
+
+EntityGraphQL will automatically split this into:
+
+1. **Database filter**: `name.startsWith('John')` - executed against the database / main context
+2. **Service filter**: `age > 21` - executed in-memory after age calculation
+
+### Filter Splitting Rules
+
+The filter splitter follows these rules for optimal performance:
+
+- **AND expressions**: Split into separate database and service parts when possible
+- **OR expressions**: Moved entirely to service execution if they contain any service fields (cannot be safely split)
+- **NOT expressions**: Handled appropriately based on whether they contain service fields
+
+:::info Performance Note
+
+Filter splitting is automatically enabled when `ExecuteServiceFieldsSeparately = true` (the default). This provides optimal performance by leveraging database query optimization while supporting service fields in filters.
+
+If you disable two-pass execution (`ExecuteServiceFieldsSeparately = false`), all filters will execute in-memory, which may impact performance for large datasets if your query context is a database context.
+
+:::

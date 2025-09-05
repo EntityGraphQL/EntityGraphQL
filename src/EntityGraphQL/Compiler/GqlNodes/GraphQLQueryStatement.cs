@@ -21,7 +21,6 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
         TContext context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        ExecutionOptions options,
         IArgumentsTracker? docVariables
     )
     {

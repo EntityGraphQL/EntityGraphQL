@@ -86,7 +86,6 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         TContext context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        ExecutionOptions options,
         IArgumentsTracker? docVariables
     );
 
@@ -150,7 +149,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                             }
 #endif
 
-                            var (data, didExecute, fieldErrors) = await ExecuteOperationField(compileContext, expandedField, contextToUse, serviceProvider, fragments, options, docVariables);
+                            var (data, didExecute, fieldErrors) = await ExecuteOperationField(compileContext, expandedField, contextToUse, serviceProvider, fragments, docVariables);
 
 #if DEBUG
                             if (options.IncludeDebugInfo)
@@ -240,7 +239,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     object? argValue = null;
                     if (variables.ContainsKey(name) || argType.DefaultValue.IsSet)
                     {
-                        argValue = ExpressionUtil.ConvertObjectType(variables.GetValueOrDefault(name) ?? argType.DefaultValue.Value, argType.RawType, Schema, null);
+                        argValue = ExpressionUtil.ConvertObjectType(variables.GetValueOrDefault(name) ?? argType.DefaultValue.Value, argType.RawType, Schema);
                         variablesToUse!.MarkAsSet(name);
                     }
                     if (argValue == null && argType.IsRequired)

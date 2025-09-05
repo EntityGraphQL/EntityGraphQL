@@ -32,12 +32,12 @@ public class GraphQLMutationField : BaseGraphQLQueryField
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
         IArgumentsTracker? variablesToUse,
-        ExecutionOptions executionOptions
+        CompileContext compileContext
     )
     {
         try
         {
-            return MutationField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, executionOptions);
+            return MutationField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, compileContext);
         }
         catch (EntityQuerySchemaException e)
         {

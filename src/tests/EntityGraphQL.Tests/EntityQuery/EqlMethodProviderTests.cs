@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 using Xunit;
@@ -10,6 +11,8 @@ namespace EntityGraphQL.Tests.EntityQuery;
 
 public class EqlMethodProviderTests
 {
+    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null));
+
     [Fact]
     public void TestMethodRegistration()
     {
@@ -155,7 +158,7 @@ public class EqlMethodProviderTests
         provider.RegisterMethod(typeof(string).GetMethod(nameof(string.Compare), [typeof(string), typeof(string)])!, typeof(string));
         Assert.True(provider.EntityTypeHasMethod(typeof(string), "compare"));
 
-        var exp = EntityQueryCompiler.Compile(@"people.first(name.compare(""Bob"") == 0)", SchemaBuilder.FromObject<EqlMethodTestSchema>(), new ExecutionOptions(), provider);
+        var exp = EntityQueryCompiler.Compile(@"people.first(name.compare(""Bob"") == 0)", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, provider);
         var result = exp.Execute(new EqlMethodTestSchema()) as Person;
         Assert.NotNull(result);
         Assert.Equal("Bob", result.Name);
@@ -169,7 +172,7 @@ public class EqlMethodProviderTests
         provider.RegisterMethod(typeof(Person).GetMethod(nameof(Person.GetFullName))!);
         Assert.True(provider.EntityTypeHasMethod(typeof(Person), "getFullName"));
 
-        var exp = EntityQueryCompiler.Compile(@"people.first(getFullName() == ""Robin Hood"")", SchemaBuilder.FromObject<EqlMethodTestSchema>(), new ExecutionOptions(), provider);
+        var exp = EntityQueryCompiler.Compile(@"people.first(getFullName() == ""Robin Hood"")", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, provider);
         var result = exp.Execute(new EqlMethodTestSchema()) as Person;
         Assert.NotNull(result);
         Assert.Equal("Robin Hood", result.GetFullName());
@@ -192,14 +195,14 @@ public class EqlMethodProviderTests
             }
         );
 
-        var exp = EntityQueryCompiler.Compile(@"one.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), new ExecutionOptions(), provider);
+        var exp = EntityQueryCompiler.Compile(@"one.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, provider);
         Assert.True(exp.Execute(new EqlMethodTestSchema()) as bool?);
-        exp = EntityQueryCompiler.Compile(@"notOne.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), new ExecutionOptions(), provider);
+        exp = EntityQueryCompiler.Compile(@"notOne.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, provider);
         Assert.False(exp.Execute(new EqlMethodTestSchema()) as bool?);
 
-        exp = EntityQueryCompiler.Compile(@"oneStr.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), new ExecutionOptions(), provider);
+        exp = EntityQueryCompiler.Compile(@"oneStr.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, provider);
         Assert.True(exp.Execute(new EqlMethodTestSchema()) as bool?);
-        exp = EntityQueryCompiler.Compile(@"notOneStr.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), new ExecutionOptions(), provider);
+        exp = EntityQueryCompiler.Compile(@"notOneStr.isOne()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, provider);
         Assert.False(exp.Execute(new EqlMethodTestSchema()) as bool?);
     }
 

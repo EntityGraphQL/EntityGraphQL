@@ -98,7 +98,7 @@ public class ArgType
             defaultValue.Value = null;
             defaultValue.IsSet = false;
         }
-        if (gqlLookupType.IsConstructedGenericType && gqlLookupType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+        if (gqlLookupType == typeof(EntityQueryType))
         {
             gqlLookupType = typeof(string);
         }

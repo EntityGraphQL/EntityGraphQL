@@ -1,6 +1,6 @@
 namespace EntityGraphQL.Schema.FieldExtensions;
 
-public class FilterArgs<T>
+public class FilterArgs
 {
-    public EntityQueryType<T>? Filter { get; set; } = ArgumentHelper.EntityQuery<T>();
+    public EntityQueryType? Filter { get; set; } = new EntityQueryType();
 }

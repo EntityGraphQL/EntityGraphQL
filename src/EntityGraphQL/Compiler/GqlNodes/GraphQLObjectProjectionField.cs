@@ -89,8 +89,20 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
             nextFieldContext = ReplaceContext(replacementNextFieldContext!, replacer, nextFieldContext!, possibleNextContextTypes);
         }
         (nextFieldContext, var argumentParam) =
-            Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, ParentNode!, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer)
-            ?? (nextFieldContext, null);
+            Field?.GetExpression(
+                nextFieldContext!,
+                replacementNextFieldContext,
+                ParentNode!,
+                this,
+                schemaContext,
+                compileContext,
+                Arguments,
+                docParam,
+                docVariables,
+                Directives,
+                contextChanged,
+                replacer
+            ) ?? (nextFieldContext, null);
         if (nextFieldContext == null)
             return null;
 

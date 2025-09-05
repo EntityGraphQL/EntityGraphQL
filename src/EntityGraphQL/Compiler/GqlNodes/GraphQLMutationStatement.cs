@@ -27,7 +27,6 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         TContext context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        ExecutionOptions options,
         IArgumentsTracker? docVariables
     )
     {
@@ -37,7 +36,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         var errors = new List<GraphQLError>();
 
         // For mutations, we need to expand and execute each mutation field individually
-        var (data, didExecute, methodValidator) = await ExecuteAsync(compileContext, (GraphQLMutationField)field, context, serviceProvider, fragments, options, docVariables);
+        var (data, didExecute, methodValidator) = await ExecuteAsync(compileContext, (GraphQLMutationField)field, context, serviceProvider, fragments, docVariables);
 
         if (methodValidator?.HasErrors == true)
         {
@@ -57,7 +56,6 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     /// <param name="context">The context instance that will be used</param>
     /// <param name="serviceProvider">A service provider to look up any dependencies</param>
     /// <param name="fragments"></param>
-    /// <param name="options">Execution options</param>
     /// <param name="docVariables">Resolved values of variables pass in request</param>
     /// <typeparam name="TContext"></typeparam>
     /// <returns></returns>
@@ -67,7 +65,6 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         TContext context,
         IServiceProvider? serviceProvider,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
-        ExecutionOptions options,
         IArgumentsTracker? docVariables
     )
     {
@@ -83,7 +80,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         }
 
         // run the mutation to get the context for the query select
-        var (data, validatorErrors) = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, options);
+        var (data, validatorErrors) = await node.ExecuteMutationAsync(context, serviceProvider, OpVariableParameter, docVariables, compileContext);
 
         if (
             data == null

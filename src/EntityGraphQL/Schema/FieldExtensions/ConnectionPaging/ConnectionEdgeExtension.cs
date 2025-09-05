@@ -23,6 +23,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
+        BaseGraphQLField fieldNode,
         Expression expression,
         ParameterExpression? argumentParam,
         dynamic? arguments,
@@ -56,7 +57,19 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in pagingExtension.ExtensionsBeforePaging)
         {
-            var res = extension.GetExpressionAndArguments(field, expression, argumentParam, arguments, context, parentNode, servicesPass, parameterReplacer, originalArgParam, compileContext);
+            var res = extension.GetExpressionAndArguments(
+                field,
+                fieldNode,
+                expression,
+                argumentParam,
+                arguments,
+                context,
+                parentNode,
+                servicesPass,
+                parameterReplacer,
+                originalArgParam,
+                compileContext
+            );
             (expression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
 

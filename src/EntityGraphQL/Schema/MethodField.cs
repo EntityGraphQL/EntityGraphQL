@@ -69,7 +69,7 @@ public abstract class MethodField : BaseField
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
         IArgumentsTracker? docVariables,
-        ExecutionOptions executionOptions
+        CompileContext compileContext
     )
     {
         if (context == null)
@@ -109,7 +109,7 @@ public abstract class MethodField : BaseField
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
             {
-                var (isSet, value) = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
+                var (isSet, value) = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors, compileContext);
                 if (docVariables != null)
                 {
                     if (value is Expression and not null)
@@ -121,7 +121,7 @@ public abstract class MethodField : BaseField
                 // this could be int to RequiredField<int>
                 if (value != null && value.GetType() != argField.RawType)
                 {
-                    value = ExpressionUtil.ConvertObjectType(value, argField.RawType, Schema, executionOptions);
+                    value = ExpressionUtil.ConvertObjectType(value, argField.RawType, Schema);
                 }
 
                 await argField.ValidateAsync(value, this, validationErrors);
@@ -211,6 +211,7 @@ public abstract class MethodField : BaseField
         Expression fieldExpression,
         Expression? fieldContext,
         IGraphQLNode? parentNode,
+        BaseGraphQLField? fieldNode,
         ParameterExpression? schemaContext,
         CompileContext? compileContext,
         IReadOnlyDictionary<string, object?> args,

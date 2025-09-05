@@ -31,12 +31,7 @@ public class GraphQLSchema
             // type.AddField("age", l => (int)((DateTime.Now - l.Dob).TotalDays / 365), "Show the person's age");
             // AgeService needs to be added to the ServiceProvider
             type.AddField("age", "Show the person's age").Resolve<AgeService>((person, ageService) => ageService.Calc(person.Dob));
-            type.AddField(
-                "filteredDirectorOf",
-                new { filter = ArgumentHelper.EntityQuery<Movie>() },
-                (person, args) => person.DirectorOf.WhereWhen(args.filter, args.filter.HasValue).OrderBy(a => a.Name),
-                "Get Director of based on filter"
-            );
+            type.AddField("filteredDirectorOf", (person) => person.DirectorOf.OrderBy(a => a.Name), "Get Director of based on filter").UseFilter();
             type.ReplaceField("writerOf", m => m.WriterOf.Select(a => a.Movie), "Movies they wrote");
             type.ReplaceField("actorIn", m => m.ActorIn.Select(a => a.Movie), "Movies they acted in");
         });

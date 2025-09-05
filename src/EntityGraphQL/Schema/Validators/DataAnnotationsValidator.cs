@@ -110,7 +110,7 @@ public class DataAnnotationsValidator : IArgumentValidator
                     continue;
                 }
 
-                if (property.PropertyType.GetGenericArguments().Length > 0 && property.PropertyType.GetGenericTypeDefinition() == typeof(EntityQueryType<>))
+                if (property.PropertyType == typeof(EntityQueryType))
                 {
                     continue;
                 }
