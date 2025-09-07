@@ -216,8 +216,7 @@ public class TestLogger : ILogger
     public int QueryCompilationCount { get; private set; }
     public int QueryExecutionCount { get; private set; }
 
-    public IDisposable? BeginScope<TState>(TState state)
-        where TState : notnull => null!;
+    IDisposable ILogger.BeginScope<TState>(TState state) => null!;
 
     public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Debug;
 

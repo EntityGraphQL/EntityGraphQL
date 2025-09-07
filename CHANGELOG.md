@@ -21,6 +21,8 @@
 
 - `IFieldExtension.GetExpressionAndArguments` now takes the current GraphQL node `BaseGraphQLField fieldNode` as an argument. `parentNode` has been removed. Access it via `fieldNode.ParentNode`.
 
+- `EntityGraphQL.AspNet` package drops `net6.0` and `net7.0` as targets. `EntityGraphQL` package drops `net6.0` as a target however as it still targets `netstandard2.1` you can still use it with those previous dotnet versions.
+
 ## Changes
 
 - Partial results support
