@@ -52,7 +52,7 @@ public class EqlBenchmarks : BaseBenchmark
             _context,
             Schema,
             new QueryRequestContext(null, null),
-            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)))
+            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null))
         );
 
         return expression;
@@ -67,7 +67,7 @@ public class EqlBenchmarks : BaseBenchmark
             _context,
             Schema,
             new QueryRequestContext(null, null),
-            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)))
+            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null))
         );
 
         return expression;
@@ -83,7 +83,7 @@ public class EqlBenchmarks : BaseBenchmark
             _context,
             Schema,
             new QueryRequestContext(null, null),
-            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)))
+            new EqlCompileContext(new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null))
         );
 
         return expression;

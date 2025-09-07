@@ -66,7 +66,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         NextFieldContext = nodeExpression;
         RootParameter = rootParameter;
         OpDefinedVariables = opVariables;
-        this.Schema = schema;
+        Schema = schema;
         Arguments = new Dictionary<string, object?>();
         if (OpDefinedVariables.Count > 0)
         {
@@ -122,7 +122,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         try
         {
             IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
-            CompileContext compileContext = new(options, null, requestContext, cancellationToken);
+            CompileContext compileContext = new(options, null, requestContext, OpVariableParameter, docVariables, cancellationToken);
 
             foreach (var fieldNode in QueryFields)
             {
@@ -305,7 +305,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var bulkData = await ResolveBulkLoadersAsync(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
 
                 // new context
-                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, compileContext.CancellationToken);
+                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken);
 
                 // we now know the selection type without services and need to build the full select on that type
                 // need to rebuild the full query

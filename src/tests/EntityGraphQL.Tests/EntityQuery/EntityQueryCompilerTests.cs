@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests;
 /// </summary>
 public class EntityQueryCompilerTests
 {
-    private readonly EqlCompileContext compileContext = new(new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)));
+    private readonly EqlCompileContext compileContext = new(new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null));
 
     [Fact]
     public void CompilesNumberConstant()

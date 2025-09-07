@@ -1409,7 +1409,7 @@ public class ServiceFieldTests
 
         // first stage without services
         var expression = node.GetNodeExpression(
-            new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null)),
+            new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null),
             serviceCollection.BuildServiceProvider(),
             new Dictionary<string, GraphQLFragmentStatement>(),
             query.OpVariableParameter,

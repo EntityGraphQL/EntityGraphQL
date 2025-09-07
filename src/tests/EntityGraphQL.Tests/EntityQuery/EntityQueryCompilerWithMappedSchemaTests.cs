@@ -10,7 +10,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests;
 /// Tests that our compiler correctly compiles all the basic parts of our language against a given schema provider
 public class EntityQueryCompilerWithMappedSchemaTests
 {
-    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null));
+    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null);
 
     [Fact]
     public void TestConversionToGuid()

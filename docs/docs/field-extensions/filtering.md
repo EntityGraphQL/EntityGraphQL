@@ -181,6 +181,33 @@ The expression language supports ternary and conditional:
 - `__ ? __ : __`
 - `if __ then __ else __`
 
+## GraphQL Variables in Filters
+
+The filter extension supports GraphQL variables using the `$variableName` syntax. This allows you to parameterize your filter expressions, making them more dynamic and reusable.
+
+### Example Variable Usage
+
+You can use multiple variables in a single filter expression:
+
+```graphql
+query GetPeopleByRange($minAge: Int!, $status: String!) {
+  people(filter: "age >= $minAge && status == $status") {
+    firstName
+    lastName
+    age
+  }
+}
+```
+
+With variables:
+
+```json
+{
+  "minAge": 18,
+  "status": "active"
+}
+```
+
 ## Service Fields in Filters
 
 When using the filter extension with fields that resolve data from services (using `Resolve<TService>()`) and have two-pass execution enabled (`ExecuteServiceFieldsSeparately = true`, which is the default), EntityGraphQL automatically handles filter splitting to optimize query performance.

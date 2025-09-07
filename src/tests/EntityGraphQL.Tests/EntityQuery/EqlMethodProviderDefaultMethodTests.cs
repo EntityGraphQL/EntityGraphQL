@@ -8,7 +8,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Tests;
 
 public class EqlMethodProviderDefaultMethodTests
 {
-    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null));
+    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null);
 
     [Fact]
     public void CompilesFirst()

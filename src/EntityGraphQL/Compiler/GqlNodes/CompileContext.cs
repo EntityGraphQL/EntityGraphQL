@@ -15,13 +15,23 @@ public class CompileContext
     private readonly Dictionary<ParameterExpression, object?> constantParameters = [];
     private readonly Dictionary<IField, ParameterExpression> constantParametersForField = [];
 
-    public CompileContext(ExecutionOptions options, Dictionary<string, object>? bulkData, QueryRequestContext requestContext, CancellationToken cancellationToken = default)
+    public CompileContext(
+        ExecutionOptions options,
+        Dictionary<string, object>? bulkData,
+        QueryRequestContext requestContext,
+        ParameterExpression? docParam,
+        IArgumentsTracker? docVariables,
+        CancellationToken cancellationToken = default
+    )
     {
         BulkData = bulkData;
         BulkParameter = bulkData != null ? Expression.Parameter(bulkData.GetType(), "bulkData") : null;
         ExecutionOptions = options;
         RequestContext = requestContext;
         CancellationToken = cancellationToken;
+        // Store document variables for access in field extensions and EQL compilation
+        DocumentVariablesParameter = docParam;
+        DocumentVariables = docVariables;
     }
 
     public List<ParameterExpression> Services { get; } = [];
@@ -32,6 +42,8 @@ public class CompileContext
     public ExecutionOptions ExecutionOptions { get; }
     public QueryRequestContext RequestContext { get; }
     public CancellationToken CancellationToken { get; }
+    public ParameterExpression? DocumentVariablesParameter { get; }
+    public IArgumentsTracker? DocumentVariables { get; }
     public ConcurrencyLimiterRegistry ConcurrencyLimiterRegistry { get; } = new ConcurrencyLimiterRegistry();
 
     public void AddServices(IEnumerable<ParameterExpression> services)

@@ -55,6 +55,7 @@ public sealed class EntityQueryParser
     private static readonly Parser<char> comma = Terms.Char(',');
     private static readonly Parser<char> questionMark = Terms.Char('?');
     private static readonly Parser<char> colon = Terms.Char(':');
+    private static readonly Parser<char> dollarSign = Terms.Char('$');
     private static readonly Parser<string> ifExp = Terms.Text("if");
     private static readonly Parser<string> thenExp = Terms.Text("then");
     private static readonly Parser<string> elseExp = Terms.Text("else");
@@ -74,6 +75,11 @@ public sealed class EntityQueryParser
 
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
         .Then<IExpression>(static s => new EqlExpression(Expression.Constant(s.ToString())));
+
+    // Variable expression: $variableName
+    private static readonly Parser<IExpression> variableExp = dollarSign
+        .And(new Identifier())
+        .Then<IExpression>(static (c, x) => new VariableExpression(x.Item2.ToString()!, ((EntityQueryParseContext)c).CompileContext));
 
     private EntityQueryParser()
     {
@@ -119,7 +125,7 @@ public sealed class EntityQueryParser
         var falseExp = Terms.Text("false").AndSkip(Not(identifier)).Then<IExpression>(static _ => new EqlExpression(Expression.Constant(false)));
 
         // primary => NUMBER | "(" expression ")";
-        var primary = numberExp.Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(callPath).Or(groupExpression).Or(constArray);
+        var primary = numberExp.Or(strExp).Or(trueExp).Or(falseExp).Or(nullExp).Or(variableExp).Or(callPath).Or(groupExpression).Or(constArray);
 
         // The Recursive helper allows to create parsers that depend on themselves.
         // ( "-" ) unary | primary;

@@ -104,7 +104,16 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     {
         var context = (TQueryContext)serviceProvider.GetRequiredService(typeof(TQueryContext));
 
-        var result = MakeSelectionFromResultAsync(new CompileContext(options!, null, requestContext), node, node.ResultSelection!, context, serviceProvider, fragments!, docVariables, eventValue);
+        var result = MakeSelectionFromResultAsync(
+            new CompileContext(options!, null, requestContext, OpVariableParameter, docVariables),
+            node,
+            node.ResultSelection!,
+            context,
+            serviceProvider,
+            fragments!,
+            docVariables,
+            eventValue
+        );
         return result;
     }
 

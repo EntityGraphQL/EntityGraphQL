@@ -657,6 +657,88 @@ public class FilterExtensionTests
         Assert.Equal(33, person.id);
     }
 
+    [Fact]
+    public void SupportGraphQLVariablesInFilter()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().GetField("users", null).UseFilter();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query GetUsersByField($fieldValue: String) {
+                    users(filter: ""field2 == $fieldValue"") { 
+                        field2 
+                    }
+                }",
+            Variables = new QueryVariables { { "fieldValue", "2" } },
+        };
+
+        var context = new TestDataContext().FillWithTestData();
+        context.Users.Add(new User { Field2 = "99" });
+        var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+
+        Assert.Null(tree.Errors);
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
+        Assert.Equal(1, Enumerable.Count(users));
+        var user = Enumerable.First(users);
+        Assert.Equal("2", user.field2);
+    }
+
+    [Fact]
+    public void SupportMultipleGraphQLVariablesInFilter()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().GetField("users", null).UseFilter();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query GetUsersByFields($field1Value: Int, $field2Value: String) {
+                    users(filter: ""field1 == $field1Value && field2 == $field2Value"") { 
+                        field1
+                        field2 
+                    }
+                }",
+            Variables = new QueryVariables { { "field1Value", 2 }, { "field2Value", "2" } },
+        };
+
+        var context = new TestDataContext().FillWithTestData();
+        context.Users.Add(new User { Field1 = 1, Field2 = "1" });
+        context.Users.Add(new User { Field1 = 3, Field2 = "3" });
+        var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(tree.Errors);
+        dynamic users = ((IDictionary<string, object>)tree.Data!)["users"];
+        Assert.Equal(1, Enumerable.Count(users));
+        var user = Enumerable.First(users);
+        Assert.Equal(2, user.field1);
+        Assert.Equal("2", user.field2);
+    }
+
+    [Fact]
+    public void ThrowsErrorForUndefinedVariableInFilter()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().GetField("users", null).UseFilter();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query GetUsersByField {
+                    users(filter: ""field2 == $undefinedVariable"") { 
+                        field2 
+                    }
+                }",
+            Variables = new QueryVariables { { "fieldValue", "2" } },
+        };
+
+        var context = new TestDataContext().FillWithTestData();
+        var tree = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.NotNull(tree.Errors);
+
+        Assert.Contains("Field 'users' - Variable $undefinedVariable not found in variables.", tree.Errors.First().Message);
+    }
+
     private class TestDataContext2 : TestDataContext
     {
         [UseFilter]

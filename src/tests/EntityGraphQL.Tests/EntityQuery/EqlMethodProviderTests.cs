@@ -11,7 +11,7 @@ namespace EntityGraphQL.Tests.EntityQuery;
 
 public class EqlMethodProviderTests
 {
-    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null));
+    private readonly CompileContext compileContext = new(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null);
 
     [Fact]
     public void TestMethodRegistration()
