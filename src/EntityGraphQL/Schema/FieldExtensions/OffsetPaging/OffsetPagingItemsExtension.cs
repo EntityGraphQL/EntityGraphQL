@@ -24,7 +24,6 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         ParameterExpression? argumentParam,
         dynamic? arguments,
         Expression context,
-        IGraphQLNode? parentNode,
         bool servicesPass,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
@@ -32,40 +31,28 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
     )
     {
         // We know we need the arguments from the parent field as that is where they are defined
-        if (parentNode != null)
+        if (fieldNode.ParentNode != null)
         {
             argumentParam =
-                compileContext.GetConstantParameterForField(parentNode.Field!)
-                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
+                compileContext.GetConstantParameterForField(fieldNode.ParentNode.Field!)
+                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{fieldNode.ParentNode.Field!.Name}' in compile context.");
             arguments = compileContext.ConstantParameters[argumentParam];
-            originalArgParam = parentNode.Field!.ArgumentsParameter;
+            originalArgParam = fieldNode.ParentNode.Field!.ArgumentsParameter;
         }
 
         // we use the resolveExpression & extensions from our parent extension. We need to figure this out at runtime as the type this Items field
         // is on may be used in multiple places and have different arguments etc
         // See OffsetPagingTests.TestMultiUseWithArgs
-        var offsetPagingExtension = (OffsetPagingExtension)parentNode!.Field!.Extensions.Find(e => e is OffsetPagingExtension)!;
+        var offsetPagingExtension = (OffsetPagingExtension)fieldNode.ParentNode!.Field!.Extensions.Find(e => e is OffsetPagingExtension)!;
 
         var resolveExpression = offsetPagingExtension.OriginalFieldExpression!;
-        var originalFieldParam = parentNode.Field!.FieldParam!;
-        Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(resolveExpression, originalFieldParam, parentNode!.ParentNode!.NextFieldContext!);
+        var originalFieldParam = fieldNode.ParentNode.Field!.FieldParam!;
+        Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(resolveExpression, originalFieldParam, fieldNode.ParentNode!.ParentNode!.NextFieldContext!);
         // other extensions defined on the original field need to run on the collection
 
         foreach (var extension in offsetPagingExtension.Extensions)
         {
-            var res = extension.GetExpressionAndArguments(
-                field,
-                fieldNode,
-                newItemsExp,
-                argumentParam,
-                arguments,
-                context,
-                parentNode,
-                servicesPass,
-                parameterReplacer,
-                originalArgParam,
-                compileContext
-            );
+            var res = extension.GetExpressionAndArguments(field, fieldNode, newItemsExp, argumentParam, arguments, context, servicesPass, parameterReplacer, originalArgParam, compileContext);
             (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
 
@@ -91,13 +78,13 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         );
 
         // we have moved the expression from the parent node to here. We need to call the before callback
-        if (parentNode?.IsRootField == true)
+        if (fieldNode.ParentNode?.IsRootField == true)
             BaseGraphQLField.HandleBeforeRootFieldExpressionBuild(
                 compileContext,
-                BaseGraphQLField.GetOperationName((BaseGraphQLField)parentNode),
-                parentNode.Name!,
+                BaseGraphQLField.GetOperationName((BaseGraphQLField)fieldNode.ParentNode),
+                fieldNode.ParentNode.Name!,
                 servicesPass,
-                parentNode.IsRootField,
+                fieldNode.ParentNode.IsRootField,
                 ref newItemsExp
             );
 

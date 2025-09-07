@@ -59,7 +59,6 @@ public abstract class BaseFieldExtension : IFieldExtension
         ParameterExpression? argumentParam,
         dynamic? arguments,
         Expression context,
-        IGraphQLNode? parentNode,
         bool servicesPass,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,

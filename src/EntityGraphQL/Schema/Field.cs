@@ -235,7 +235,6 @@ public class Field : BaseField
                         newArgParam,
                         argumentValue,
                         context,
-                        parentNode,
                         servicesPass,
                         replacer,
                         originalArgParam,

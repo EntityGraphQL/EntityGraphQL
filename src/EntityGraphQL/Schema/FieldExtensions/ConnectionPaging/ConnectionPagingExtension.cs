@@ -146,7 +146,6 @@ public class ConnectionPagingExtension : BaseFieldExtension
         ParameterExpression? argumentParam,
         dynamic? arguments,
         Expression context,
-        IGraphQLNode? parentNode,
         bool servicesPass,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
@@ -172,19 +171,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
             // if we have other extensions (filter etc) we need to apply them to the totalCount
             foreach (var extension in ExtensionsBeforePaging)
             {
-                var res = extension.GetExpressionAndArguments(
-                    field,
-                    fieldNode,
-                    edgeExpression,
-                    argumentParam,
-                    arguments,
-                    context,
-                    parentNode,
-                    servicesPass,
-                    parameterReplacer,
-                    originalArgParam,
-                    compileContext
-                );
+                var res = extension.GetExpressionAndArguments(field, fieldNode, edgeExpression, argumentParam, arguments, context, servicesPass, parameterReplacer, originalArgParam, compileContext);
                 (edgeExpression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
             }
         }

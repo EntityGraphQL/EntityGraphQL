@@ -132,7 +132,6 @@ public class SortExtension : BaseFieldExtension
         ParameterExpression? argumentParam,
         dynamic? arguments,
         Expression context,
-        IGraphQLNode? parentNode,
         bool servicesPass,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,

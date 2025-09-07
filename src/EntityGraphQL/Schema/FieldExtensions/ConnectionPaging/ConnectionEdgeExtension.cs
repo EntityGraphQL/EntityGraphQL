@@ -28,7 +28,6 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         ParameterExpression? argumentParam,
         dynamic? arguments,
         Expression context,
-        IGraphQLNode? parentNode,
         bool servicesPass,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
@@ -36,13 +35,13 @@ public class ConnectionEdgeExtension : BaseFieldExtension
     )
     {
         // We know we need the arguments from the parent field as that is where they are defined
-        if (parentNode != null)
+        if (fieldNode.ParentNode != null)
         {
             argumentParam =
-                compileContext.GetConstantParameterForField(parentNode.Field!)
-                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{parentNode.Field!.Name}' in compile context.");
+                compileContext.GetConstantParameterForField(fieldNode.ParentNode.Field!)
+                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{fieldNode.ParentNode.Field!.Name}' in compile context.");
             arguments = compileContext.ConstantParameters[argumentParam];
-            originalArgParam = parentNode.Field!.ArgumentsParameter;
+            originalArgParam = fieldNode.ParentNode.Field!.ArgumentsParameter;
         }
 
         if (argumentParam == null)
@@ -51,25 +50,15 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         // we use the resolveExpression & extensions from our parent extension. We need to figure this out at runtime as the type this Edges field
         // is on may be used in multiple places and have different arguments etc
         // See OffsetConnectionPagingTests.TestMultiUseWithArgs
-        var pagingExtension = (ConnectionPagingExtension)parentNode!.Field!.Extensions.Find(e => e is ConnectionPagingExtension)!;
-        expression = servicesPass ? expression : parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentNode!.Field!.FieldParam!, parentNode!.ParentNode!.NextFieldContext!);
+        var pagingExtension = (ConnectionPagingExtension)fieldNode.ParentNode!.Field!.Extensions.Find(e => e is ConnectionPagingExtension)!;
+        expression = servicesPass
+            ? expression
+            : parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, fieldNode.ParentNode!.Field!.FieldParam!, fieldNode.ParentNode!.ParentNode!.NextFieldContext!);
 
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in pagingExtension.ExtensionsBeforePaging)
         {
-            var res = extension.GetExpressionAndArguments(
-                field,
-                fieldNode,
-                expression,
-                argumentParam,
-                arguments,
-                context,
-                parentNode,
-                servicesPass,
-                parameterReplacer,
-                originalArgParam,
-                compileContext
-            );
+            var res = extension.GetExpressionAndArguments(field, fieldNode, expression, argumentParam, arguments, context, servicesPass, parameterReplacer, originalArgParam, compileContext);
             (expression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
 
@@ -122,13 +111,13 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         );
 
         // we have moved the expression from the parent node to here. We need to call the before callback
-        if (parentNode?.IsRootField == true)
+        if (fieldNode.ParentNode?.IsRootField == true)
             BaseGraphQLField.HandleBeforeRootFieldExpressionBuild(
                 compileContext,
-                BaseGraphQLField.GetOperationName((BaseGraphQLField)parentNode),
-                parentNode.Name!,
+                BaseGraphQLField.GetOperationName((BaseGraphQLField)fieldNode.ParentNode),
+                fieldNode.ParentNode.Name!,
                 servicesPass,
-                parentNode.IsRootField,
+                fieldNode.ParentNode.IsRootField,
                 ref edgeExpression
             );
 

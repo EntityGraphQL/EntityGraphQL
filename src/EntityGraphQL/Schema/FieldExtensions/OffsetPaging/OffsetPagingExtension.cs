@@ -108,7 +108,6 @@ public class OffsetPagingExtension : BaseFieldExtension
         ParameterExpression? argumentParam,
         dynamic? arguments,
         Expression context,
-        IGraphQLNode? parentNode,
         bool servicesPass,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
@@ -129,19 +128,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         // update the context
         foreach (var extension in Extensions)
         {
-            var res = extension.GetExpressionAndArguments(
-                field,
-                fieldNode,
-                newItemsExp,
-                argumentParam,
-                arguments,
-                context,
-                parentNode,
-                servicesPass,
-                parameterReplacer,
-                originalArgParam,
-                compileContext
-            );
+            var res = extension.GetExpressionAndArguments(field, fieldNode, newItemsExp, argumentParam, arguments, context, servicesPass, parameterReplacer, originalArgParam, compileContext);
             (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
 
