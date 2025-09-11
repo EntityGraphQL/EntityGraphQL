@@ -55,12 +55,12 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
     )
     {
         if (currentContext == null)
-            throw new EntityGraphQLCompilerException("CurrentContext is null");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "CurrentContext is null");
 
         var method = name;
         if (!methodProvider.EntityTypeHasMethod(currentContext.Type, method))
         {
-            throw new EntityGraphQLCompilerException($"Method '{method}' not found on current context '{currentContext.Type.Name}'");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{method}' not found on current context '{currentContext.Type.Name}'");
         }
         // Keep the current context
         var outerContext = currentContext;

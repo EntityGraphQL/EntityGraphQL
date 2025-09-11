@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
@@ -27,7 +28,7 @@ public class GraphQLMutationField : BaseGraphQLQueryField
         this.MutationField = mutationField;
     }
 
-    public Task<(object? data, IGraphQLValidator? methodValidator)> ExecuteMutationAsync<TContext>(
+    public async Task<(object? data, IGraphQLValidator? methodValidator)> ExecuteMutationAsync<TContext>(
         TContext context,
         IServiceProvider? serviceProvider,
         ParameterExpression? variableParameter,
@@ -37,11 +38,15 @@ public class GraphQLMutationField : BaseGraphQLQueryField
     {
         try
         {
-            return MutationField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, compileContext);
+            return await MutationField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, compileContext);
         }
-        catch (EntityQuerySchemaException e)
+        catch (EntityGraphQLException ex)
         {
-            throw new EntityQuerySchemaException($"Error applying mutation: {e.Message}", e);
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, ex.Messages, null, BuildPath(), ex);
+        }
+        catch (Exception ex)
+        {
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, Schema.AllowedExceptionMessage(ex), null, BuildPath(), ex);
         }
     }
 
@@ -60,7 +65,7 @@ public class GraphQLMutationField : BaseGraphQLQueryField
     )
     {
         if (ResultSelection == null)
-            throw new EntityGraphQLCompilerException($"Mutation {Name} should have a result selection");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Mutation {Name} should have a result selection");
 
         return ResultSelection.GetNodeExpression(
             compileContext,

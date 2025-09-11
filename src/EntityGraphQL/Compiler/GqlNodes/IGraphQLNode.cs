@@ -35,4 +35,5 @@ public interface IGraphQLNode
     /// true if the node is a root level field selection (on query, mutation or subscription type)
     /// </summary>
     bool IsRootField { get; }
+    IEnumerable<string> BuildPath();
 }

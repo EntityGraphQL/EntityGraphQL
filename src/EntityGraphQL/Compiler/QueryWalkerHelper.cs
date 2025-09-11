@@ -77,11 +77,11 @@ public static class QueryWalkerHelper
         // this should be an Input type
         // see if it has an empty constructor or a constructor that matches the fields
         if (argumentValue.Value is not List<ObjectFieldNode> objectValues)
-            throw new EntityGraphQLCompilerException($"Argument {argName} is not an object");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Argument {argName} is not an object");
 
         var constructor =
             argType.GetConstructors().FirstOrDefault(c => c.GetParameters().Length == 0 || c.GetParameters().Length == objectValues.Count)
-            ?? throw new EntityGraphQLCompilerException($"No constructor found for object argument {argName}");
+            ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"No constructor found for object argument {argName}");
         var constructorParameters = constructor.GetParameters();
         if (constructorParameters.Length > 0)
         {
@@ -92,10 +92,10 @@ public static class QueryWalkerHelper
             {
                 var field =
                     objectValues.FirstOrDefault(f => f.Name.Value == constructorParameters[i].Name)
-                    ?? throw new EntityGraphQLCompilerException($"Field '{constructorParameters[i].Name}' not found in argument object {argName}");
+                    ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{constructorParameters[i].Name}' not found in argument object {argName}");
                 constructorArgs[i] =
                     ProcessArgumentValue(schema, field.Value, argName, constructorParameters[i].ParameterType)
-                    ?? throw new EntityGraphQLCompilerException($"Field '{constructorParameters[i].Name}' is null in argument object {argName}");
+                    ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{constructorParameters[i].Name}' is null in argument object {argName}");
             }
 
             // Create the object using the specific constructor
@@ -111,18 +111,18 @@ public static class QueryWalkerHelper
         foreach (var item in objectValues)
         {
             if (!schemaType.HasField(item.Name.Value, null))
-                throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' not found of type '{schemaType.Name}'");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{item.Name.Value}' not found of type '{schemaType.Name}'");
             var schemaField = schemaType.GetField(item.Name.Value, null);
 
             if (schemaField.ResolveExpression == null)
-                throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' on type '{schemaType.Name}' has no resolve expression");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{item.Name.Value}' on type '{schemaType.Name}' has no resolve expression");
 
             var nameFromType = ((MemberExpression)schemaField.ResolveExpression).Member.Name;
             var prop = argType.GetProperty(nameFromType);
 
             if (prop == null)
             {
-                var field = argType.GetField(nameFromType) ?? throw new EntityGraphQLCompilerException($"Field '{item.Name.Value}' not found on object argument");
+                var field = argType.GetField(nameFromType) ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{item.Name.Value}' not found on object argument");
                 field.SetValue(obj, ProcessArgumentValue(schema, item.Value, argName, field.FieldType));
                 propTracker?.MarkAsSet(field.Name);
             }
@@ -144,7 +144,7 @@ public static class QueryWalkerHelper
         else
             list = (IList)Activator.CreateInstance(fieldArgType, values.Count)!;
 
-        var listType = list.GetType().GetEnumerableOrArrayType() ?? throw new EntityGraphQLCompilerException($"Argument {argName} is not a list");
+        var listType = list.GetType().GetEnumerableOrArrayType() ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Argument {argName} is not a list");
         for (int i = 0; i < values.Count; i++)
         {
             IValueNode? item = values[i];

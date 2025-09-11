@@ -67,7 +67,9 @@ public static class EntityQueryCompiler
     )
     {
         methodProvider ??= new EqlMethodProvider();
-        var expression = CompileQuery(query, context, schemaProvider, requestContext, methodProvider, compileContext) ?? throw new EntityGraphQLCompilerException("Failed to compile expression");
+        var expression =
+            CompileQuery(query, context, schemaProvider, requestContext, methodProvider, compileContext)
+            ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Failed to compile expression");
         var parameters = expression.NodeType == ExpressionType.Lambda ? ((LambdaExpression)expression).Parameters.ToList() : [];
         return new CompiledQueryResult(expression, parameters);
     }

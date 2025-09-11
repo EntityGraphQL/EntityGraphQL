@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityGraphQL.Compiler;
+using EntityGraphQL;
 
 namespace Nullability;
 
@@ -193,7 +193,7 @@ public static class NullabilityInfoExtensions
             return writeState;
         }
 
-        throw new EntityGraphQLCompilerException($"The nullability of '{nullability.Type.FullName}.{name}' is unknown. Assembly: {nullability.Type.Assembly.FullName}.");
+        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"The nullability of '{nullability.Type.FullName}.{name}' is unknown. Assembly: {nullability.Type.Assembly.FullName}.");
     }
 
     private static bool IsNullable(string name, NullabilityInfo nullability)

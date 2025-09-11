@@ -21,10 +21,10 @@ public class FilterExpressionExtension : BaseFieldExtension
     public override void Configure(ISchemaProvider schema, IField field)
     {
         if (field.ResolveExpression == null)
-            throw new EntityGraphQLCompilerException($"FilterExpressionExtension requires a Resolve function set on the field");
+            throw new EntityGraphQLSchemaException($"FilterExpressionExtension requires a Resolve function set on the field");
 
         if (!field.ResolveExpression.Type.IsEnumerableOrArray())
-            throw new ArgumentException($"Expression for field {field.Name} must be a collection to use FilterExpressionExtension. Found type {field.ReturnType.TypeDotnet}");
+            throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use FilterExpressionExtension. Found type {field.ReturnType.TypeDotnet}");
 
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
 
@@ -54,12 +54,19 @@ public class FilterExpressionExtension : BaseFieldExtension
             // Ensure the filter Expression is compiled at this point if only raw text was provided earlier
             if (filter!.Query == null && !string.IsNullOrWhiteSpace(filter.Text))
             {
-                var eqlContext = new EqlCompileContext(compileContext);
-                var compiled = ExpressionUtil.BuildEntityQueryExpression(field.Schema, listType!, filter.Text!, eqlContext, fieldNode.NextFieldContext as ParameterExpression);
-                // Set back the compiled lambda to the arguments.Filter.Query property
-                filter.Query = (LambdaExpression)compiled;
-                filter.ServiceFieldDependencies = eqlContext.ServiceFieldDependencies;
-                filter.OriginalContext = eqlContext.OriginalContext;
+                try
+                {
+                    var eqlContext = new EqlCompileContext(compileContext);
+                    var compiled = ExpressionUtil.BuildEntityQueryExpression(field.Schema, listType!, filter.Text!, eqlContext, fieldNode.NextFieldContext as ParameterExpression);
+                    // Set back the compiled lambda to the arguments.Filter.Query property
+                    filter.Query = (LambdaExpression)compiled;
+                    filter.ServiceFieldDependencies = eqlContext.ServiceFieldDependencies;
+                    filter.OriginalContext = eqlContext.OriginalContext;
+                }
+                catch (EntityGraphQLException ex)
+                {
+                    throw new EntityGraphQLException(ex.Category, $"Field '{fieldNode.Name}' - {ex.Message}");
+                }
             }
 
             var filterExpression = filter.Query!;

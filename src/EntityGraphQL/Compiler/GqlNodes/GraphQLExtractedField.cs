@@ -64,6 +64,6 @@ public class GraphQLExtractedField : BaseGraphQLField
                 }
             }
         }
-        throw new EntityGraphQLCompilerException($"Could not find field {Name} on type {replacementNextFieldContext.Type.Name}");
+        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Could not find field {Name} on type {replacementNextFieldContext.Type.Name}");
     }
 }

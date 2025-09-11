@@ -40,13 +40,13 @@ public class GraphQLCompiler
     public GraphQLDocument Compile(QueryRequest query)
     {
         if (query.Query == null)
-            throw new EntityGraphQLCompilerException($"GraphQL Query can not be null");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"GraphQL Query can not be null");
 
         DocumentNode document = Utf8GraphQLParser.Parse(query.Query, ParserOptions.Default);
         var walker = new EntityGraphQLQueryWalker(schemaProvider, query.Variables);
         walker.Visit(document, null);
         if (walker.Document == null)
-            throw new EntityGraphQLCompilerException($"Error compiling query: {query.Query}");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Error compiling query: {query.Query}");
         return walker.Document;
     }
 }

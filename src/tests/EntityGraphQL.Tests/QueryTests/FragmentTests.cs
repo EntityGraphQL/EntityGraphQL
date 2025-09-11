@@ -261,7 +261,7 @@ fragment info on Person {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         var compiler = new GraphQLCompiler(schemaProvider);
 
-        var exception = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var exception = Assert.Throws<EntityGraphQLException>(() =>
             compiler.Compile(
                 @"
                 query {
@@ -284,7 +284,7 @@ fragment info on Person {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         var compiler = new GraphQLCompiler(schemaProvider);
 
-        var exception = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var exception = Assert.Throws<EntityGraphQLException>(() =>
             compiler.Compile(
                 @"
                 query {
@@ -311,7 +311,7 @@ fragment info on Person {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         var compiler = new GraphQLCompiler(schemaProvider);
 
-        var exception = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var exception = Assert.Throws<EntityGraphQLException>(() =>
             compiler.Compile(
                 @"
                 query {

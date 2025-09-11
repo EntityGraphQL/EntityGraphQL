@@ -151,7 +151,7 @@ public class ArgType
     /// <param name="val"></param>
     /// <param name="field"></param>
     /// <param name="validationErrors"></param>
-    public async Task ValidateAsync(object? val, IField field, List<string> validationErrors)
+    public async Task ValidateAsync(object? val, IField field, HashSet<string> validationErrors)
     {
         var valType = val?.GetType();
         if (valType != null && valType.IsGenericType && valType.GetGenericTypeDefinition() == typeof(RequiredField<>))
@@ -169,7 +169,7 @@ public class ArgType
             var context = new ArgumentValidatorContext(field, val);
 
             await validator.ValidateAsync(context);
-            validationErrors.AddRange(context.Errors);
+            validationErrors.UnionWith(context.Errors);
         }
 
         Type.SchemaType.Validate(val);

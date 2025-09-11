@@ -22,16 +22,16 @@ public class MutationSchemaType : BaseSchemaTypeWithFields<MutationField>
 
     public override ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
-        throw new EntityQuerySchemaException("Cannot add base types to a mutation");
+        throw new EntityGraphQLSchemaException("Cannot add base types to a mutation");
     }
 
     public override ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
-        throw new EntityQuerySchemaException("Cannot add base types to a mutation");
+        throw new EntityGraphQLSchemaException("Cannot add base types to a mutation");
     }
 
     public override ISchemaType Implements(string typeName)
     {
-        throw new EntityQuerySchemaException("Cannot add base types to a mutation");
+        throw new EntityGraphQLSchemaException("Cannot add base types to a mutation");
     }
 }

@@ -19,8 +19,7 @@ public static class ArgumentUtil
         Type? argumentsType,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
-        List<string> validationErrors,
-        CompileContext? compileContext = null
+        HashSet<string> validationErrors
     )
     {
         if (argumentsType == null)
@@ -58,7 +57,7 @@ public static class ArgumentUtil
                 }
                 else
                 {
-                    (var isSet, val) = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors, compileContext);
+                    (var isSet, val) = BuildArgumentFromMember(schema, args, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                     // this could be int to RequiredField<int>
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ConvertObjectType(val, argField.RawType, schema);
@@ -69,10 +68,6 @@ public static class ArgumentUtil
                 if (field != null)
                     argField.ValidateAsync(val, field, validationErrors).GetAwaiter().GetResult();
             }
-            catch (EntityGraphQLValidationException)
-            {
-                throw;
-            }
             catch (Exception)
             {
                 validationErrors.Add($"Variable or value used for argument '{argField.Name}' does not match argument type '{argField.Type}' on field '{fieldName}'");
@@ -80,7 +75,9 @@ public static class ArgumentUtil
         }
 
         // Build our object
-        var con = argumentsType!.GetConstructors()?.FirstOrDefault() ?? throw new EntityGraphQLCompilerException($"Could not find constructor for arguments type {argumentsType.Name}");
+        var con =
+            argumentsType!.GetConstructors()?.FirstOrDefault()
+            ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Could not find constructor for arguments type {argumentsType.Name}");
         var parameters = con.GetParameters().Select(x => values!.GetValueOrDefault(x.Name)).ToArray();
 
         // anonymous objects will have a constructor with taking the properties as arguments
@@ -118,7 +115,7 @@ public static class ArgumentUtil
                     validator.Validator.ValidateAsync(context).GetAwaiter().GetResult();
                     argumentValues = context.Arguments;
 
-                    validationErrors.AddRange(context.Errors);
+                    validationErrors.UnionWith(context.Errors);
                 }
             }
         }
@@ -147,8 +144,7 @@ public static class ArgumentUtil
         string memberName,
         Type memberType,
         DefaultArgValue defaultValue,
-        IList<string> validationErrors,
-        CompileContext? compileContext
+        HashSet<string> validationErrors
     )
     {
         string argName = memberName;

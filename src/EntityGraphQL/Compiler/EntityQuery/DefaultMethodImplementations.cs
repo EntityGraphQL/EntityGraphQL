@@ -135,7 +135,7 @@ internal static class DefaultMethodImplementations
     {
         ExpectArgsCount(1, args, methodName);
         var array = args[0];
-        var arrayType = array.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLCompilerException("Could not get element type from enumerable/array");
+        var arrayType = array.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Could not get element type from enumerable/array");
         var isQueryable = typeof(IQueryable).IsAssignableFrom(array.Type);
 
         if (context.Type.IsNullableType())
@@ -175,7 +175,7 @@ internal static class DefaultMethodImplementations
         }
         else
         {
-            throw new EntityGraphQLCompilerException($"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
         }
     }
 
@@ -193,7 +193,7 @@ internal static class DefaultMethodImplementations
         }
         else
         {
-            throw new EntityGraphQLCompilerException($"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
         }
     }
 
@@ -211,7 +211,7 @@ internal static class DefaultMethodImplementations
         }
         else
         {
-            throw new EntityGraphQLCompilerException($"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
         }
     }
 
@@ -229,7 +229,7 @@ internal static class DefaultMethodImplementations
         }
         else
         {
-            throw new EntityGraphQLCompilerException($"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{methodName}' expects 0 or 1 arguments but {args.Length} were supplied");
         }
     }
 
@@ -237,7 +237,7 @@ internal static class DefaultMethodImplementations
     {
         if (context.Type.IsEnumerableOrArray())
         {
-            Type type = context.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLCompilerException("Could not get element type from enumerable/array");
+            Type type = context.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Could not get element type from enumerable/array");
             return Expression.Parameter(type, $"p_{type.Name}");
         }
         var t = context.Type.GetEnumerableOrArrayType();
@@ -251,13 +251,13 @@ internal static class DefaultMethodImplementations
     private static void ExpectArgsCount(int count, Expression[] args, string method)
     {
         if (args.Length != count)
-            throw new EntityGraphQLCompilerException($"Method '{method}' expects {count} argument(s) but {args.Length} were supplied");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{method}' expects {count} argument(s) but {args.Length} were supplied");
     }
 
     private static void ExpectArgsCountBetween(int low, int high, Expression[] args, string method)
     {
         if (args.Length < low || args.Length > high)
-            throw new EntityGraphQLCompilerException($"Method '{method}' expects {low}-{high} argument(s) but {args.Length} were supplied");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{method}' expects {low}-{high} argument(s) but {args.Length} were supplied");
     }
 
     private static Expression ConvertTypeIfWeCan(string methodName, Expression argExp, Type expected)
@@ -271,7 +271,13 @@ internal static class DefaultMethodImplementations
         }
         catch (Exception ex)
         {
-            throw new EntityGraphQLCompilerException($"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argExp.Type}'", ex);
+            throw new EntityGraphQLException(
+                GraphQLErrorCategory.DocumentError,
+                $"Method '{methodName}' expects parameter that evaluates to a '{expected}' result but found result type '{argExp.Type}'",
+                null,
+                [methodName],
+                ex
+            );
         }
     }
 

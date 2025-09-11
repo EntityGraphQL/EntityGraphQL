@@ -39,7 +39,7 @@ public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
     protected BaseSchemaTypeWithFields(ISchemaProvider schema, string name, string? description, RequiredAuthorization? requiredAuthorization)
     {
         if (!nameRegex.IsMatch(name))
-            throw new EntityGraphQLCompilerException($"Names must only contain [_a-zA-Z0-9] but '{name}' does not.");
+            throw new EntityGraphQLSchemaException($"Names must only contain [_a-zA-Z0-9] but '{name}' does not.");
         this.Schema = schema;
         Name = name;
         Description = description;
@@ -71,21 +71,19 @@ public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
     /// <param name="identifier">Field name. Case sensitive</param>
     /// <param name="requestContext">Current request context. Used by EntityGraphQL when compiling queries. If are calling this during schema configure, you can pass null</param>
     /// <returns>The field object for further configuration</returns>
-    /// <exception cref="EntityGraphQLAccessException"></exception>
-    /// <exception cref="EntityGraphQLCompilerException">If field if not found</exception>
     public IField GetField(string identifier, QueryRequestContext? requestContext)
     {
         if (FieldsByName.TryGetValue(identifier, out var field))
         {
             if (requestContext != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.RequiredAuthorization))
-                throw new EntityGraphQLAccessException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
+                throw new EntityGraphQLFieldException($"You are not authorized to access the '{identifier}' field on type '{Name}'.");
             if (requestContext != null && !requestContext.AuthorizationService.IsAuthorized(requestContext.User, field.ReturnType.SchemaType.RequiredAuthorization))
-                throw new EntityGraphQLAccessException($"You are not authorized to access the '{field.ReturnType.SchemaType.Name}' type returned by field '{identifier}'.");
+                throw new EntityGraphQLFieldException($"You are not authorized to access the '{field.ReturnType.SchemaType.Name}' type returned by field '{identifier}'.");
 
             return FieldsByName[identifier];
         }
 
-        throw new EntityGraphQLCompilerException($"Field '{identifier}' not found on type '{Name}'");
+        throw new EntityGraphQLFieldException($"Field '{identifier}' not found on type '{Name}'");
     }
 
     public bool GetField(string identifier, QueryRequestContext? requestContext, out IField? field)
@@ -139,7 +137,7 @@ public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
     public IField AddField(IField field)
     {
         if (FieldsByName.ContainsKey(field.Name))
-            throw new EntityQuerySchemaException($"Field '{field.Name}' already exists on type '{this.Name}'. Use ReplaceField() if this is intended.");
+            throw new EntityGraphQLSchemaException($"Field '{field.Name}' already exists on type '{Name}'. Use ReplaceField() if this is intended.");
 
         OnAddField(field);
 
@@ -167,7 +165,7 @@ public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
             || (GqlType == GqlTypes.Union && !directive.Location.Contains(TypeSystemDirectiveLocation.Union))
         )
         {
-            throw new EntityQuerySchemaException($"{TypeDotnet.Name} marked with {directive.GetType().Name} directive which is not valid on a {GqlType}");
+            throw new EntityGraphQLSchemaException($"{TypeDotnet.Name} marked with {directive.GetType().Name} directive which is not valid on a {GqlType}");
         }
 
         directives.Add(directive);

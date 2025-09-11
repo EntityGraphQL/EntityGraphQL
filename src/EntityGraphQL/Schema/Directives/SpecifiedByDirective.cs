@@ -10,7 +10,7 @@ namespace EntityGraphQL.Schema
         {
             if (!type.IsScalar)
             {
-                throw new EntityQuerySchemaException($"@specifiedBy can only be used on scalars");
+                throw new EntityGraphQLSchemaException($"@specifiedBy can only be used on scalars");
             }
 
             type.AddDirective(new SpecifiedByDirective(url));

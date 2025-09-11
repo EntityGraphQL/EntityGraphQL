@@ -373,7 +373,10 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             var currentReturnType = expression.Type;
             expression = compileContext.ExecutionOptions.BeforeRootFieldExpressionBuild(expression, opName, fieldName);
             if (expression.Type != currentReturnType && !expression.Type.IsAssignableFrom(currentReturnType))
-                throw new EntityGraphQLCompilerException($"BeforeExpressionBuild changed the return type from {currentReturnType} to {expression.Type}");
+                throw new EntityGraphQLException(
+                    GraphQLErrorCategory.ExecutionError,
+                    $"Field '{fieldName}' - BeforeExpressionBuild changed the return type from {currentReturnType} to {expression.Type}"
+                );
         }
     }
 
@@ -406,6 +409,15 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             // check type
             schema.CheckTypeAccess(field.ReturnType.SchemaType, requestContext);
         }
+    }
+
+    public IEnumerable<string> BuildPath()
+    {
+        var path = new List<string>();
+        if (ParentNode is IGraphQLNode parentField)
+            path.AddRange(parentField.BuildPath());
+        path.Add(Name);
+        return path;
     }
 }
 

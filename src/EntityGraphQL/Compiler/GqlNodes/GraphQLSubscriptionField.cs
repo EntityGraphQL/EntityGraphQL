@@ -39,9 +39,9 @@ public class GraphQLSubscriptionField : BaseGraphQLQueryField
         {
             return SubscriptionField.CallAsync(context, Arguments, serviceProvider, variableParameter, variablesToUse, compileContext);
         }
-        catch (EntityQuerySchemaException e)
+        catch (EntityGraphQLException ex)
         {
-            throw new EntityQuerySchemaException($"Error registering subscription: {e.Message}", e);
+            throw new EntityGraphQLException(ex.Category, ex.Message, null, ex.Path ?? BuildPath(), ex);
         }
     }
 
@@ -60,7 +60,7 @@ public class GraphQLSubscriptionField : BaseGraphQLQueryField
     )
     {
         if (ResultSelection == null)
-            throw new EntityGraphQLCompilerException($"Subscription {Name} should have a result selection");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Subscription {Name} should have a result selection");
 
         return ResultSelection.GetNodeExpression(
             compileContext,

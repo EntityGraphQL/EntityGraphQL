@@ -26,12 +26,12 @@ public class VariableExpression : IExpression
         // Check if we have variable information in the compile context
         if (compileContext.DocumentVariables == null)
         {
-            throw new EntityGraphQLCompilerException($"Variable ${variableName} not found in variables.");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Variable ${variableName} not found in variables.");
         }
 
         if (compileContext.DocumentVariablesParameter == null)
         {
-            throw new EntityGraphQLCompilerException($"Variable ${variableName} not found in variables.");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Variable ${variableName} not found in variables.");
         }
 
         // Check if the variable exists in the actual variables and get its value
@@ -39,7 +39,7 @@ public class VariableExpression : IExpression
         if (variableAccessExpression == null)
         {
             var availableVars = string.Join(", ", compileContext.DocumentVariablesParameter.Type.GetFields().Select(f => f.Name));
-            throw new EntityGraphQLCompilerException($"Variable ${variableName} is not defined in the query variables. Available: [{availableVars}]");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Variable ${variableName} is not defined in the query variables. Available: [{availableVars}]");
         }
 
         var val = Expression.Lambda(variableAccessExpression, compileContext.DocumentVariablesParameter!).Compile().DynamicInvoke(compileContext.DocumentVariables);

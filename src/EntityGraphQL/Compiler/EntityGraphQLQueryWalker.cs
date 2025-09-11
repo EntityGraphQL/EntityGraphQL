@@ -52,7 +52,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     protected override void VisitOperationDefinition(OperationDefinitionNode node, IGraphQLNode? context)
     {
         if (Document == null)
-            throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Document should not be null visiting operation definition");
 
         // these are the variables that can change each request for the same query
         var operationVariables = ProcessVariableDefinitions(node);
@@ -94,7 +94,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     private Dictionary<string, ArgType> ProcessVariableDefinitions(OperationDefinitionNode node)
     {
         if (Document == null)
-            throw new EntityGraphQLCompilerException("Document should not be null visiting operation definition");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Document should not be null visiting operation definition");
 
         var documentVariables = new Dictionary<string, ArgType>();
 
@@ -105,7 +105,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             (var gqlTypeName, var isList, var isRequired) = GetGqlType(item.Type);
 
             var schemaType = schemaProvider.GetSchemaType(gqlTypeName, null);
-            var varTypeInSchema = schemaType.TypeDotnet ?? throw new EntityGraphQLCompilerException($"Variable {argName} has no type");
+            var varTypeInSchema = schemaType.TypeDotnet ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Variable {argName} has no type");
             if (!isRequired && (varTypeInSchema.IsValueType || varTypeInSchema.IsEnum))
                 varTypeInSchema = typeof(Nullable<>).MakeGenericType(varTypeInSchema);
 
@@ -140,7 +140,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
 
             if (item.Type.Kind == SyntaxKind.NonNullType && !variables.ContainsKey(argName))
             {
-                throw new EntityGraphQLCompilerException($"Missing required variable '{argName}' on operation '{node.Name?.Value}'");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Missing required variable '{argName}' on operation '{node.Name?.Value}'");
             }
         }
         return documentVariables;
@@ -160,7 +160,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             case SyntaxKind.ListType:
                 return (((ListTypeNode)item).Type.NamedType().Name.Value, true, false);
             default:
-                throw new EntityGraphQLCompilerException($"Unexpected node kind {item.Kind}");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Unexpected node kind {item.Kind}");
         }
         ;
     }
@@ -168,9 +168,9 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     protected override void VisitField(FieldNode node, IGraphQLNode? context)
     {
         if (context == null)
-            throw new EntityGraphQLCompilerException("context should not be null visiting field");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "context should not be null visiting field");
         if (context.NextFieldContext == null)
-            throw new EntityGraphQLCompilerException("context.NextFieldContext should not be null visiting field");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "context.NextFieldContext should not be null visiting field");
 
         var schemaType = context.Field?.ReturnType.SchemaType ?? schemaProvider.GetSchemaType(context.NextFieldContext.Type, context.Field?.FromType.GqlType == GqlTypes.InputObject, null);
         var actualField = schemaType.GetField(node.Name.Value, null);
@@ -265,7 +265,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             else if (actualField.ReturnType.SchemaType.RequiresSelection)
             {
                 // wild card query - select out all the fields for the object
-                throw new EntityGraphQLCompilerException($"Field '{actualField.Name}' requires a selection set defining the fields you would like to select.");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{actualField.Name}' requires a selection set defining the fields you would like to select.");
             }
             else
             {
@@ -323,7 +323,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     )
     {
         if (context == null)
-            throw new EntityGraphQLCompilerException("context should not be null building select on collection");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "context should not be null building select on collection");
 
         var elementType = returnType.TypeDotnet;
         var fieldParam = Expression.Parameter(elementType, $"p_{elementType.Name}");
@@ -352,9 +352,9 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     )
     {
         if (context == null)
-            throw new EntityGraphQLCompilerException("context should not be null visiting field");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "context should not be null visiting field");
         if (context.NextFieldContext == null && context.RootParameter == null)
-            throw new EntityGraphQLCompilerException("context.NextFieldContext and context.RootParameter should not be null visiting field");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "context.NextFieldContext and context.RootParameter should not be null visiting field");
 
         var rootParam = context.NextFieldContext?.NodeType == ExpressionType.Parameter ? actualField.FieldParam : context.RootParameter!;
         var graphQLNode = new GraphQLObjectProjectionField(schemaProvider, actualField, name, nodeExpression, rootParam ?? context.RootParameter!, context, arguments);
@@ -372,7 +372,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             var argName = arg.Name.Value;
             if (!field.Arguments.ContainsKey(argName))
             {
-                throw new EntityGraphQLCompilerException($"No argument '{argName}' found on field '{field.Name}'");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"No argument '{argName}' found on field '{field.Name}'");
             }
             args.Add(argName, ParseArgument(argName, field, arg));
         }
@@ -382,7 +382,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     private object? ParseArgument(string argName, IField fieldArgumentContext, ArgumentNode argument)
     {
         if (Document == null)
-            throw new EntityGraphQLCompilerException("Document should not be null when visiting arguments");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Document should not be null when visiting arguments");
 
         var argType = fieldArgumentContext.GetArgumentType(argName);
         var argVal = ProcessArgumentOrVariable(argName, schemaProvider, argument, argType.Type.TypeDotnet);
@@ -397,7 +397,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     private object? ProcessArgumentOrVariable(string argName, ISchemaProvider schema, ArgumentNode argument, Type argType)
     {
         if (currentOperation == null)
-            throw new EntityGraphQLCompilerException("currentOperation should not be null when visiting arguments");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "currentOperation should not be null when visiting arguments");
 
         if (argument.Value.Kind == SyntaxKind.Variable)
         {
@@ -413,7 +413,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
         {
             var processor = schemaProvider.GetDirective(directive.Name.Value);
             if (!processor.Location.Contains(location))
-                throw new EntityGraphQLCompilerException($"Directive '{directive.Name.Value}' can not be used on '{location}'");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Directive '{directive.Name.Value}' can not be used on '{location}'");
             var argTypes = processor.GetArguments(schemaProvider);
             var args = new Dictionary<string, object?>();
             foreach (var arg in directive.Arguments)
@@ -430,7 +430,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     protected override void VisitFragmentDefinition(FragmentDefinitionNode node, IGraphQLNode? context)
     {
         if (Document == null)
-            throw new EntityGraphQLCompilerException("Document can not be null in VisitFragmentDefinition");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Document can not be null in VisitFragmentDefinition");
         // top level statement in GQL doc. Defines the fragment fields.
         // Add to the fragments and return null
         var typeName = node.TypeCondition.Name.Value;
@@ -453,7 +453,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     protected override void VisitInlineFragment(InlineFragmentNode node, IGraphQLNode? context)
     {
         if (context == null)
-            throw new EntityGraphQLCompilerException("context should not be null visiting inline fragment");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "context should not be null visiting inline fragment");
 
         if (node.TypeCondition is not null && context is not null)
         {
@@ -482,9 +482,9 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
     protected override void VisitFragmentSpread(FragmentSpreadNode node, IGraphQLNode? context)
     {
         if (context == null)
-            throw new EntityGraphQLCompilerException("Context is null in FragmentSpread");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Context is null in FragmentSpread");
         if (context.RootParameter == null)
-            throw new EntityGraphQLCompilerException("Fragment spread can only be used inside a selection set (context.RootParameter is null)");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Fragment spread can only be used inside a selection set (context.RootParameter is null)");
         // later when executing we turn this field into the defined fragment (as the fragment may be defined after use)
         // Just store the name to look up when needed
         BaseGraphQLField? fragField = new GraphQLFragmentSpreadField(schemaProvider, node.Name.Value, null, context.RootParameter, context);
@@ -533,7 +533,7 @@ internal sealed class EntityGraphQLQueryWalker : QuerySyntaxWalker<IGraphQLNode?
             {
                 if (HasCycleOptimized(fragmentName, fragmentDependencies, visited, recursionStack))
                 {
-                    throw new EntityGraphQLCompilerException($"Fragment spreads must not form cycles. Fragment '{fragmentName}' creates a cycle.");
+                    throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Fragment spreads must not form cycles. Fragment '{fragmentName}' creates a cycle.");
                 }
             }
         }

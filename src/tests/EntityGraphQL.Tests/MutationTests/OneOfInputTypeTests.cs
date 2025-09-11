@@ -89,7 +89,7 @@ public class OneOfInputTypeTests
     public void TestOneOfAttributeCanNotBeUsedOnNonInputTypes()
     {
         var schemaProvider = SchemaBuilder.Create<TestDataContext>();
-        var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddType<OneOfInputType>("InputObject", "Using an object in the arguments"));
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schemaProvider.AddType<OneOfInputType>("InputObject", "Using an object in the arguments"));
         Assert.Equal($"OneOfInputType marked with OneOfDirective directive which is not valid on a {nameof(GqlTypes.QueryObject)}", ex.Message);
     }
 
@@ -104,7 +104,7 @@ public class OneOfInputTypeTests
     public void TestOneOfAttributeChecksFieldsAreNullable()
     {
         var schemaProvider = SchemaBuilder.Create<TestDataContext>();
-        var ex = Assert.Throws<EntityQuerySchemaException>(() => schemaProvider.AddInputType<InvalidOneOfInputType>("InputObject", "Using an object in the arguments").AddAllFields());
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schemaProvider.AddInputType<InvalidOneOfInputType>("InputObject", "Using an object in the arguments").AddAllFields());
         Assert.Equal("InvalidOneOfInputType is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.", ex.Message);
     }
 

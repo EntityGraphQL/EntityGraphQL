@@ -79,5 +79,6 @@ public interface ISchemaProvider
     /// </summary>
     void Validate();
     ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext);
-    IEnumerable<GraphQLError> GenerateErrors(Exception exception);
+    IEnumerable<GraphQLError> GenerateErrors(Exception exception, string? fieldName = null);
+    string AllowedExceptionMessage(Exception exception, string? fieldName = null);
 }

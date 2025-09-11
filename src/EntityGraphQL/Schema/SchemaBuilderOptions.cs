@@ -113,12 +113,5 @@ public class SchemaBuilderSchemaOptions
     /// <summary>
     /// List of allowed exceptions that will be rendered in the 'errors' object when IsDevelopment is false
     /// </summary>
-    public List<AllowedException> AllowedExceptions { get; set; } =
-        [
-            new(typeof(EntityGraphQLArgumentException)),
-            new(typeof(EntityGraphQLException)),
-            new(typeof(EntityGraphQLFieldException)),
-            new(typeof(EntityGraphQLAccessException)),
-            new(typeof(EntityGraphQLValidationException)),
-        ];
+    public List<AllowedException> AllowedExceptions { get; set; } = [new(typeof(EntityGraphQLException)), new(typeof(EntityGraphQLFieldException)), new(typeof(EntityGraphQLSchemaException))];
 }

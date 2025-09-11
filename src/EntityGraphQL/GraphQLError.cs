@@ -13,9 +13,9 @@ public class GraphQLError : Dictionary<string, object>
 
     public string Message => (string)this[MessageKey];
 
-    public string[]? Path
+    public List<string>? Path
     {
-        get => (TryGetValue(PathKey, out var value) && value is string[] arr) ? arr : null;
+        get => (TryGetValue(PathKey, out var value) && value is List<string> list) ? list : null;
         set
         {
             if (value == null)
@@ -36,11 +36,11 @@ public class GraphQLError : Dictionary<string, object>
 
     public bool IsExecutionError => Path != null;
 
-    public GraphQLError(string message, string[]? path, IDictionary<string, object>? extensions)
+    public GraphQLError(string message, IEnumerable<string>? path, IDictionary<string, object>? extensions)
     {
         this[MessageKey] = message;
         if (path != null)
-            this[PathKey] = path;
+            this[PathKey] = path.ToList();
         if (extensions != null)
             this[QueryResult.ExtensionsKey] = new Dictionary<string, object>(extensions);
     }

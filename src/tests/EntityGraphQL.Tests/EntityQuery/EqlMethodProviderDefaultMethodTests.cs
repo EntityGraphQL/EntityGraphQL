@@ -45,7 +45,7 @@ public class EqlMethodProviderDefaultMethodTests
     [Fact]
     public void FailsWhereNoParameter()
     {
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var ex = Assert.Throws<EntityGraphQLException>(() =>
             EntityQueryCompiler.Compile("people.where()", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, new EqlMethodProvider())
         );
         Assert.Equal("Method 'where' expects 1 argument(s) but 0 were supplied", ex.Message);
@@ -54,7 +54,7 @@ public class EqlMethodProviderDefaultMethodTests
     [Fact]
     public void FailsWhereWrongParameterType()
     {
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var ex = Assert.Throws<EntityGraphQLException>(() =>
             EntityQueryCompiler.Compile("people.where(name)", SchemaBuilder.FromObject<EqlMethodTestSchema>(), compileContext, new EqlMethodProvider())
         );
         Assert.Equal("Method 'where' expects parameter that evaluates to a 'System.Boolean' result but found result type 'System.String'", ex.Message);

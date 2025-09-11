@@ -57,7 +57,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     )
     {
         if (field is not GraphQLSubscriptionField)
-            throw new EntityGraphQLException($"Expected a subscription field but got {field.GetType().Name}");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Expected a subscription field but got {field.GetType().Name}");
 
         foreach (var directive in field.Directives)
         {
@@ -87,11 +87,12 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
         var (result, _) = await node.ExecuteSubscriptionAsync(context, serviceProvider, OpVariableParameter, docVariables, compileContext);
 
         if (result == null || node.ResultSelection == null)
-            throw new EntityGraphQLExecutionException($"Subscription {node.Name} returned null. It must return an IObservable<T>");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Subscription {node.Name} returned null. It must return an IObservable<T>");
 
         // result == IObservable<T>
         var returnType =
-            result.GetType().GetGenericArgument(typeof(IObservable<>)) ?? throw new EntityGraphQLExecutionException($"Subscription {node.Name} return type does not implement IObservable<T>");
+            result.GetType().GetGenericArgument(typeof(IObservable<>))
+            ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Subscription {node.Name} return type does not implement IObservable<T>");
         return new GraphQLSubscribeResult(returnType, result, this, node);
     }
 
@@ -120,7 +121,10 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     public override void AddField(BaseGraphQLField field)
     {
         if (QueryFields.Count > 0)
-            throw new EntityGraphQLCompilerException($"Subscription operations may only have a single root field. Field '{field.Name}' should be used in another operation.");
+            throw new EntityGraphQLException(
+                GraphQLErrorCategory.DocumentError,
+                $"Subscription operations may only have a single root field. Field '{field.Name}' should be used in another operation."
+            );
         field.IsRootField = true;
         QueryFields.Add(field);
     }

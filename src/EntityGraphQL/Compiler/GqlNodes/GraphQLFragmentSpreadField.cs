@@ -18,7 +18,7 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
 
     public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
-        var fragment = fragments.GetValueOrDefault(Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
+        var fragment = fragments.GetValueOrDefault(Name) ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Fragment {Name} not found in query document");
 
         return fragment.QueryFields.Any(f => f.HasServicesAtOrBelow(fragments));
     }
@@ -32,7 +32,7 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
         IArgumentsTracker? docVariables
     )
     {
-        var fragment = fragments.GetValueOrDefault(Name) ?? throw new EntityGraphQLCompilerException($"Fragment {Name} not found in query document");
+        var fragment = fragments.GetValueOrDefault(Name) ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Fragment {Name} not found in query document");
         var fields = fragment.QueryFields.SelectMany(f => f.Expand(compileContext, fragments, withoutServiceFields, fieldContext, docParam, docVariables));
         // the current op did not know about services in the fragment as the fragment definition may be after the operation in the query
         // we now know  if there are services we need to know about for executing
@@ -83,6 +83,6 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
         ParameterReplacer replacer
     )
     {
-        throw new EntityGraphQLCompilerException($"Fragment should have expanded out into non-fragment fields");
+        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Fragment should have expanded out into non-fragment fields");
     }
 }

@@ -66,42 +66,45 @@ public static class EntityGraphQLEndpointRouteExtensions
                 }
 
                 var deserializer = context.RequestServices.GetRequiredService<IGraphQLRequestDeserializer>();
+                QueryRequest query;
                 try
                 {
-                    var query = await deserializer.DeserializeAsync(context.Request.Body);
+                    query = await deserializer.DeserializeAsync(context.Request.Body);
+                }
+                catch (Exception)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    return;
+                }
 
-                    var schema =
-                        context.RequestServices.GetService<SchemaProvider<TQueryType>>()
-                        ?? throw new InvalidOperationException(
-                            "No SchemaProvider<TQueryType> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<TQueryType>()."
-                        );
+                var schema =
+                    context.RequestServices.GetService<SchemaProvider<TQueryType>>()
+                    ?? throw new InvalidOperationException(
+                        "No SchemaProvider<TQueryType> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<TQueryType>()."
+                    );
+                var requestedType = sorted
+                    .Where(t => t != null)
+                    .FirstOrDefault(t =>
+                        t.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) || t.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture)
+                    )
+                    ?.MediaType.ToString();
+
+                try
+                {
                     var gqlResult = await schema.ExecuteRequestAsync(query, context.RequestServices, context.User, options, context.RequestAborted);
 
-                    var requestedType = sorted
-                        .Where(t => t != null)
-                        .FirstOrDefault(t =>
-                            t.MediaType.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) || t.MediaType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture)
-                        )
-                        ?.MediaType.ToString();
                     context.Response.ContentType = requestedType ?? $"{APP_GQL_TYPE_START}; charset=utf-8";
 
-                    if (gqlResult.Errors?.Count > 0)
-                    {
-                        if (gqlResult.Errors.Count == 1 && gqlResult.Errors[0].Message == "Please provide a persisted query hash or a query string")
-                        {
-                            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                            return;
-                        }
-                        context.Response.StatusCode = StatusCodes.Status200OK;
-                    }
+                    // Per GraphQL over HTTP spec: GraphQL errors should return 200 with error details
+                    context.Response.StatusCode = StatusCodes.Status200OK;
+
                     var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
                     await serializer.SerializeAsync(context.Response.Body, gqlResult);
                 }
                 catch (Exception)
                 {
-                    // only exceptions we should get are ones that mean the request is invalid, e.g. deserialization errors
-                    // all other graphql specific errors should be in the response data
-                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    // something went very wrong
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     return;
                 }
             }

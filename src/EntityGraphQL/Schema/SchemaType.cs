@@ -91,13 +91,13 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
             throw new InvalidOperationException("Unions cannot contain fields");
 
         if (FieldsByName.ContainsKey(field.Name))
-            throw new EntityQuerySchemaException($"Field '{field.Name}' already exists on type '{Name}'. Use ReplaceField() if this is intended.");
+            throw new EntityGraphQLSchemaException($"Field '{field.Name}' already exists on type '{Name}'. Use ReplaceField() if this is intended.");
 
         if (field.Arguments.Any() && (GqlType == GqlTypes.InputObject || GqlType == GqlTypes.Enum))
-            throw new EntityQuerySchemaException($"Field '{field.Name}' on type '{Name}' has arguments but is a GraphQL '{GqlType}' type and can not have arguments.");
+            throw new EntityGraphQLSchemaException($"Field '{field.Name}' on type '{Name}' has arguments but is a GraphQL '{GqlType}' type and can not have arguments.");
 
         if (GqlType == GqlTypes.Scalar)
-            throw new EntityQuerySchemaException($"Cannot add field '{field.Name}' to type '{Name}', as '{Name}' is a scalar type and can not have fields.");
+            throw new EntityGraphQLSchemaException($"Cannot add field '{field.Name}' to type '{Name}', as '{Name}' is a scalar type and can not have fields.");
 
         FieldsByName.Add(field.Name, field);
         return field;
@@ -382,7 +382,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
             interfaceType = Schema.GetSchemaType(type, false, null);
 
             if (!interfaceType.IsInterface)
-                throw new EntityGraphQLCompilerException($"Schema type {type.Name} can not be implemented as it is not an interface. You can only implement interfaces");
+                throw new EntityGraphQLSchemaException($"Schema type {type.Name} can not be implemented as it is not an interface. You can only implement interfaces");
         }
         else if (!hasInterface && addTypeIfNotInSchema)
         {
@@ -392,7 +392,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
                 interfaceType.AddAllFields();
         }
         if (interfaceType == null)
-            throw new EntityGraphQLCompilerException(
+            throw new EntityGraphQLSchemaException(
                 $"No schema interface found for dotnet type {type.Name}. Make sure you add the interface to the schema. Or use parameter addTypeIfNotInSchema = true"
             );
 
@@ -404,7 +404,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     {
         var interfaceType = Schema.GetSchemaType(typeName, null);
         if (!interfaceType.IsInterface)
-            throw new EntityGraphQLCompilerException($"Schema type {typeName} can not be implemented as it is not an interface. You can only implement interfaces");
+            throw new EntityGraphQLSchemaException($"Schema type {typeName} can not be implemented as it is not an interface. You can only implement interfaces");
 
         BaseTypes.Add(interfaceType);
         return this;
@@ -413,7 +413,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     public ISchemaType AddAllPossibleTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
         if (GqlType != GqlTypes.Union)
-            throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+            throw new EntityGraphQLSchemaException($"Schema type {TypeDotnet} is not a union type");
 
         var types = AppDomain
             .CurrentDomain.GetAssemblies()
@@ -443,7 +443,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     public ISchemaType AddPossibleType<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
         if (GqlType != GqlTypes.Union)
-            throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+            throw new EntityGraphQLSchemaException($"Schema type {TypeDotnet} is not a union type");
 
         var type = typeof(TClrType);
         return AddPossibleType(type, addTypeIfNotInSchema, addAllFieldsOnAddedType);
@@ -452,7 +452,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     private SchemaType<TBaseType> AddPossibleType(Type type, bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
         if (GqlType != GqlTypes.Union)
-            throw new EntityGraphQLCompilerException($"Schema type {TypeDotnet} is not a union type");
+            throw new EntityGraphQLSchemaException($"Schema type {TypeDotnet} is not a union type");
 
         var hasType = Schema.HasType(type);
         ISchemaType? schemaType = null;
@@ -469,12 +469,12 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
             schemaType = Schema.GetSchemaType(type, false, null);
         }
         if (schemaType == null)
-            throw new EntityGraphQLCompilerException(
+            throw new EntityGraphQLSchemaException(
                 $"No schema type found for dotnet type '{type.Name}' while adding it as a possible type for schema type '{Name}'. Make sure you add the type to the schema before calling AddPossibleType. Or use parameter addTypeIfNotInSchema = true"
             );
 
         if (schemaType.GqlType != GqlTypes.QueryObject)
-            throw new EntityGraphQLCompilerException($"The member types of a Union type must all be Object base types");
+            throw new EntityGraphQLSchemaException($"The member types of a Union type must all be Object base types");
 
         PossibleTypes.Add(schemaType);
 

@@ -260,7 +260,7 @@ public static class SchemaBuilder
                     }
                     var newExpArg =
                         ExpressionUtil.CreateNewExpression(propExpressions, item.FlattenType!, true)
-                        ?? throw new EntityQuerySchemaException($"Could not create expression for argument {item.ArgName} of type {item.ArgType!.RawType.Name}");
+                        ?? throw new EntityGraphQLSchemaException($"Could not create expression for argument {item.ArgName} of type {item.ArgType!.RawType.Name}");
                     argsForCallExpression.Add(item.ArgName, newExpArg);
                 }
                 else
@@ -462,7 +462,7 @@ public static class SchemaBuilder
                     _ => nameof(ISchemaProvider.AddType),
                 };
 
-                var method = schema.GetType().GetMethod(addMethod, [typeof(string), typeof(string)]) ?? throw new EntityQuerySchemaException($"Could not find {addMethod} method on schema");
+                var method = schema.GetType().GetMethod(addMethod, [typeof(string), typeof(string)]) ?? throw new EntityGraphQLSchemaException($"Could not find {addMethod} method on schema");
                 method = method.MakeGenericMethod(propType);
                 var typeAdded = (ISchemaType)method.Invoke(schema, new object[] { typeName, description })!;
                 typeAdded.RequiredAuthorization = schema.AuthorizationService.GetRequiredAuthFromType(propType);
@@ -508,7 +508,7 @@ public static class SchemaBuilder
                 var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
                 if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
                     return schemaType!;
-                throw new EntityGraphQLCompilerException(
+                throw new EntityGraphQLSchemaException(
                     $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
                 );
             };

@@ -212,7 +212,7 @@ public class Field : BaseField
     {
         object? argumentValue = null;
         Expression? result = fieldExpression;
-        var validationErrors = new List<string>();
+        var validationErrors = new HashSet<string>();
         var originalArgParam = ArgumentsParameter;
         ParameterExpression? newArgParam = null;
 
@@ -282,7 +282,7 @@ public class Field : BaseField
         }
 
         if (!isAsync && IsAsync)
-            throw new EntityGraphQLCompilerException("Field is synchronous but returns an async type. Use ResolveAsync() or resolve the field expression with .GetAwaiter().GetResult()");
+            throw new EntityGraphQLSchemaException("Field is synchronous but returns an async type. Use ResolveAsync() or resolve the field expression with .GetAwaiter().GetResult()");
 
         ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null, Name, FromType);
     }

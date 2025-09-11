@@ -132,7 +132,7 @@ public class SchemaProviderTests
     {
         var schema = new TestObjectGraphSchema();
 
-        var ex = Assert.Throws<EntityQuerySchemaException>(() =>
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() =>
         {
             schema.Type<Person>().SpecifiedBy("https://www.example.com");
         });

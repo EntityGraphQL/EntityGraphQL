@@ -184,7 +184,7 @@ public class ParameterReplacer : ExpressionVisitor
                     {
                         if (nodeExp == null)
                         {
-                            throw new EntityGraphQLCompilerException($"Could not find field {node.Member.Name} on type {node.Type.Name}");
+                            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Could not find field {node.Member.Name} on type {node.Type.Name}");
                         }
                     }
                 }
@@ -305,7 +305,7 @@ public class ParameterReplacer : ExpressionVisitor
                     }
                 }
                 if (oldTypeArgs.Length != newTypeArgs.Count)
-                    throw new EntityGraphQLCompilerException($"Post service object selection contains a method call with mismatched generic type arguments.");
+                    throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Post service object selection contains a method call with mismatched generic type arguments.");
                 var newCall = Expression.Call(node.Method.DeclaringType!, node.Method.Name, newTypeArgs.ToArray(), newArgs.ToArray());
                 return newCall;
             }

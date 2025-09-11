@@ -31,7 +31,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     )
     {
         if (field is not GraphQLMutationField node)
-            throw new EntityGraphQLException($"Expected a mutation field but got {field.GetType().Name}");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Expected a mutation field but got {field.GetType().Name}");
 
         var errors = new List<GraphQLError>();
 

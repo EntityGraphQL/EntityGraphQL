@@ -71,55 +71,62 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
             // or a service field that we expand into the required fields for input
             foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
             {
-                // fragments might be fragments on the actually type whereas the context is a interface
-                // we do not need to change the context in this case
-                var actualNextFieldContext = nextFieldContext;
-                if (
-                    !contextChanged
-                    && subField.RootParameter != null
-                    && actualNextFieldContext.Type != subField.RootParameter.Type
-                    && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField)
-                    && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union)
-                )
+                try
                 {
-                    // we can do the convert here and avoid have to do a replace later
-                    actualNextFieldContext = Expression.Convert(actualNextFieldContext, subField.RootParameter.Type)!;
+                    // fragments might be fragments on the actually type whereas the context is a interface
+                    // we do not need to change the context in this case
+                    var actualNextFieldContext = nextFieldContext;
+                    if (
+                        !contextChanged
+                        && subField.RootParameter != null
+                        && actualNextFieldContext.Type != subField.RootParameter.Type
+                        && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField)
+                        && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union)
+                    )
+                    {
+                        // we can do the convert here and avoid have to do a replace later
+                        actualNextFieldContext = Expression.Convert(actualNextFieldContext, subField.RootParameter.Type)!;
+                    }
+
+                    var fieldExp = subField.GetNodeExpression(
+                        compileContext,
+                        serviceProvider,
+                        fragments,
+                        docParam,
+                        docVariables,
+                        schemaContext,
+                        withoutServiceFields,
+                        actualNextFieldContext,
+                        PossibleNextContextTypes,
+                        contextChanged,
+                        replacer
+                    );
+                    if (fieldExp == null)
+                        continue;
+
+                    var potentialMatch = selectionFields.Keys.FirstOrDefault(f => f.Name == subField.Name);
+                    if (potentialMatch != null && subField.FromType != null)
+                    {
+                        // if we have a match, we need to check if the types are the same
+                        // if they are, we can just use the existing field
+                        if (potentialMatch.FromType?.BaseTypesReadOnly.Contains(subField.FromType) == true)
+                        {
+                            continue;
+                        }
+                        if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType))
+                        {
+                            // replace - use the non-base type field
+                            selectionFields.Remove(potentialMatch);
+                            selectionFields[subField] = new CompiledField(subField, fieldExp);
+                            continue;
+                        }
+                    }
+                    selectionFields[subField] = new CompiledField(subField, fieldExp);
                 }
-
-                var fieldExp = subField.GetNodeExpression(
-                    compileContext,
-                    serviceProvider,
-                    fragments,
-                    docParam,
-                    docVariables,
-                    schemaContext,
-                    withoutServiceFields,
-                    actualNextFieldContext,
-                    PossibleNextContextTypes,
-                    contextChanged,
-                    replacer
-                );
-                if (fieldExp == null)
-                    continue;
-
-                var potentialMatch = selectionFields.Keys.FirstOrDefault(f => f.Name == subField.Name);
-                if (potentialMatch != null && subField.FromType != null)
+                catch (EntityGraphQLFieldException ex)
                 {
-                    // if we have a match, we need to check if the types are the same
-                    // if they are, we can just use the existing field
-                    if (potentialMatch.FromType?.BaseTypesReadOnly.Contains(subField.FromType) == true)
-                    {
-                        continue;
-                    }
-                    if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType))
-                    {
-                        // replace - use the non-base type field
-                        selectionFields.Remove(potentialMatch);
-                        selectionFields[subField] = new CompiledField(subField, fieldExp);
-                        continue;
-                    }
+                    throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Field '{Name}' - {ex.Message}", null, BuildPath(), ex);
                 }
-                selectionFields[subField] = new CompiledField(subField, fieldExp);
             }
         }
 
@@ -153,7 +160,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
         // Need the args that may be used in the bulk resolver expression
         var argumentValue = default(object);
-        var validationErrors = new List<string>();
+        var validationErrors = new HashSet<string>();
         var bulkFieldArgParam = bulkResolver.BulkArgParam;
         var newArgParam = bulkFieldArgParam != null ? Expression.Parameter(bulkFieldArgParam!.Type, $"{bulkFieldArgParam.Name}_exec") : null;
         compileContext.AddArgsToCompileContext(field.Field!, field.Arguments, docParam, docVariables, ref argumentValue, validationErrors, newArgParam);

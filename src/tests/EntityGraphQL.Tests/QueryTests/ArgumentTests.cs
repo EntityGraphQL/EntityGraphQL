@@ -275,7 +275,7 @@ public class ArgumentTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         // Add a argument field with a require parameter
-        var e = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var e = Assert.Throws<EntityGraphQLException>(() =>
         {
             var tree = new GraphQLCompiler(schema).Compile(
                 @"

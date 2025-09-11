@@ -94,7 +94,7 @@ public class Person
     // fake an error
     public string Error
     {
-        get => throw new EntityGraphQLException("Field failed to execute", new Dictionary<string, object> { { "code", 1 } });
+        get => throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Field failed to execute", new Dictionary<string, object> { { "code", 1 } });
         set => throw new Exception("Field failed to execute");
     }
 

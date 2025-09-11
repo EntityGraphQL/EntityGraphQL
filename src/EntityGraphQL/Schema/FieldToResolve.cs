@@ -230,7 +230,7 @@ public class FieldToResolveWithArgs<TContext, TParams> : FieldWithContextAndArgs
         // if return type is Task check that it is Task<> otherwise throw
         if (typeof(Task).IsAssignableFrom(fieldExpression.Body.Type) && !fieldExpression.Body.Type.IsGenericType)
         {
-            throw new EntityGraphQLCompilerException("Async field expression must return Task<T> not Task as the field needs a result.");
+            throw new EntityGraphQLSchemaException("Async field expression must return Task<T> not Task as the field needs a result.");
         }
 
         // Add concurrency limiting
@@ -370,7 +370,7 @@ public class FieldToResolve<TContext> : FieldWithContext<TContext>
         // if return type is Task check that it is Task<> otherwise throw
         if (typeof(Task).IsAssignableFrom(fieldExpression.Body.Type) && !fieldExpression.Body.Type.IsGenericType)
         {
-            throw new EntityGraphQLCompilerException("Async field expression must return Task<T> not Task as the field needs a result.");
+            throw new EntityGraphQLSchemaException("Async field expression must return Task<T> not Task as the field needs a result.");
         }
 
         // Add concurrency limiting

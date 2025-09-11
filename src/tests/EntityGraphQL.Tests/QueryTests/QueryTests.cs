@@ -80,7 +80,7 @@ public class QueryTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Type<Person>().RemoveField(p => p.Id);
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var ex = Assert.Throws<EntityGraphQLFieldException>(() =>
         {
             var tree = new GraphQLCompiler(schema).Compile(
                 @"
@@ -99,14 +99,13 @@ public class QueryTests
         var schema = SchemaBuilder.Create<TestDataContext>();
         schema.AddType<Person>("Person").AddField("name", p => p.Name, "Person's name");
         schema.Query().AddField("person", new { id = ArgumentHelper.Required<int>() }, (p, args) => p.People.FirstOrDefault(p => p.Id == args.id), "Person");
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(
-            () =>
-                new GraphQLCompiler(schema).Compile(
-                    @"
+        var ex = Assert.Throws<EntityGraphQLException>(() =>
+            new GraphQLCompiler(schema).Compile(
+                @"
             {
                 person(id: 1)
             }"
-                )
+            )
         );
         Assert.Equal("Field 'person' requires a selection set defining the fields you would like to select.", ex.Message);
     }
@@ -201,10 +200,9 @@ public class QueryTests
     [Fact]
     public void FailsNonExistingField()
     {
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(
-            () =>
-                new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
-                    @"
+        var ex = Assert.Throws<EntityGraphQLFieldException>(() =>
+            new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+                @"
         {
         	people { id
         		projects {
@@ -213,7 +211,7 @@ public class QueryTests
         		}
         	}
         }"
-                )
+            )
         );
         Assert.Equal("Field 'blahs' not found on type 'Project'", ex.Message);
     }
@@ -221,10 +219,9 @@ public class QueryTests
     [Fact]
     public void FailsNonExistingField2()
     {
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(
-            () =>
-                new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
-                    @"
+        var ex = Assert.Throws<EntityGraphQLFieldException>(() =>
+            new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+                @"
         {
         	people { id
         		projects {
@@ -232,7 +229,7 @@ public class QueryTests
         		}
         	}
         }"
-                )
+            )
         );
         Assert.Equal("Field 'name3' not found on type 'Project'", ex.Message);
     }
@@ -355,7 +352,7 @@ query {
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-        var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<Gender>().AddField("invalid", new { id = (int?)null }, (ctx, args) => 8, "Invalid field"));
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Type<Gender>().AddField("invalid", new { id = (int?)null }, (ctx, args) => 8, "Invalid field"));
         Assert.Equal("Field 'invalid' on type 'Gender' has arguments but is a GraphQL 'Enum' type and can not have arguments.", ex.Message);
     }
 
@@ -364,7 +361,7 @@ query {
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
 
-        var ex = Assert.Throws<EntityQuerySchemaException>(() => schema.Type<string>().AddField("invalid", (ctx) => 8, "Invalid field"));
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Type<string>().AddField("invalid", (ctx) => 8, "Invalid field"));
         Assert.Equal("Cannot add field 'invalid' to type 'String', as 'String' is a scalar type and can not have fields.", ex.Message);
     }
 

@@ -39,13 +39,13 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         {
             argumentParam =
                 compileContext.GetConstantParameterForField(fieldNode.ParentNode.Field!)
-                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{fieldNode.ParentNode.Field!.Name}' in compile context.");
+                ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Could not find arguments for field '{fieldNode.ParentNode.Field!.Name}' in compile context.");
             arguments = compileContext.ConstantParameters[argumentParam];
             originalArgParam = fieldNode.ParentNode.Field!.ArgumentsParameter;
         }
 
         if (argumentParam == null)
-            throw new EntityGraphQLCompilerException("ConnectionEdgeExtension requires an argument parameter to be passed in");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "ConnectionEdgeExtension requires an argument parameter to be passed in");
         // field.Resolve will be built with the original field context and needs to be updated
         // we use the resolveExpression & extensions from our parent extension. We need to figure this out at runtime as the type this Edges field
         // is on may be used in multiple places and have different arguments etc
@@ -69,11 +69,11 @@ public class ConnectionEdgeExtension : BaseFieldExtension
 
         // check and set up arguments
         if (arguments.Before != null && arguments.After != null)
-            throw new EntityGraphQLArgumentException($"Field only supports either before or after being supplied, not both.");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{fieldNode.ParentNode.Name}' - Field only supports either before or after being supplied, not both.");
         if (arguments.First != null && arguments.First < 0)
-            throw new EntityGraphQLArgumentException($"first argument can not be less than 0.");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{fieldNode.ParentNode.Name}' - first argument can not be less than 0.");
         if (arguments.Last != null && arguments.Last < 0)
-            throw new EntityGraphQLArgumentException($"last argument can not be less than 0.");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{fieldNode.ParentNode.Name}' - last argument can not be less than 0.");
 
         // deserialize cursors here once (not many times in the fields)
         arguments.AfterNum = ConnectionHelper.DeserializeCursor(arguments.After);
@@ -82,9 +82,15 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         if (pagingExtension.MaxPageSize.HasValue)
         {
             if (arguments.First != null && arguments.First > pagingExtension.MaxPageSize.Value)
-                throw new EntityGraphQLArgumentException($"first argument can not be greater than {pagingExtension.MaxPageSize.Value}.");
+                throw new EntityGraphQLException(
+                    GraphQLErrorCategory.DocumentError,
+                    $"Field '{fieldNode.ParentNode.Name}' - first argument can not be greater than {pagingExtension.MaxPageSize.Value}."
+                );
             if (arguments.Last != null && arguments.Last > pagingExtension.MaxPageSize.Value)
-                throw new EntityGraphQLArgumentException($"last argument can not be greater than {pagingExtension.MaxPageSize.Value}.");
+                throw new EntityGraphQLException(
+                    GraphQLErrorCategory.DocumentError,
+                    $"Field '{fieldNode.ParentNode.Name}' - last argument can not be greater than {pagingExtension.MaxPageSize.Value}."
+                );
         }
 
         if (arguments.First == null && arguments.Last == null && pagingExtension.DefaultPageSize != null)
@@ -152,7 +158,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
     )
     {
         if (argumentParam == null)
-            throw new EntityGraphQLCompilerException("ConnectionEdgeExtension requires an argument parameter to be passed in");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "ConnectionEdgeExtension requires an argument parameter to be passed in");
 
         if (servicesPass)
             return (baseExpression, selectionExpressions, selectContextParam);

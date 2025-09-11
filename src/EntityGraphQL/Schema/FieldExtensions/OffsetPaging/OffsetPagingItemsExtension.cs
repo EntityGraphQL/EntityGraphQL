@@ -35,7 +35,7 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         {
             argumentParam =
                 compileContext.GetConstantParameterForField(fieldNode.ParentNode.Field!)
-                ?? throw new EntityGraphQLCompilerException($"Could not find arguments for field '{fieldNode.ParentNode.Field!.Name}' in compile context.");
+                ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Could not find arguments for field '{fieldNode.ParentNode.Field!.Name}' in compile context.");
             arguments = compileContext.ConstantParameters[argumentParam];
             originalArgParam = fieldNode.ParentNode.Field!.ArgumentsParameter;
         }
@@ -60,7 +60,7 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
             return (newItemsExp, originalArgParam, argumentParam, arguments); // paging is done already
 
         if (argumentParam == null)
-            throw new EntityGraphQLCompilerException("OffsetPagingItemsExtension requires an argument parameter to be passed in");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "OffsetPagingItemsExtension requires an argument parameter to be passed in");
 
         // Build our items expression with the paging
         newItemsExp = Expression.Call(

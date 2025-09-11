@@ -96,7 +96,7 @@ public class EntityQueryCompilerTests
     [Fact]
     public void FailsIdentityNotThere()
     {
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() => EntityQueryCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>(), compileContext));
+        var ex = Assert.Throws<EntityGraphQLException>(() => EntityQueryCompiler.Compile("wrongField", SchemaBuilder.FromObject<TestSchema>(), compileContext));
         Assert.Equal("Field 'wrongField' not found on type 'Query'", ex.Message);
     }
 
@@ -153,7 +153,7 @@ public class EntityQueryCompilerTests
     public void FailsIfThenElseInlineNoBrackets()
     {
         // no brackets so it reads it as someRelation.relation.id == (99 ? 'wooh' : 66) and fails as 99 is not a bool
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() =>
+        var ex = Assert.Throws<EntityGraphQLException>(() =>
             EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext)
         );
         Assert.Equal("Conditional result types mismatch. Types 'String' and 'Int64' must be the same.", ex.Message);
@@ -397,7 +397,7 @@ public class EntityQueryCompilerTests
         var schema = SchemaBuilder.FromObject<TestSchema>();
         schema.AddEnum("Size", typeof(Size), "");
 
-        Assert.Throws<EntityGraphQLCompilerException>(() =>
+        Assert.Throws<EntityGraphQLException>(() =>
         {
             EntityQueryCompiler.Compile("people.where(gender == Size.Other)", schema, compileContext);
         });

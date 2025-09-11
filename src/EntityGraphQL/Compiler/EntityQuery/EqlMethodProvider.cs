@@ -146,14 +146,14 @@ public class EqlMethodProvider : IMethodProvider
     public Expression MakeCall(Expression context, Expression argContext, string methodName, IEnumerable<Expression>? args, Type type)
     {
         if (!registeredMethods.TryGetValue(methodName, out var method))
-            throw new EntityGraphQLCompilerException($"Unsupported method {methodName}");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Unsupported method {methodName}");
 
         if (!IsTypeCompatible(type, method))
-            throw new EntityGraphQLCompilerException($"Method '{methodName}' cannot be called on type '{type}'. Expected '{method.MethodContextType}'");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{methodName}' cannot be called on type '{type}'. Expected '{method.MethodContextType}'");
 
         if (method.MakeCallFunc != null)
             return method.MakeCallFunc(context, argContext, method.MethodName, args?.ToArray() ?? Array.Empty<Expression>());
-        throw new EntityGraphQLCompilerException($"Method '{methodName}' does not have a MakeCallFunc defined");
+        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{methodName}' does not have a MakeCallFunc defined");
     }
 
     #endregion

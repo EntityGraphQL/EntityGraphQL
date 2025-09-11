@@ -21,6 +21,7 @@ public class DefaultGraphQLRequestDeserializer : IGraphQLRequestDeserializer
         {
             this.jsonOptions = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
             this.jsonOptions.Converters.Add(new JsonStringEnumConverter());
+            this.jsonOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
         }
     }
 

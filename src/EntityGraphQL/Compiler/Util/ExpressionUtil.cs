@@ -44,7 +44,7 @@ public static class ExpressionUtil
         }
         catch (InvalidOperationException ex)
         {
-            throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {type}", ex);
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Could not find extension method {methodName} on types {type}", null, null, ex);
         }
     }
 
@@ -56,7 +56,7 @@ public static class ExpressionUtil
         }
         catch (InvalidOperationException ex)
         {
-            throw new EntityGraphQLCompilerException($"Could not find extension method {methodName} on types {typeof(Enumerable)}", ex);
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Could not find extension method {methodName} on types {typeof(Enumerable)}", null, null, ex);
         }
     }
 
@@ -124,7 +124,9 @@ public static class ExpressionUtil
             if (jsonEle.ValueKind == JsonValueKind.Array)
             {
                 var eleType = toType.GetEnumerableOrArrayType()!;
-                var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType)) ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
+                var list =
+                    (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType))
+                    ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Could not create list of type {eleType}");
                 foreach (var item in jsonEle.EnumerateArray())
                     list.Add(ConvertObjectType(item, eleType, schema));
                 return list;
@@ -184,7 +186,7 @@ public static class ExpressionUtil
             var interfaceType = fromType.GetInterfaces().First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
             // handle dictionary of dictionary representing the objects
             if (interfaceType.GetGenericArguments()[0] != typeof(string))
-                throw new EntityGraphQLCompilerException($"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
+                throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Dictionary key type must be string. Got {fromType.GetGenericArguments()[0]}");
 
             var newValue = Activator.CreateInstance(toType);
             var prop = newValue is IArgumentsTracker p ? p : null;
@@ -211,7 +213,9 @@ public static class ExpressionUtil
         if (toType.IsEnumerableOrArray())
         {
             var eleType = toType.GetEnumerableOrArrayType()!;
-            var list = (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType)) ?? throw new EntityGraphQLCompilerException($"Could not create list of type {eleType}");
+            var list =
+                (IList?)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType))
+                ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Could not create list of type {eleType}");
             foreach (var item in (IEnumerable)value)
                 list.Add(ConvertObjectType(item, eleType, schema));
             if (toType.IsArray)
@@ -419,7 +423,7 @@ public static class ExpressionUtil
                 return Expression.Call(baseExp, mc.Method, mc.Arguments);
             }
             default:
-                throw new EntityGraphQLCompilerException($"Could not join expressions '{baseExp.NodeType} and '{nextExp.NodeType}'");
+                throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Could not join expressions '{baseExp.NodeType} and '{nextExp.NodeType}'");
         }
     }
 
@@ -582,7 +586,7 @@ public static class ExpressionUtil
         var bindings = type.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>().ToList();
         if (includeProperties)
             bindings.AddRange(type.GetProperties().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>());
-        var constructor = type.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
+        var constructor = type.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
         var newExp = Expression.New(constructor);
         var mi = Expression.MemberInit(newExp, bindings);
         return mi;
@@ -596,10 +600,10 @@ public static class ExpressionUtil
 
         dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
         if (dynamicType == null)
-            throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
 
         var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-        var constructor = dynamicType.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
+        var constructor = dynamicType.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
         var newExp = Expression.New(constructor);
         var mi = Expression.MemberInit(newExp, bindings);
         return mi;
@@ -616,7 +620,7 @@ public static class ExpressionUtil
         var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription);
 
         var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
-        var constructor = dynamicType.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
+        var constructor = dynamicType.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
         var newExp = Expression.New(constructor);
         var mi = Expression.MemberInit(newExp, bindings);
         return mi;
@@ -664,7 +668,7 @@ public static class ExpressionUtil
     {
         anonType =
             LinqRuntimeTypeBuilder.GetDynamicType(fieldsOnBaseType.ToDictionary(x => x.Key, x => x.Value.Type), name + "baseDynamicType")
-            ?? throw new EntityGraphQLCompilerException("Could not create dynamic type");
+            ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
         // loop through possible types and create the TypeIs check
         var previous = CreateNewExpression(fieldsOnBaseType, anonType) ?? Expression.Constant(null, anonType);
         var allNonBaseDynamicTypes = new List<Type>();

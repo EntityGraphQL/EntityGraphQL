@@ -46,7 +46,7 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
         if (left.Type != right.Type)
         {
             if (left.Type.IsEnum && right.Type.IsEnum)
-                throw new EntityGraphQLCompilerException($"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");
             if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
                 right = ConvertToGuid(right);
             else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))

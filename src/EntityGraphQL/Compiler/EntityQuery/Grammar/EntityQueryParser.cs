@@ -258,7 +258,7 @@ public sealed class EntityQueryParser
     {
         var parseContext = new EntityQueryParseContext(query, context, schema, requestContext, methodProvider, compileContext);
 
-        var result = grammar.Parse(parseContext) ?? throw new EntityGraphQLCompilerException("Failed to parse query");
+        var result = grammar.Parse(parseContext) ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Failed to parse query");
         return result.Compile(parseContext.Context, parseContext.Schema, parseContext.RequestContext, parseContext.MethodProvider);
     }
 }

@@ -100,7 +100,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     )
     {
         if (context == null && serviceProvider == null)
-            throw new EntityGraphQLCompilerException("Either context or serviceProvider must be provided.");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Either context or serviceProvider must be provided.");
 
         Schema.CheckTypeAccess(this.SchemaType, requestContext);
 
@@ -177,21 +177,35 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                             if (didExecute)
                                 result[expandedField.Name] = data;
                         }
-                        catch (EntityGraphQLValidationException ve)
+                        catch (EntityGraphQLFieldException fe)
+                        {
+                            allErrors.Add(new GraphQLError(Schema.AllowedExceptionMessage(fe), expandedField.BuildPath(), null));
+                        }
+                        catch (EntityGraphQLException ve)
                         {
                             allErrors.AddRange(Schema.GenerateErrors(ve));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
                         }
-                        catch (EntityGraphQLFieldException fe)
+                        catch (TargetInvocationException tie) when (tie.InnerException != null)
                         {
-                            allErrors.AddRange(Schema.GenerateErrors(fe));
+                            allErrors.AddRange(Schema.GenerateErrors(tie.InnerException, expandedField.Name));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
                         }
                         catch (Exception ex)
                         {
-                            allErrors.AddRange(Schema.GenerateErrors(new EntityGraphQLFieldException(expandedField.Name, [expandedField.Name], ex)));
+                            allErrors.AddRange(
+                                Schema.GenerateErrors(
+                                    new EntityGraphQLException(
+                                        GraphQLErrorCategory.ExecutionError,
+                                        $"Field '{expandedField.Name}' - {Schema.AllowedExceptionMessage(ex)}",
+                                        null,
+                                        expandedField.BuildPath(),
+                                        ex
+                                    )
+                                )
+                            );
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
                         }
@@ -199,12 +213,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLFieldException(fieldNode.Name, [fieldNode.Name], ex);
+                    throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Error executing field {fieldNode.Name}", null, fieldNode.BuildPath(), ex);
                 }
             }
         }
         // building the variables could cause this
-        catch (EntityGraphQLCompilerException ce)
+        catch (EntityGraphQLException ce)
         {
             allErrors.AddRange(Schema.GenerateErrors(ce));
         }
@@ -218,7 +232,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)
     {
         if (context == null)
-            return serviceProvider.GetService<TContext>()! ?? throw new EntityGraphQLCompilerException($"Could not find service of type {typeof(TContext).Name} to execute field {fieldNode.Name}");
+            return serviceProvider.GetService<TContext>()!
+                ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Could not find service of type {typeof(TContext).Name} to execute field {fieldNode.Name}");
 
         return context;
     }
@@ -243,18 +258,19 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                         variablesToUse!.MarkAsSet(name);
                     }
                     if (argValue == null && argType.IsRequired)
-                        throw new EntityGraphQLCompilerException(
+                        throw new EntityGraphQLException(
+                            GraphQLErrorCategory.DocumentError,
                             $"Supplied variable '{name}' is null while the variable definition is non-null. Please update query document or supply a non-null value."
                         );
                     OpVariableParameter.Type.GetField(name)!.SetValue(variablesToUse, argValue);
                 }
-                catch (EntityGraphQLCompilerException)
+                catch (EntityGraphQLException)
                 {
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    throw new EntityGraphQLCompilerException($"Supplied variable '{name}' can not be applied to defined variable type '{argType.Type}'", ex);
+                    throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Supplied variable '{name}' can not be applied to defined variable type '{argType.Type}'", null, null, ex);
                 }
             }
         }
@@ -271,72 +287,91 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         IArgumentsTracker? docVariables
     )
     {
-        object? runningContext = context;
-
-        var replacer = new ParameterReplacer();
-        // For root/top level fields we need to first select the whole graph without fields that require services
-        // so that EF Core can run and optimize the query against the DB
-        // We then select the full graph from that context
-
-        if (node.RootParameter == null)
-            throw new EntityGraphQLCompilerException($"Root parameter not set for {node.Name}");
-
-        Expression? expression = null;
-        var contextParam = node.RootParameter;
-        bool isSecondExec = false;
-
-        if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
+        try
         {
-            // build this first as NodeExpression may modify ConstantParameters
-            // this is without fields that require services
-            expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, withoutServiceFields: true, null, null, false, replacer);
-            if (expression != null)
+            object? runningContext = context;
+
+            var replacer = new ParameterReplacer();
+            // For root/top level fields we need to first select the whole graph without fields that require services
+            // so that EF Core can run and optimize the query against the DB
+            // We then select the full graph from that context
+
+            if (node.RootParameter == null)
+                throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Root parameter not set for {node.Name}");
+
+            Expression? expression = null;
+            var contextParam = node.RootParameter;
+            bool isSecondExec = false;
+
+            if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
             {
-                // execute expression now and get a result that we will then perform a full select over
-                // This part is happening via EntityFramework if you use it
-                (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false, fragments, false);
-                if (runningContext == null)
-                    return (null, true);
-
-                // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
-                var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
-
-                // core context data is fetched. Now fetch all the bulk resolvers
-                var bulkData = await ResolveBulkLoadersAsync(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
-
-                // new context
-                compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken);
-
-                // we now know the selection type without services and need to build the full select on that type
-                // need to rebuild the full query
+                // build this first as NodeExpression may modify ConstantParameters
+                // this is without fields that require services
                 expression = node.GetNodeExpression(
                     compileContext,
                     serviceProvider,
                     fragments,
                     OpVariableParameter,
                     docVariables,
-                    newContextType,
-                    false,
-                    replacementNextFieldContext: newContextType,
+                    contextParam,
+                    withoutServiceFields: true,
                     null,
-                    contextChanged: true,
+                    null,
+                    false,
                     replacer
                 );
-                contextParam = newContextType;
-                isSecondExec = true;
+                if (expression != null)
+                {
+                    // execute expression now and get a result that we will then perform a full select over
+                    // This part is happening via EntityFramework if you use it
+                    (runningContext, _) = await ExecuteExpressionAsync(expression, runningContext!, contextParam, serviceProvider, replacer, compileContext, node, false, fragments, false);
+                    if (runningContext == null)
+                        return (null, true);
+
+                    // the full selection is now on the anonymous type returned by the selection without fields. We don't know the type until now
+                    var newContextType = Expression.Parameter(runningContext.GetType(), "ctx_no_srv");
+
+                    // core context data is fetched. Now fetch all the bulk resolvers
+                    var bulkData = await ResolveBulkLoadersAsync(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
+
+                    // new context
+                    compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken);
+
+                    // we now know the selection type without services and need to build the full select on that type
+                    // need to rebuild the full query
+                    expression = node.GetNodeExpression(
+                        compileContext,
+                        serviceProvider,
+                        fragments,
+                        OpVariableParameter,
+                        docVariables,
+                        newContextType,
+                        false,
+                        replacementNextFieldContext: newContextType,
+                        null,
+                        contextChanged: true,
+                        replacer
+                    );
+                    contextParam = newContextType;
+                    isSecondExec = true;
+                }
             }
-        }
 
 #pragma warning disable IDE0074 // Use compound assignment
-        if (expression == null)
-        {
-            // just do things normally
-            expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, null, contextChanged: false, replacer);
-        }
+            if (expression == null)
+            {
+                // just do things normally
+                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, null, contextChanged: false, replacer);
+            }
 #pragma warning restore IDE0074 // Use compound assignment
 
-        var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true, fragments, isSecondExec);
-        return data;
+            var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true, fragments, isSecondExec);
+            return data;
+        }
+        catch (EntityGraphQLFieldException fe)
+        {
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Field '{node.Name}' - {fe.Message}");
+        }
     }
 
     private static async Task<Dictionary<string, object>> ResolveBulkLoadersAsync(
@@ -912,5 +947,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 
         return typedList;
+    }
+
+    public IEnumerable<string> BuildPath()
+    {
+        if (Name == null)
+            return [];
+        return [Name];
     }
 }

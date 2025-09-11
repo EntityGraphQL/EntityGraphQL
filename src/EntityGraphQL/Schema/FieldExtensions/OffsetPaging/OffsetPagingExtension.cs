@@ -35,17 +35,17 @@ public class OffsetPagingExtension : BaseFieldExtension
     public override void Configure(ISchemaProvider schema, IField field)
     {
         if (field.ResolveExpression == null)
-            throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires a Resolve function set on the field");
+            throw new EntityGraphQLSchemaException($"OffsetPagingExtension requires a Resolve function set on the field");
 
         if (!field.ResolveExpression.Type.IsEnumerableOrArray())
-            throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
+            throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
         if (field.FieldType == GraphQLQueryFieldType.Mutation)
-            throw new EntityGraphQLCompilerException($"OffsetPagingExtension cannot be used on a mutation field {field.Name}");
+            throw new EntityGraphQLSchemaException($"OffsetPagingExtension cannot be used on a mutation field {field.Name}");
 
         listType =
             field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()
-            ?? throw new ArgumentException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
+            ?? throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
@@ -118,10 +118,10 @@ public class OffsetPagingExtension : BaseFieldExtension
             return (expression, originalArgParam, argumentParam, arguments);
 
         if (argumentParam == null)
-            throw new EntityGraphQLCompilerException($"OffsetPagingExtension requires argumentParams to be set");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"OffsetPagingExtension requires argumentParams to be set");
 
         if (maxPageSize != null && arguments?.Take > maxPageSize.Value)
-            throw new EntityGraphQLArgumentException($"Argument take can not be greater than {maxPageSize}.");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{fieldNode.Name}' - Argument take can not be greater than {maxPageSize}.");
 
         // other extensions expect to run on the collection not our new shape
         var newItemsExp = OriginalFieldExpression!;

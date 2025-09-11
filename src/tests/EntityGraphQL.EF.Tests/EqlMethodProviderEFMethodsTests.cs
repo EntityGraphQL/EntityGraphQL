@@ -207,7 +207,7 @@ public class EqlMethodProviderEFMethodsTests
             makeCallFunc: (context, argContext, methodName, args) =>
             {
                 if (args.Length != 1)
-                    throw new EntityGraphQLCompilerException($"Method '{methodName}' expects 1 argument but {args.Length} were supplied");
+                    throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Method '{methodName}' expects 1 argument but {args.Length} were supplied");
 
                 return Expression.PropertyOrField(context, Expression.Lambda(args[0]).Compile().DynamicInvoke()!.ToString()!);
             }

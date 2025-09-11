@@ -41,4 +41,9 @@ public class GraphQLFragmentStatement : IGraphQLNode
     {
         throw new NotImplementedException();
     }
+
+    public IEnumerable<string> BuildPath()
+    {
+        return [Name];
+    }
 }

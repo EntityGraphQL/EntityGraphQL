@@ -1,6 +1,5 @@
 using System;
 using System.Reflection;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema;
@@ -23,6 +22,6 @@ public class SubscriptionField : MethodField
         : base(schema, fromType, methodName, returnType, method, description, requiredAuth, isAsync, options)
     {
         if (!method.ReturnType.ImplementsGenericInterface(typeof(IObservable<>)))
-            throw new EntityGraphQLCompilerException($"Subscription {methodName} should return an IObservable<>");
+            throw new EntityGraphQLSchemaException($"Subscription {methodName} should return an IObservable<>");
     }
 }

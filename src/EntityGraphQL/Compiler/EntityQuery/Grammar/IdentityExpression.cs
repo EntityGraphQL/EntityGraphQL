@@ -116,6 +116,6 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
             }
         }
 
-        throw new EntityGraphQLCompilerException($"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, false, null)?.Name ?? context!.Type.Name}'");
+        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, false, null)?.Name ?? context!.Type.Name}'");
     }
 }

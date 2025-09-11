@@ -35,7 +35,9 @@ public static class GraphQLHelper
             }
             else
             {
-                var service = serviceProvider.GetService(serviceParam.Type) ?? throw new EntityGraphQLExecutionException($"Service {serviceParam.Type.Name} not found in service provider");
+                var service =
+                    serviceProvider.GetService(serviceParam.Type)
+                    ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Service {serviceParam.Type.Name} not found in service provider");
                 allArgs.Add(service);
             }
         }
@@ -53,7 +55,7 @@ public static class GraphQLHelper
         ParameterReplacer replacer,
         ref object? argumentValue,
         ref Expression result,
-        List<string> validationErrors,
+        HashSet<string> validationErrors,
         ParameterExpression? newArgParam
     )
     {
@@ -72,12 +74,12 @@ public static class GraphQLHelper
                 argumentValue = invokeContext.Arguments;
             }
 
-            validationErrors.AddRange(invokeContext.Errors);
+            validationErrors.UnionWith(invokeContext.Errors);
         }
 
         if (validationErrors.Count > 0)
         {
-            throw new EntityGraphQLValidationException(validationErrors);
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, validationErrors);
         }
     }
 }

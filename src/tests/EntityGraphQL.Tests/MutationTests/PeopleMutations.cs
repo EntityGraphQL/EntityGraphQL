@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
 
@@ -206,13 +205,13 @@ public class PeopleMutations : IMutations
     [GraphQLMutation]
     public int AddPersonError(PeopleMutationsArgs args)
     {
-        throw new EntityGraphQLArgumentException("name", "Name can not be null");
+        throw new EntityGraphQLException("Argument name can not be null");
     }
 
     [GraphQLMutation]
     public Person? AddPersonNullableError(PeopleMutationsArgs args)
     {
-        throw new EntityGraphQLArgumentException("name", "Name can not be null");
+        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Argument name can not be null");
     }
 
     [GraphQLMutation]

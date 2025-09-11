@@ -17,7 +17,7 @@ public class ListEdgeCasesTests
         // empty schema
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Type<Person>().RemoveField(p => p.Id);
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(
+        var ex = Assert.Throws<EntityGraphQLException>(
             () =>
                 new GraphQLCompiler(schema).Compile(
                     @"
@@ -36,7 +36,7 @@ public class ListEdgeCasesTests
         var schema = SchemaBuilder.Create<TestDataContext>();
         schema.AddType<Person>("Person").AddField("name", p => p.Name, "Person's name");
         schema.Query().AddField("people", p => p.People, "People");
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(
+        var ex = Assert.Throws<EntityGraphQLException>(
             () =>
                 new GraphQLCompiler(schema).Compile(
                     @"

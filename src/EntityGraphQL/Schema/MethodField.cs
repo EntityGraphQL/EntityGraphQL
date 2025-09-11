@@ -79,7 +79,7 @@ public abstract class MethodField : BaseField
         var allArgs = new List<object?>();
         var argsToValidate = new Dictionary<string, object>();
         object? argInstance = null;
-        var validationErrors = new List<string>();
+        var validationErrors = new HashSet<string>();
         var setProperties = new List<string>();
 
         var graphQLArgumentsSet = new ArgumentsTracker();
@@ -109,7 +109,7 @@ public abstract class MethodField : BaseField
             }
             else if (gqlRequestArgs != null && Arguments.TryGetValue(p.Name!, out var argField))
             {
-                var (isSet, value) = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors, compileContext);
+                var (isSet, value) = ArgumentUtil.BuildArgumentFromMember(Schema, gqlRequestArgs, argField.Name, argField.RawType, argField.DefaultValue, validationErrors);
                 if (docVariables != null)
                 {
                     if (value is Expression and not null)
@@ -143,7 +143,7 @@ public abstract class MethodField : BaseField
                 {
                     var service =
                         serviceProvider.GetService(p.ParameterType)
-                        ?? throw new EntityGraphQLExecutionException($"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
+                        ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
                     allArgs.Add(service);
                 }
             }
@@ -170,13 +170,13 @@ public abstract class MethodField : BaseField
             }
             if (validatorContext.Errors != null && validatorContext.Errors.Count > 0)
             {
-                validationErrors.AddRange(validatorContext.Errors);
+                validationErrors.UnionWith(validatorContext.Errors);
             }
         }
 
         if (validationErrors.Count > 0)
         {
-            throw new EntityGraphQLValidationException(validationErrors);
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, validationErrors);
         }
 
         // we create an instance _per request_ injecting any parameters to the constructor
@@ -186,25 +186,25 @@ public abstract class MethodField : BaseField
         object? instance = serviceProvider != null ? ActivatorUtilities.CreateInstance(serviceProvider, Method.DeclaringType!) : Activator.CreateInstance(Method.DeclaringType!);
 
         object? result;
-        if (IsAsync)
+        try
         {
-            result = await (dynamic?)Method.Invoke(instance, allArgs.Count > 0 ? allArgs.ToArray() : null);
-        }
-        else
-        {
-            try
+            if (IsAsync)
+            {
+                result = await (dynamic?)Method.Invoke(instance, allArgs.Count > 0 ? allArgs.ToArray() : null);
+            }
+            else
             {
                 result = Method.Invoke(instance, allArgs.ToArray());
             }
-            catch (TargetInvocationException ex)
-            {
-                if (ex.InnerException != null)
-                    throw ex.InnerException;
-                throw;
-            }
-        }
 
-        return (result, validator);
+            return (result, validator);
+        }
+        catch (TargetInvocationException ex)
+        {
+            if (ex.InnerException != null)
+                throw ex.InnerException;
+            throw;
+        }
     }
 
     public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(

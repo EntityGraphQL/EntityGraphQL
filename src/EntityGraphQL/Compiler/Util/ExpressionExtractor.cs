@@ -43,7 +43,7 @@ public class ExpressionExtractor : ExpressionVisitor
     protected override Expression VisitParameter(ParameterExpression node)
     {
         if (rootContext == null)
-            throw new EntityGraphQLCompilerException("Root context not set for ExpressionExtractor");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Root context not set for ExpressionExtractor");
 
         if ((rootContext == node || (matchByType && rootContext.Type == node.Type)) && currentExpression.Count > 0)
         {

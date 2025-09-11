@@ -12,7 +12,7 @@ public class SchemaValidateTests
     {
         var schema = SchemaBuilder.Create<TestDataContext>();
         schema.Query().AddField("people", ctx => ctx.People, "People");
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() => schema.Validate());
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Validate());
         Assert.Equal("Field 'people' on type 'Query' returns type 'EntityGraphQL.Tests.Person' that is not in the schema", ex.Message);
     }
 
@@ -22,7 +22,7 @@ public class SchemaValidateTests
         var schema = SchemaBuilder.Create<TestDataContext>();
         schema.Query().AddField("people", ctx => ctx.People, "People");
         schema.AddType<Person>("A person").AddField("tasks", p => p.Tasks, "Tasks");
-        var ex = Assert.Throws<EntityGraphQLCompilerException>(() => schema.Validate());
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Validate());
         Assert.Equal("Field 'tasks' on type 'Person' returns type 'EntityGraphQL.Tests.Task' that is not in the schema", ex.Message);
     }
 }

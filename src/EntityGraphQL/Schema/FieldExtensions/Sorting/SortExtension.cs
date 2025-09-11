@@ -34,10 +34,10 @@ public class SortExtension : BaseFieldExtension
     public override void Configure(ISchemaProvider schema, IField field)
     {
         if (field.ResolveExpression == null)
-            throw new EntityGraphQLCompilerException($"SortExtension requires a Resolve function set on the field");
+            throw new EntityGraphQLSchemaException($"SortExtension requires a Resolve function set on the field");
 
         if (!field.ResolveExpression.Type.IsEnumerableOrArray())
-            throw new ArgumentException($"Expression for field {field.Name} must be a collection to use SortExtension. Found type {field.ReturnType.TypeDotnet}");
+            throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use SortExtension. Found type {field.ReturnType.TypeDotnet}");
 
         if (!schema.HasType(typeof(SortDirection)))
             schema.AddEnum<SortDirection>("SortDirectionEnum", "Sort direction enum");

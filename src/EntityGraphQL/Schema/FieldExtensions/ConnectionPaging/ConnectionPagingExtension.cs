@@ -45,10 +45,10 @@ public class ConnectionPagingExtension : BaseFieldExtension
     public override void Configure(ISchemaProvider schema, IField field)
     {
         if (field.ResolveExpression == null)
-            throw new EntityGraphQLCompilerException($"ConnectionPagingExtension requires a Resolve function set on the field");
+            throw new EntityGraphQLSchemaException($"ConnectionPagingExtension requires a Resolve function set on the field");
 
         if (!field.ResolveExpression.Type.IsEnumerableOrArray())
-            throw new ArgumentException($"Expression for field {field.Name} must be a collection to use ConnectionPagingExtension. Found type {field.ReturnType.TypeDotnet}");
+            throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use ConnectionPagingExtension. Found type {field.ReturnType.TypeDotnet}");
 
         // Make sure required types are in the schema
         if (!schema.HasType(typeof(ConnectionPageInfo)))

@@ -97,7 +97,7 @@ public class GraphQLDocument : IGraphQLNode
     {
         // check operation names
         if (Operations.Count > 1 && Operations.Any(o => string.IsNullOrEmpty(o.Name)))
-            throw new EntityGraphQLExecutionException("An operation name must be defined for all operations if there are multiple operations in the request");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "An operation name must be defined for all operations if there are multiple operations in the request");
 
         var result = new QueryResult();
         var op = string.IsNullOrEmpty(operationName) ? Operations.First() : Operations.First(o => o.Name == operationName);
@@ -141,5 +141,10 @@ public class GraphQLDocument : IGraphQLNode
     public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
     {
         throw new NotImplementedException();
+    }
+
+    public IEnumerable<string> BuildPath()
+    {
+        return [Name];
     }
 }

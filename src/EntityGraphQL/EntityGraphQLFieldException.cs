@@ -1,16 +1,13 @@
-﻿using System;
+using System;
 
 namespace EntityGraphQL;
 
-internal sealed class EntityGraphQLFieldException : Exception
+/// <summary>
+/// Used to indicate errors that occur during the processing of a GraphQL field so we can catch it and add
+/// information about the field to the error.
+/// </summary>
+public sealed class EntityGraphQLFieldException : Exception
 {
-    public readonly string FieldName;
-    public readonly string[] Path;
-
-    public EntityGraphQLFieldException(string fieldName, string[]? path, Exception innerException)
-        : base(null, innerException)
-    {
-        FieldName = fieldName;
-        Path = path ?? [];
-    }
+    public EntityGraphQLFieldException(string message, Exception? innerException = null)
+        : base(message, innerException) { }
 }

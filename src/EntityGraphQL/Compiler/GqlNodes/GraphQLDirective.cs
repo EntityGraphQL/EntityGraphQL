@@ -28,7 +28,7 @@ public class GraphQLDirective
         IArgumentsTracker? docVariables
     )
     {
-        var validationErrors = new List<string>();
+        var validationErrors = new HashSet<string>();
         var arguments = ArgumentUtil.BuildArgumentsObject(
             schema,
             name,
@@ -43,7 +43,7 @@ public class GraphQLDirective
 
         if (validationErrors.Count > 0)
         {
-            throw new EntityGraphQLValidationException(validationErrors);
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, validationErrors);
         }
 
         return processor.VisitNode(location, node, arguments);

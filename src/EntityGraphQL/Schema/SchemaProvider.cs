@@ -274,18 +274,18 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             {
                 var persistedQuery = (PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null);
                 if (persistedQuery != null && persistedQuery.Version != 1)
-                    throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
+                    throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "PersistedQueryNotSupported");
 
                 string? hash = persistedQuery?.Sha256Hash;
 
                 if (hash == null && gql.Query == null)
-                    throw new EntityGraphQLExecutionException("Please provide a persisted query hash or a query string");
+                    throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Please provide a persisted query hash or a query string");
 
                 if (hash != null)
                 {
                     compiledQuery = queryCache.GetCompiledQueryWithHash(hash);
                     if (compiledQuery == null && gql.Query == null)
-                        throw new EntityGraphQLExecutionException("PersistedQueryNotFound");
+                        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "PersistedQueryNotFound");
                     else if (compiledQuery == null)
                     {
                         compiledQuery = graphQLCompiler.Compile(gql);
@@ -313,9 +313,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 {
                     string? hash = ((PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null))?.Sha256Hash;
                     if (hash != null)
-                        throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
+                        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "PersistedQueryNotSupported");
 
-                    throw new EntityGraphQLException("Query field must be set unless you are using persisted queries");
+                    throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Query field must be set unless you are using persisted queries");
                 }
 
                 compiledQuery = graphQLCompiler.Compile(gql);
@@ -333,7 +333,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         }
         catch (Exception ex)
         {
-            result = HandleException(ex);
+            return HandleException(ex);
         }
 
         return result;
@@ -350,21 +350,25 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         return result;
     }
 
-    public IEnumerable<GraphQLError> GenerateErrors(Exception exception)
+    public IEnumerable<GraphQLError> GenerateErrors(Exception exception, string? fieldName = null)
     {
         return exception switch
         {
-            EntityGraphQLValidationException validationException => validationException.ValidationErrors.Select(v => new GraphQLError(v, null)),
-            AggregateException aggregateException => aggregateException.InnerExceptions.SelectMany(GenerateErrors),
-            EntityGraphQLException graphqlException => [new GraphQLError(graphqlException.Message, null, (IDictionary<string, object>?)graphqlException.Extensions)],
+            AggregateException aggregateException => aggregateException.InnerExceptions.SelectMany(ie => GenerateErrors(ie, fieldName)),
+            EntityGraphQLFieldException fieldException => [new GraphQLError(AllowedExceptionMessage(fieldException, fieldName), null, null)],
+            EntityGraphQLException graphqlException => graphqlException.Messages.Select(m => new GraphQLError(m, graphqlException.Path, (IDictionary<string, object>?)graphqlException.Extensions)),
             TargetInvocationException targetInvocationException => GenerateErrors(targetInvocationException.InnerException!),
-            EntityGraphQLFieldException fieldException => GenerateErrors(fieldException.InnerException!)
-                .Select(f => new GraphQLError($"Field '{fieldException.FieldName}' - {f.Message}", fieldException.Path, f.Extensions)),
-            _ => [new GraphQLError(AllowedExceptionMessage(exception), null, null)],
+            _ => [new GraphQLError(AllowedExceptionMessage(exception, fieldName), null, null)],
         };
     }
 
-    private string AllowedExceptionMessage(Exception exception) => IsAllowedException(exception) ? exception.Message : "Error occurred";
+    public string AllowedExceptionMessage(Exception exception, string? fieldName = null)
+    {
+        var message = IsAllowedException(exception) ? exception.Message : "Error occurred";
+        if (fieldName != null)
+            message = $"Field '{fieldName}' - {message}";
+        return message;
+    }
 
     private bool IsAllowedException(Exception exception) =>
         isDevelopment || AllowedExceptions.Any(e => e.IsAllowed(exception)) || exception.GetType().GetCustomAttribute<AllowedExceptionAttribute>() != null;
@@ -378,8 +382,8 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         {
             string? phash = ((PersistedQueryExtension?)ExpressionUtil.ConvertObjectType(gql.Extensions.GetValueOrDefault("persistedQuery"), typeof(PersistedQueryExtension), null))?.Sha256Hash;
             if (phash != null)
-                throw new EntityGraphQLExecutionException("PersistedQueryNotSupported");
-            throw new EntityGraphQLException("Query field must be set unless you are using persisted queries");
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "PersistedQueryNotSupported");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Query field must be set unless you are using persisted queries");
         }
 
         (compiledQuery, var hash) = queryCache.GetCompiledQuery(gql.Query, null);
@@ -561,13 +565,13 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// </summary>
     /// <param name="typeName"></param>
     /// <returns>An ISchemaType if the type is found in the schema</returns>
-    /// <exception cref="EntityGraphQLCompilerException">If type name not found</exception>
+    /// <exception cref="EntityGraphQLException">If type name not found</exception>
     public ISchemaType GetSchemaType(string typeName, QueryRequestContext? requestContext)
     {
         if (schemaTypes.TryGetValue(typeName, out var schemaType))
             return CheckTypeAccess(schemaType, requestContext);
 
-        throw new EntityGraphQLCompilerException($"Type {typeName} not found in schema");
+        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Type {typeName} not found in schema");
     }
 
     public ISchemaType GetSchemaType(Type dotnetType, QueryRequestContext? requestContext) => GetSchemaType(dotnetType, false, requestContext);
@@ -582,7 +586,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     {
         if (TryGetSchemaType(dotnetType, inputTypesOnly, out var schemaType, requestContext))
             return schemaType!;
-        throw new EntityGraphQLCompilerException($"No schema type found for dotnet type '{dotnetType.Name}'. Make sure you add it or add a type mapping.");
+        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"No schema type found for dotnet type '{dotnetType.Name}'. Make sure you add it or add a type mapping.");
     }
 
     public bool TryGetSchemaType(Type dotnetType, bool inputTypesOnly, out ISchemaType? schemaType, QueryRequestContext? requestContext)
@@ -614,7 +618,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             return schemaType;
 
         if (!requestContext.AuthorizationService.IsAuthorized(requestContext.User, schemaType.RequiredAuthorization))
-            throw new EntityGraphQLAccessException($"You are not authorized to access the '{schemaType.Name}' type.");
+            throw new EntityGraphQLFieldException($"You are not authorized to access the '{schemaType.Name}' type.");
 
         return schemaType;
     }
@@ -649,7 +653,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// </summary>
     /// <param name="typeName"></param>
     /// <returns>An ISchemaType if the type is found in the schema</returns>
-    /// <exception cref="EntityGraphQLCompilerException">If type name not found</exception>
     public ISchemaType Type(string typeName)
     {
         return GetSchemaType(typeName, null);
@@ -910,7 +913,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                     contextType.RemoveField(field.Name);
                 }
             }
-            catch (EntityGraphQLCompilerException)
+            catch (EntityGraphQLException)
             {
                 // SchemaType looks up the type in the schema. And there is a chance that type is not in there
                 // either not added or removed previously
@@ -923,12 +926,11 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// </summary>
     /// <param name="name"></param>
     /// <returns></returns>
-    /// <exception cref="EntityGraphQLCompilerException"></exception>
     public IDirectiveProcessor GetDirective(string name)
     {
         if (directives.TryGetValue(name, out var directive))
             return directive;
-        throw new EntityGraphQLCompilerException($"Directive {name} not defined in schema");
+        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Directive {name} not defined in schema");
     }
 
     /// <summary>
@@ -944,11 +946,11 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// Add a directive to the schema
     /// </summary>
     /// <param name="directive"></param>
-    /// <exception cref="EntityGraphQLCompilerException"></exception>
+    /// <exception cref="EntityGraphQLException"></exception>
     public void AddDirective(IDirectiveProcessor directive)
     {
         if (directives.ContainsKey(directive.Name))
-            throw new EntityGraphQLCompilerException($"Directive {directive.Name} already exists on schema");
+            throw new EntityGraphQLSchemaException($"Directive {directive.Name} already exists on schema");
         directives.Add(directive.Name, directive);
     }
 
@@ -1002,9 +1004,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                     // schema type will throw if if can't look it up
                     var _ = field.ReturnType.SchemaType;
                 }
-                catch (EntityGraphQLCompilerException)
+                catch (EntityGraphQLSchemaException)
                 {
-                    throw new EntityGraphQLCompilerException(
+                    throw new EntityGraphQLSchemaException(
                         $"Field '{field.Name}' on type '{schemaType.Name}' returns type '{(field.ReturnType.TypeDotnet.IsEnumerableOrArray() ? field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() : field.ReturnType.TypeDotnet)}' that is not in the schema"
                     );
                 }

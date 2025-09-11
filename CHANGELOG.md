@@ -31,6 +31,7 @@
 - #469 - Make filter grammar immutable as it should be for performance
 - #303 - You can now reference service fields in the `UseFilter/[UseFilter]` expression. Like normal the filter will first be applied with non service fields, then applied again with service fields is `ExecutionOptions.ExecuteServiceFieldsSeparately == true` (default).
 - #396 - Filter expressions now support GraphQL variables using `$variableName` syntax. This allows parameterized and dynamic filters (e.g., `filter: "name == $searchTerm && age > $minAge"`).
+- Related to #331 and the `followSpec = true` above, errors and exceptions were refactored internally. Following the GraphQL spec if the core library gets an error it will still return a `GraphQLResult` with the errors (and potentially partial results).
 
 # Fixes
 

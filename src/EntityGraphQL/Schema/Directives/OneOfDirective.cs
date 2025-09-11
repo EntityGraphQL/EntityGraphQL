@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema
@@ -16,7 +15,7 @@ namespace EntityGraphQL.Schema
             {
                 if (field.ReturnType.TypeNotNullable)
                 {
-                    throw new EntityQuerySchemaException($"{type.TypeDotnet.Name} is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.");
+                    throw new EntityGraphQLSchemaException($"{type.TypeDotnet.Name} is a OneOf type but all its fields are not nullable. OneOf input types require all the field to be nullable.");
                 }
             };
 
@@ -27,7 +26,7 @@ namespace EntityGraphQL.Schema
                     var singleField = value.GetType().GetProperties().Count(x => x.GetValue(value) != null);
 
                     if (singleField != 1) // we got multiple set
-                        throw new EntityGraphQLValidationException($"Exactly one field must be specified for argument of type {type.Name}.");
+                        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Exactly one field must be specified for argument of type {type.Name}.");
                 }
             };
         }

@@ -356,7 +356,7 @@ internal class FormatDirective : DirectiveProcessor<FormatDirectiveArgs>
             {
                 var expression = fieldNode.NextFieldContext!;
                 if (expression.Type != typeof(DateTime) && expression.Type != typeof(DateTime?))
-                    throw new EntityGraphQLException("The format directive can only be used on DateTime fields");
+                    throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "The format directive can only be used on DateTime fields");
 
                 if (expression.Type == typeof(DateTime?))
                     expression = Expression.Property(expression, "Value");

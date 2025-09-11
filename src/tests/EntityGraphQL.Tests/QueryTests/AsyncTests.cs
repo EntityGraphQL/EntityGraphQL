@@ -66,7 +66,7 @@ public class AsyncTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         // Task<> returns are now supported with automatic async resolution
-        Assert.Throws<EntityGraphQLCompilerException>(() =>
+        Assert.Throws<EntityGraphQLSchemaException>(() =>
         {
             schema.Type<Person>().AddField("age", "Returns persons age").ResolveAsync<AgeService>((ctx, srv) => srv.GetAgeAsyncNoResult(ctx.Birthday));
         });

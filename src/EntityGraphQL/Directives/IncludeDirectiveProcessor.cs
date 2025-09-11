@@ -14,7 +14,7 @@ public class IncludeDirectiveProcessor : DirectiveProcessor<IncludeArguments>
     public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
     {
         if (arguments is null)
-            throw new EntityGraphQLException("Argument 'if' is required for @include directive");
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Argument 'if' is required for @include directive");
         return ((IncludeArguments)arguments).If ? node : null;
     }
 }
