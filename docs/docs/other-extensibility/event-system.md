@@ -31,7 +31,7 @@ public static class OneOfDirectiveExtensions
                 var singleField = value.GetType().GetProperties().Count(x => x.GetValue(value) != null);
 
                 if (singleField != 1) // we got multiple set
-                    throw new EntityGraphQLValidationException($"Exactly one field must be specified for argument of type {type.Name}.");
+                    throw new EntityGraphQLException($"Exactly one field must be specified for argument of type {type.Name}.");
             }
         };
     }

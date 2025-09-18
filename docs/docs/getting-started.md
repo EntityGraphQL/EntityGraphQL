@@ -123,7 +123,7 @@ To add one or more security policies when using `MapGraphQL()` you can pass a co
 services.AddAuthentication()
 services.AddAuthorization(options =>
 {
-    options.AddPolicy("authorized", policy => policy.RequireAuthenticatedUser();
+    options.AddPolicy("authorized", policy => policy.RequireAuthenticatedUser());
 });
 
 

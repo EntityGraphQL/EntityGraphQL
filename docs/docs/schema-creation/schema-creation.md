@@ -128,13 +128,10 @@ Optional arguments for the schema builder:
    - `.AllowedExceptions` - List of allowed exceptions that will be rendered in the 'errors' object when `IsDevelopment` is `false`. You can also mark your exceptions with `AllowedExceptionAttribute`. These exceptions are included by default.
 
 ```cs
-public List<AllowedException> AllowedExceptions { get; set; } = new List<AllowedException> {
-    new AllowedException(typeof(EntityGraphQLArgumentException)),
-    new AllowedException(typeof(EntityGraphQLException)),
-    new AllowedException(typeof(EntityGraphQLFieldException)),
-    new AllowedException(typeof(EntityGraphQLAccessException)),
-    new AllowedException(typeof(EntityGraphQLValidationException)),
-};
+public List<AllowedException> AllowedExceptions { get; set; } = [
+    new(typeof(EntityGraphQLException)),
+    new(typeof(EntityGraphQLFieldException)),
+    new(typeof(EntityGraphQLSchemaException))];
 ```
 
 2. `SchemaBuilderOptions` - options used to control how the schema builder builds the schema
