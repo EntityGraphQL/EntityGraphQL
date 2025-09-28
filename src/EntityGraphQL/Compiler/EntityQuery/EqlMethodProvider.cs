@@ -187,6 +187,7 @@ public class EqlMethodProvider : IMethodProvider
         RegisterMethodWithTypePredicate(t => t.IsEnumerableOrArray(), "min", DefaultMethodImplementations.MakeMinMethod);
         RegisterMethodWithTypePredicate(t => t.IsEnumerableOrArray(), "max", DefaultMethodImplementations.MakeMaxMethod);
         RegisterMethodWithTypePredicate(t => t.IsEnumerableOrArray(), "average", DefaultMethodImplementations.MakeAverageMethod);
+        RegisterMethodWithTypePredicate(t => t.IsEnumerableOrArray(), "selectMany", DefaultMethodImplementations.MakeSelectManyMethod);
 
         // IsAny method with complex type predicate
         RegisterMethodWithTypePredicate(CreateIsAnyTypePredicate(), "isAny", DefaultMethodImplementations.MakeIsAnyMethod);

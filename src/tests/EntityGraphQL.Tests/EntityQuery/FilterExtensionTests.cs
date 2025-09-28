@@ -725,8 +725,8 @@ public class FilterExtensionTests
             Query =
                 @"
                 query GetUsersByField {
-                    users(filter: ""field2 == $undefinedVariable"") { 
-                        field2 
+                    users(filter: ""field2 == $undefinedVariable"") {
+                        field2
                     }
                 }",
             Variables = new QueryVariables { { "fieldValue", "2" } },
@@ -739,6 +739,83 @@ public class FilterExtensionTests
         Assert.Contains("Field 'users' - Variable $undefinedVariable not found in variables.", tree.Errors.First().Message);
     }
 
+    [Fact]
+    public void SupportUseFilterSelectManyMethod()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext2>();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query Query($filter: String!) {
+                    people(filter: $filter) { id name }
+                }",
+            Variables = new QueryVariables { { "filter", "projects.selectMany(tasks).any(name == \"Task 1\")" } },
+        };
+        var data = new TestDataContext2();
+        var person1 = DataFiller.MakePerson(1, null, null);
+        person1.Name = "Alice";
+        person1.Projects.Add(new Project { Name = "Project A", Tasks = [new Task { Name = "Task 1" }, new Task { Name = "Task 2" }] });
+        person1.Projects.Add(new Project { Name = "Project B", Tasks = [new Task { Name = "Task 3" }] });
+        data.People.Add(person1);
+
+        var person2 = DataFiller.MakePerson(2, null, null);
+        person2.Name = "Bob";
+        person2.Projects.Add(new Project { Name = "Project C", Tasks = [new Task { Name = "Task 4" }] });
+        data.People.Add(person2);
+
+        var tree = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(tree.Errors);
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
+        Assert.Equal(1, Enumerable.Count(people));
+        var person = Enumerable.First(people);
+        Assert.Equal("Alice", person.name);
+    }
+
+    [Fact(Skip = "This test currently fails - see GitHub issue #378")]
+    public void ReproducesGitHubIssue378_CountMethodNotFoundOnOffsetPage()
+    {
+        var schema = SchemaBuilder.FromObject<IncidentContext>();
+
+        // Set up the exact hierarchical scenario from GitHub issue #378:
+        // incident -> enquiries (with filtering and paging) -> enquirerDaps (with filtering and paging)
+        schema.Type<Incident>().GetField("enquiries", null).UseFilter().UseOffsetPaging();
+        schema.Type<Enquiry>().GetField("enquirerDaps", null).UseFilter().UseOffsetPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query {
+                    incident(id: 1) {
+                        id
+                        enquiries(filter: ""enquirerDaps.selectMany(items).count() > 0"", skip: 0, take: null) {
+                            items {
+                                enquirerDaps(filter: ""dapId==209"") {
+                                    items { 
+                                        dapId
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }",
+        };
+
+        var context = new IncidentContext().FillWithIncidentData();
+        var result = schema.ExecuteRequestWithContext(gql, context, null, null);
+
+        // This test reproduces GitHub issue #378:
+        // https://github.com/EntityGraphQL/EntityGraphQL/issues/378
+        Assert.Null(result.Errors);
+        dynamic incident = ((IDictionary<string, object>)result.Data!)["incident"];
+        Assert.Equal(3, incident.enquiries.items);
+        var enquiry = Enumerable.First(incident.enquiries.items);
+        Assert.Equal(1, enquiry.id);
+        Assert.Single(enquiry.enquirerDaps.items);
+        var enquirerDap = Enumerable.First(enquiry.enquirerDaps.items);
+        Assert.Equal(209, enquirerDap.dapId);
+    }
+
     private class TestDataContext2 : TestDataContext
     {
         [UseFilter]
@@ -746,5 +823,46 @@ public class FilterExtensionTests
 
         [UseFilter]
         public override IEnumerable<Task> Tasks { get; set; } = new List<Task>();
+    }
+
+    private class IncidentContext
+    {
+        public List<Incident> Incidents { get; set; } = [];
+
+        public IncidentContext FillWithIncidentData()
+        {
+            var incident = new Incident { Id = 1 };
+
+            // Enquiry with matching enquirerDaps (should be returned)
+            var enquiryWithDaps = new Enquiry { Id = 1, EnquirerDaps = [new EnquirerDap { DapId = 209 }, new EnquirerDap { DapId = 210 }] };
+
+            // Enquiry with no enquirerDaps (should be filtered out)
+            var enquiryWithoutDaps = new Enquiry { Id = 2, EnquirerDaps = [] };
+
+            // Enquiry with non-matching enquirerDaps (should be filtered out)
+            var enquiryWithOtherDaps = new Enquiry { Id = 3, EnquirerDaps = [new EnquirerDap { DapId = 999 }] };
+
+            incident.Enquiries = [enquiryWithDaps, enquiryWithoutDaps, enquiryWithOtherDaps];
+            Incidents.Add(incident);
+
+            return this;
+        }
+    }
+
+    private class Incident
+    {
+        public int Id { get; set; }
+        public List<Enquiry> Enquiries { get; set; } = [];
+    }
+
+    private class Enquiry
+    {
+        public int Id { get; set; }
+        public List<EnquirerDap> EnquirerDaps { get; set; } = [];
+    }
+
+    private class EnquirerDap
+    {
+        public int DapId { get; set; }
     }
 }
