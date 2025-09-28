@@ -1,3 +1,13 @@
+# 6.0.0-beta2
+
+## Changes
+
+- Added `selectMany` method support to filter expressions, enabling flattening using nested collections within queries.
+
+## Fixes
+
+- Fixed (maybe a regression introduced in 6.0.0-beta1) `UseFilter()` incorrectly adding a default value to the filter argument when applied to fields that already have other arguments defined.
+
 # 6.0.0-beta1
 
 ## Breaking Changes
@@ -31,7 +41,6 @@
 - #469 - Make filter grammar immutable as it should be for performance
 - #303 - You can now reference service fields in the `UseFilter/[UseFilter]` expression. Like normal the filter will first be applied with non service fields, then applied again with service fields is `ExecutionOptions.ExecuteServiceFieldsSeparately == true` (default).
 - #396 - Filter expressions now support GraphQL variables using `$variableName` syntax. This allows parameterized and dynamic filters (e.g., `filter: "name == $searchTerm && age > $minAge"`).
-- Added `selectMany` method support to filter expressions, enabling flattening using nested collections within queries.
 - Related to #331 and the `followSpec = true` above, errors and exceptions were refactored internally. Following the GraphQL spec if the core library gets an error it will still return a `GraphQLResult` with the errors (and potentially partial results).
 
 # Fixes

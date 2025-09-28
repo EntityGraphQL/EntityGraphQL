@@ -190,4 +190,114 @@ public class FilteredFieldTests
         Assert.Equal("Frank", person1.lastName);
         Assert.Equal("Jill", person1.name);
     }
+
+    [Fact]
+    public void TestUseFilterOnFieldWithExistingArgumentsAddsFilterArgumentWithoutDefault()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        // Add a field with existing arguments then apply UseFilter
+        schema
+            .Type<TestDataContext>()
+            .ReplaceField("projects", new { search = (string?)null, limit = 10 }, (ctx, args) => ctx.Projects.Take(args.limit), "List of projects with search and limit")
+            .UseFilter();
+
+        // Get the GraphQL schema as SDL
+        var sdl = schema.ToGraphQLSchemaString();
+
+        // Look for the projects field definition and check arguments
+        Assert.Contains("projects(", sdl);
+        Assert.Contains("search: String", sdl);
+        Assert.Contains("limit: Int!", sdl);
+        Assert.Contains("filter: String", sdl);
+
+        // Ensure filter argument doesn't have default value
+        Assert.DoesNotContain("filter: String = ", sdl);
+    }
+
+    [Fact(Skip = "This test currently fails - see GitHub issue #378")]
+    public void ReproducesGitHubIssue378_CountMethodNotFoundOnOffsetPage()
+    {
+        var schema = SchemaBuilder.FromObject<IncidentContext>();
+
+        // Set up the exact hierarchical scenario from GitHub issue #378:
+        // incident -> enquiries (with filtering and paging) -> enquirerDaps (with filtering and paging)
+        schema.Type<Incident>().GetField("enquiries", null).UseFilter().UseOffsetPaging();
+        schema.Type<Enquiry>().GetField("enquirerDaps", null).UseFilter().UseOffsetPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query {
+                    incident(id: 1) {
+                        id
+                        enquiries(filter: ""enquirerDaps.selectMany(items).count() > 0"", skip: 0, take: null) {
+                            items {
+                                enquirerDaps(filter: ""dapId==209"") {
+                                    items { 
+                                        dapId
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }",
+        };
+
+        var context = new IncidentContext().FillWithIncidentData();
+        var result = schema.ExecuteRequestWithContext(gql, context, null, null);
+
+        // This test reproduces GitHub issue #378:
+        // https://github.com/EntityGraphQL/EntityGraphQL/issues/378
+        Assert.Null(result.Errors);
+        dynamic incident = ((IDictionary<string, object>)result.Data!)["incident"];
+        Assert.Equal(3, incident.enquiries.items);
+        var enquiry = Enumerable.First(incident.enquiries.items);
+        Assert.Equal(1, enquiry.id);
+        Assert.Single(enquiry.enquirerDaps.items);
+        var enquirerDap = Enumerable.First(enquiry.enquirerDaps.items);
+        Assert.Equal(209, enquirerDap.dapId);
+    }
+
+    private class IncidentContext
+    {
+        public List<Incident> Incidents { get; set; } = [];
+
+        public IncidentContext FillWithIncidentData()
+        {
+            var incident = new Incident { Id = 1 };
+
+            // Enquiry with matching enquirerDaps (should be returned)
+            var enquiryWithDaps = new Enquiry { Id = 1, EnquirerDaps = [new EnquirerDap { DapId = 209 }, new EnquirerDap { DapId = 210 }] };
+
+            // Enquiry with no enquirerDaps (should be filtered out)
+            var enquiryWithoutDaps = new Enquiry { Id = 2, EnquirerDaps = [] };
+
+            // Enquiry with non-matching enquirerDaps (should be filtered out)
+            var enquiryWithOtherDaps = new Enquiry { Id = 3, EnquirerDaps = [new EnquirerDap { DapId = 999 }] };
+
+            incident.Enquiries = [enquiryWithDaps, enquiryWithoutDaps, enquiryWithOtherDaps];
+            Incidents.Add(incident);
+
+            return this;
+        }
+    }
+
+    private class Incident
+    {
+        public int Id { get; set; }
+        public List<Enquiry> Enquiries { get; set; } = [];
+    }
+
+    private class Enquiry
+    {
+        public int Id { get; set; }
+        public List<EnquirerDap> EnquirerDaps { get; set; } = [];
+    }
+
+    private class EnquirerDap
+    {
+        public int DapId { get; set; }
+    }
 }
