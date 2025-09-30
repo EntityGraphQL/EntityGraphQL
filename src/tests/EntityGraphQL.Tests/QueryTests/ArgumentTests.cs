@@ -19,6 +19,7 @@ public class ArgumentTests
         var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
             @"{
                 project(id: 55) {
+                    id
                     name
                 }
             }"
