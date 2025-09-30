@@ -17,17 +17,20 @@ public class ArgumentTests
     public void CanExecuteRequiredParameter()
     {
         var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
-            @"
-        {
-        	project(id: 55) {
-        		name
-        	}
-        }"
+            @"{
+                project(id: 55) {
+                    name
+                }
+            }"
         );
 
         Assert.Single(tree.Operations.First().QueryFields);
-        var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+        var data = new TestDataContext().FillWithTestData();
+        data.Projects.Add(new Project { Id = 53, Name = "Project 2" });
+        var result = tree.ExecuteQuery(data, null, null);
+        Assert.Null(result.Errors);
         Assert.Equal("Project 3", ((dynamic)result.Data!["project"]!).name);
+        Assert.Equal(55, ((dynamic)result.Data!["project"]!).id);
     }
 
     [Fact]
@@ -295,14 +298,13 @@ public class ArgumentTests
         schema.Query().ReplaceField("users", new { f = (float?)null }, (db, p) => db.Users, "Testing float");
 
         var gql = new GraphQLCompiler(schema).Compile(
-            @"
-        query {
-            users(f: 4.3) { id }
-        }"
+            @"query {
+                users(f: 4.3) { id }
+            }"
         );
         var context = new TestDataContext().FillWithTestData();
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic users = (dynamic)qr.Data!["users"]!;
+        dynamic users = qr.Data!["users"]!;
         // we only have the fields requested
         Assert.Equal(1, Enumerable.Count(users));
     }
@@ -438,10 +440,9 @@ public class ArgumentTests
         schema.Query().ReplaceField("people", new { options = (PersonArg?)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options!.name, p.options != null), "Testing list");
 
         var gql = new GraphQLCompiler(schema).Compile(
-            @"
-        query {
-            people(options: {name: ""jill""}) { name }
-        }"
+            @"query {
+                people(options: {name: ""jill""}) { name }
+            }"
         );
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(
@@ -483,8 +484,8 @@ public class ArgumentTests
             {
                 Id = 99,
                 Name = "jill",
-                Projects = [new Project { Id = 1, Name = "Project 1" }, new Project { Id = 2, Name = "Project 2" },],
-                Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" },],
+                Projects = [new Project { Id = 1, Name = "Project 1" }, new Project { Id = 2, Name = "Project 2" }],
+                Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" }],
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
@@ -505,19 +506,18 @@ public class ArgumentTests
         schema.Query().AddField("task", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Tasks.FirstOrDefault(t => t.Id == args.id), "Get task");
         schema.Query().AddField("project", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Projects.FirstOrDefault(t => t.Id == args.id), "Get project");
         var gql = new GraphQLCompiler(schema).Compile(
-            @"
-                query {
-                    task(id: 1) { id name }
-                    project(id: 2) { id name }
-                }"
+            @"query {
+                task(id: 1) { id name }
+                project(id: 2) { id name }
+            }"
         );
         var context = new TestDataContext
         {
-            Projects = [new Project { Id = 1, Name = "Project 1" }, new Project { Id = 2, Name = "Project 2" },],
+            Projects = [new Project { Id = 1, Name = "Project 1" }, new Project { Id = 2, Name = "Project 2" }],
             Tasks = new List<Task>
             {
-                new Task { Id = 1, Name = "Task 1" },
-                new Task { Id = 2, Name = "Task 2" },
+                new() { Id = 1, Name = "Task 1" },
+                new() { Id = 2, Name = "Task 2" },
             },
         };
         var qr = gql.ExecuteQuery(context, null, null);
@@ -552,7 +552,7 @@ public class ArgumentTests
             {
                 Id = 99,
                 Name = "jill",
-                Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" },],
+                Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" }],
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);

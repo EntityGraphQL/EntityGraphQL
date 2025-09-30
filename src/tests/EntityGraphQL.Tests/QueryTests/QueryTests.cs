@@ -16,14 +16,14 @@ public class QueryTests
     {
         var objectSchemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         var tree = new GraphQLCompiler(objectSchemaProvider).Compile(
-            @"
-{
-	people { id name }
-}"
+            @"{
+                people { id name }
+            }"
         );
         Assert.Single(tree.Operations);
         Assert.Single(tree.Operations.First().QueryFields);
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
+        Assert.Null(result.Errors);
         Assert.NotNull(result.Data);
         Assert.Single(result.Data);
         var person = Enumerable.ElementAt((dynamic)result.Data["people"]!, 0);
@@ -101,10 +101,9 @@ public class QueryTests
         schema.Query().AddField("person", new { id = ArgumentHelper.Required<int>() }, (p, args) => p.People.FirstOrDefault(p => p.Id == args.id), "Person");
         var ex = Assert.Throws<EntityGraphQLException>(() =>
             new GraphQLCompiler(schema).Compile(
-                @"
-            {
-                person(id: 1)
-            }"
+                @"{
+                    person(id: 1)
+                }"
             )
         );
         Assert.Equal("Field 'person' requires a selection set defining the fields you would like to select.", ex.Message);
@@ -317,10 +316,9 @@ public class QueryTests
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         var gql = new GraphQLCompiler(schemaProvider).Compile(
-            @"
-query {
-    totalPeople
-}"
+            @"query {
+                totalPeople
+            }"
         );
 
         var context = new TestDataContext();

@@ -4,4 +4,7 @@
     "[csharp]": {
         "editor.defaultFormatter": "csharpier.csharpier-vscode"
     },
+    "cSpell.words": [
+        "Parlot"
+    ],
 }

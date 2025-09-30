@@ -20,11 +20,10 @@ public class VariableTests
         var gql = new QueryRequest
         {
             Query =
-                @"
-                    query MyQuery($limit: Int) {
-                        people(limit: $limit) { id name }
-                    }
-                ",
+                @"query MyQuery($limit: Int) {
+                    people(limit: $limit) { id name }
+                }
+",
             Variables = new QueryVariables { { "limit", 5 } },
         };
         var tree = new GraphQLCompiler(schema).Compile(gql);
