@@ -414,7 +414,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     public IEnumerable<string> BuildPath()
     {
         var path = new List<string>();
-        if (ParentNode is IGraphQLNode parentField)
+        if (ParentNode is IGraphQLNode parentField && ParentNode is not ExecutableGraphQLStatement)
             path.AddRange(parentField.BuildPath());
         path.Add(Name);
         return path;
