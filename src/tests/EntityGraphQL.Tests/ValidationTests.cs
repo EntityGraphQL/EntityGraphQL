@@ -156,6 +156,7 @@ public class ValidationTests
         Assert.Equal(2, results.Errors.Count);
         Assert.Equal("Test Error", results.Errors[0].Message);
         var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
+        Assert.Equal(2, paths.Count());
         Assert.Contains("a", paths);
         Assert.Contains("b", paths);
     }

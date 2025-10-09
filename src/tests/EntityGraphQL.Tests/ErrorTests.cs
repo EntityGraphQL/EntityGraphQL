@@ -28,7 +28,7 @@ public class ErrorTests
         // error from execution that prevented a valid response, the data entry in the response should be null
         Assert.Null(results.Data);
         Assert.Equal("Argument name can not be null", results.Errors[0].Message);
-        Assert.Equal(["AddPerson", "addPersonError"], results.Errors[0].Path);
+        Assert.Equal(["addPersonError"], results.Errors[0].Path);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class ErrorTests
         // error from execution that prevented a valid response, the data entry in the response should be null
         Assert.Null(results.Data);
         Assert.Equal("Error occurred", results.Errors[0].Message);
-        Assert.Equal(["AddPerson", "addPersonErrorUnexposedException"], results.Errors[0].Path);
+        Assert.Equal(["addPersonErrorUnexposedException"], results.Errors[0].Path);
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class ErrorTests
         // error from execution that prevented a valid response, the data entry in the response should be null
         Assert.Null(results.Data);
         Assert.Equal("You should not see this message outside of Development", results.Errors[0].Message);
-        Assert.Equal(["AddPerson", "addPersonErrorUnexposedException"], results.Errors[0].Path);
+        Assert.Equal(["addPersonErrorUnexposedException"], results.Errors[0].Path);
     }
 
     [Fact]
@@ -371,7 +371,7 @@ public class ErrorTests
 
         Assert.NotNull(results.Errors);
         Assert.Equal($"Argument name can not be null", results.Errors[0].Message);
-        Assert.Equal(["AddPerson", "addPersonError"], results.Errors[0].Path);
+        Assert.Equal(["addPersonError"], results.Errors[0].Path);
     }
 
     [Fact]
@@ -407,6 +407,7 @@ public class ErrorTests
         Assert.Equal($"Argument name can not be null", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasA)).Message);
         Assert.Equal($"Argument name can not be null", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasB)).Message);
         var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
+        Assert.Equal(2, paths.Count());
         Assert.Contains(aliasA, paths);
         Assert.Contains(aliasB, paths);
     }
@@ -437,7 +438,7 @@ public class ErrorTests
         Assert.NotNull(results.Errors);
         var error = results.Errors[0];
         Assert.Equal($"Argument name can not be null", error.Message);
-        Assert.Equal(["AddPerson", "addPersonNullableError"], error.Path);
+        Assert.Equal(["addPersonNullableError"], error.Path);
     }
 
     [Fact]
@@ -470,8 +471,10 @@ public class ErrorTests
         Assert.NotNull(results.Errors);
         Assert.Equal($"Argument name can not be null", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasA)).Message);
         Assert.Equal($"Argument name can not be null", results.Errors.First(e => e.Path != null && e.Path.Contains(aliasB)).Message);
-        Assert.Equal(["AddPerson", aliasA], results.Errors[0].Path);
-        Assert.Equal(["AddPerson", aliasB], results.Errors[1].Path);
+        var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
+        Assert.Equal(2, paths.Count());
+        Assert.Equal([aliasA], results.Errors[0].Path);
+        Assert.Equal([aliasB], results.Errors[1].Path);
     }
 
     [Fact]
@@ -502,8 +505,10 @@ public class ErrorTests
         Assert.NotNull(results.Errors);
         Assert.Equal($"Argument name can not be null", results.Errors.First(e => e.Path != null && e.Path.Contains("addPersonError")).Message);
         Assert.Equal($"Argument name can not be null", results.Errors.First(e => e.Path != null && e.Path.Contains("addPersonNullableError")).Message);
-        Assert.Equal(["AddPerson", "addPersonError"], results.Errors[0].Path);
-        Assert.Equal(["AddPerson", "addPersonNullableError"], results.Errors[1].Path);
+        var paths = results.Errors.Where(e => e.Path != null).SelectMany(e => e.Path!);
+        Assert.Equal(2, paths.Count());
+        Assert.Equal(["addPersonError"], results.Errors[0].Path);
+        Assert.Equal(["addPersonNullableError"], results.Errors[1].Path);
     }
 
     private static string ThrowFieldError() => throw new Exception("This field failed");

@@ -276,7 +276,7 @@ public class RoleAuthorizationTests
 
         Assert.NotNull(result.Errors);
         Assert.Equal("You are not authorized to access the 'needsAuth' field on type 'Mutation'.", result.Errors.First().Message);
-        Assert.Equal(["T", "needsAuth"], result.Errors.First().Path);
+        Assert.Equal(["needsAuth"], result.Errors.First().Path);
 
         claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "can-mutate")], "authed");
         result = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(claims));
