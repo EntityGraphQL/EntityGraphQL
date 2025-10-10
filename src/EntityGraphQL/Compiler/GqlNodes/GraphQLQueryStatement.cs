@@ -9,10 +9,10 @@ namespace EntityGraphQL.Compiler;
 
 public class GraphQLQueryStatement : ExecutableGraphQLStatement
 {
-    public GraphQLQueryStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
+    public GraphQLQueryStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, IReadOnlyDictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    protected override ExecutableDirectiveLocation ExecutableDirectiveLocation => ExecutableDirectiveLocation.QUERY;
+    protected override ExecutableDirectiveLocation DirectiveLocation => ExecutableDirectiveLocation.Query;
     protected override ISchemaType SchemaType => Schema.GetSchemaType(Schema.QueryContextType, false, null)!;
 
     protected override async Task<(object? data, bool didExecute, List<GraphQLError> errors)> ExecuteOperationField<TContext>(
@@ -27,7 +27,7 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
         // apply directives
         foreach (var directive in field.Directives)
         {
-            if (directive.VisitNode(ExecutableDirectiveLocation.FIELD, Schema, field, Arguments, null, null) == null)
+            if (directive.VisitNode(ExecutableDirectiveLocation.Field, Schema, field, Arguments, null, null) == null)
                 return (null, false, []);
         }
         (var data, var didExecute) = await CompileAndExecuteNodeAsync(compileContext, context!, serviceProvider, fragments, field, docVariables);

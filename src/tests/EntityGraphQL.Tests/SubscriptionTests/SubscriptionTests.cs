@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Subscriptions;
@@ -73,7 +74,7 @@ public class SubscriptionTests
                   onMessage { id text }
                 }",
         };
-        var res = new GraphQLCompiler(schema).Compile(gql.Query, null);
+        var res = GraphQLParser.Parse(gql, schema);
         Assert.Single(res.Operations);
         Assert.Single(res.Operations[0].QueryFields);
         Assert.Equal("onMessage", res.Operations[0].QueryFields[0].Name);
@@ -138,6 +139,33 @@ public class SubscriptionTests
         var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), services.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
     }
+
+    [Fact]
+    public void TestSubscriptionReturnsListResult()
+    {
+        var schema = new SchemaProvider<TestDataContext>();
+        schema.AddType<Message>("Message info").AddAllFields();
+        schema
+            .Subscription()
+            .Add(
+                "onMessages",
+                (ChatService chat) =>
+                {
+                    return chat.SubscribeToList();
+                }
+            );
+        var gql = new QueryRequest
+        {
+            Query =
+                @"subscription {
+                  onMessages { id text }
+                }",
+        };
+        var services = new ServiceCollection();
+        services.AddSingleton(new ChatService());
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), services.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+    }
 }
 
 internal class TestSubscriptions
@@ -158,6 +186,7 @@ internal class Message
 internal class ChatService
 {
     private readonly Broadcaster<Message> broadcaster = new();
+    private readonly Broadcaster<List<Message>> listBroadcaster = new();
 
     public Message PostMessage(string message)
     {
@@ -171,5 +200,10 @@ internal class ChatService
     public IObservable<Message> Subscribe()
     {
         return broadcaster;
+    }
+
+    public IObservable<List<Message>> SubscribeToList()
+    {
+        return listBroadcaster;
     }
 }

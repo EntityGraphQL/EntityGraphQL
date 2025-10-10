@@ -1,5 +1,4 @@
 using System.Linq.Expressions;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;

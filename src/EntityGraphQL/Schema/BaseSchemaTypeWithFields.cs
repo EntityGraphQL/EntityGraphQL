@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema;

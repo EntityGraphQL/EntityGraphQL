@@ -18,14 +18,15 @@ public class InheritanceTests
     public void TestInheritance()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animals {
                         __typename
                         name
                     }
-                }"
+                }",
+            schemaProvider
         );
         var context = new TestAbstractDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -54,7 +55,7 @@ public class InheritanceTests
     public void TestInheritanceExtraFields()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animals {
@@ -68,7 +69,8 @@ public class InheritanceTests
                         }
                     }
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -92,7 +94,7 @@ public class InheritanceTests
     public void TestInheritancDuplicateFields()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animals {
@@ -106,7 +108,8 @@ public class InheritanceTests
                         }
                     }
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -142,7 +145,7 @@ public class InheritanceTests
     public void TestInheritanceExtraFieldsOnObjectDog()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animal(id: 9) {
@@ -156,7 +159,8 @@ public class InheritanceTests
                         }
                     }
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -183,7 +187,7 @@ public class InheritanceTests
     public void TestInheritanceExtraFieldsOnObjectCat()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animal(id: 2) {
@@ -197,7 +201,8 @@ public class InheritanceTests
                         }
                     }
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -231,7 +236,7 @@ public class InheritanceTests
     public void TestInheritanceExtraFieldsOnObjectCatUsingFragments()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animal(id: 2) {
@@ -249,7 +254,8 @@ public class InheritanceTests
                         hasBone 
                     }
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -286,7 +292,7 @@ public class InheritanceTests
 
         schemaProvider.Mutation().AddFrom<TestAbstractDataContext>();
 
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 mutation {
                     testMutation(id: 1) {
@@ -296,7 +302,8 @@ public class InheritanceTests
                         }
                     }
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -323,7 +330,7 @@ public class InheritanceTests
     {
         // apollo client inserts __typename everywhere
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     dog(id: 9) {
@@ -336,7 +343,8 @@ public class InheritanceTests
                     __typename # type name on base Animal type
                     name # also this builds p_animal.Name where we need p_dog.Name
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -360,7 +368,7 @@ public class InheritanceTests
     public void SelectFieldFromInheritedType()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     dogs {
@@ -371,7 +379,8 @@ public class InheritanceTests
                 fragment dogFragment on Dog {
                     name 
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();
@@ -394,7 +403,7 @@ public class InheritanceTests
     public void SelectFieldFromInheritedTypeWithServiceField()
     {
         var schemaProvider = new TestAbstractDataGraphSchema();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 fragment frag on Dog {
                     name
@@ -408,7 +417,8 @@ public class InheritanceTests
                         }
                     }
                 }
-            "
+            ",
+            schemaProvider
         );
 
         var context = new TestAbstractDataContext();

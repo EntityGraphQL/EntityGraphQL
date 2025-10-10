@@ -1402,8 +1402,7 @@ public class ServiceFieldTests
         serviceCollection.AddSingleton(service);
 
         // what we want to test here is that ctx.People.FirstOrDefault().Id is pulled up into the pre-services expression
-        var graphQLCompiler = new GraphQLCompiler(schema);
-        var compiledQuery = graphQLCompiler.Compile(gql);
+        var compiledQuery = GraphQLParser.Parse(gql, schema);
         var query = compiledQuery.Operations[0];
         var node = query.QueryFields[0];
 

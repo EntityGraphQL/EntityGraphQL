@@ -36,7 +36,7 @@ public class MutationTests
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
-        // Add a argument field with a require parameter
+        // Add a argument field with a optional parameter
         var gql = new QueryRequest
         {
             Query =
@@ -183,10 +183,10 @@ public class MutationTests
         {
             Query =
                 @"mutation AddPerson($names: [String]) { # wrong variable type
-          addPersonInput(nameInput: $names) {
-            id name lastName
-          }
-        }",
+                    addPersonInput(nameInput: $names) {
+                        id name lastName
+                    }
+                }",
             // Object does not match the var definition in the AddPerson operation
             Variables = new QueryVariables { { "names", new { name = "Lisa", lastName = "Simpson" } } },
         };
@@ -363,10 +363,10 @@ public class MutationTests
         {
             Query =
                 @"mutation AddPerson($name: String) {
-          addPersonAdvList(name: $name) {
-            id name projects { id }
-          }
-        }",
+                    addPersonAdvList(name: $name) {
+                        id name projects { id }
+                    }
+                }",
             Variables = new QueryVariables { { "name", "Bill" } },
         };
         var testSchema = new TestDataContext();
@@ -542,9 +542,8 @@ public class MutationTests
         {
             Query =
                 @"mutation {
-          doGreatThing
-        }
-        ",
+                    doGreatThing
+                }",
         };
 
         var testSchema = new TestDataContext();

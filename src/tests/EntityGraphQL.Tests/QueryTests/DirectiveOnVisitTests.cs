@@ -13,7 +13,7 @@ public class DirectiveOnVisitTests
     public void TestOnVisitListFieldRoot()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -25,14 +25,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitObjectFieldRoot()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -44,14 +44,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitScalarFieldRoot()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -61,14 +61,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitListField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -83,14 +83,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitObjectField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -105,14 +105,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitScalarField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -125,14 +125,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitFragmentDef()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FRAGMENT_DEFINITION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FragmentDefinition);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -147,14 +147,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_DEFINITION, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.FragmentDefinition, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitFragmentSpread()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FRAGMENT_SPREAD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FragmentSpread);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -169,20 +169,20 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_SPREAD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.FragmentSpread, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitInlineFragment()
     {
         var schema = SchemaBuilder.FromObject<TestUnionDataContext>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });
-        var directive = new MyDirective(ExecutableDirectiveLocation.INLINE_FRAGMENT);
+        var directive = new MyDirective(ExecutableDirectiveLocation.InlineFragment);
         schema.AddDirective(directive);
 
         schema.Type<IAnimal>().AddPossibleType<Dog>();
         schema.Type<IAnimal>().AddPossibleType<Cat>();
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"query {
             animals {
                 __typename
@@ -195,21 +195,22 @@ public class DirectiveOnVisitTests
                     lives
                 }
             }
-        }"
+        }",
+            schema
         );
         var context = new TestUnionDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
         context.Animals.Add(new Cat() { Name = "george", Lives = 9 });
 
         gql.ExecuteQuery(context, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.INLINE_FRAGMENT, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.InlineFragment, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitMutationField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         schema
             .Mutation()
@@ -230,14 +231,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitMutationInnerField()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         schema
             .Mutation()
@@ -258,14 +259,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitMutationStatement()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.MUTATION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Mutation);
         schema.AddDirective(directive);
         schema
             .Mutation()
@@ -286,14 +287,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.MUTATION, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Mutation, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitQueryStatement()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.QUERY);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Query);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -303,7 +304,7 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.QUERY, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Query, directive.WasVisited);
     }
 
     [Fact]
@@ -312,7 +313,7 @@ public class DirectiveOnVisitTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
         schema.Subscription().AddFrom<TestSubscriptions>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.SUBSCRIPTION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Subscription);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -322,7 +323,7 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.SUBSCRIPTION, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Subscription, directive.WasVisited);
     }
 
     [Fact]
@@ -331,7 +332,7 @@ public class DirectiveOnVisitTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddType<Message>("Message info").AddAllFields();
         schema.Subscription().AddFrom<TestSubscriptions>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FIELD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.Field);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -341,14 +342,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FIELD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.Field, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitVariableDef()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.VARIABLE_DEFINITION);
+        var directive = new MyDirective(ExecutableDirectiveLocation.VariableDefinition);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -358,14 +359,14 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.VARIABLE_DEFINITION, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.VariableDefinition, directive.WasVisited);
     }
 
     [Fact]
     public void TestOnVisitCalledOnce()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var directive = new MyDirective(ExecutableDirectiveLocation.FRAGMENT_SPREAD);
+        var directive = new MyDirective(ExecutableDirectiveLocation.FragmentSpread);
         schema.AddDirective(directive);
         var query = new QueryRequest
         {
@@ -381,7 +382,7 @@ public class DirectiveOnVisitTests
             }",
         };
         schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
-        Assert.Equal(ExecutableDirectiveLocation.FRAGMENT_SPREAD, directive.WasVisited);
+        Assert.Equal(ExecutableDirectiveLocation.FragmentSpread, directive.WasVisited);
         Assert.Equal(1, directive.Calls);
     }
 }

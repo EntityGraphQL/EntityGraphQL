@@ -15,10 +15,11 @@ public class QueryTests
     public void CanParseSimpleQuery()
     {
         var objectSchemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        var tree = new GraphQLCompiler(objectSchemaProvider).Compile(
+        var tree = GraphQLParser.Parse(
             @"{
                 people { id name }
-            }"
+            }",
+            objectSchemaProvider
         );
         Assert.Single(tree.Operations);
         Assert.Single(tree.Operations.First().QueryFields);
@@ -57,11 +58,12 @@ public class QueryTests
     {
         var objectSchemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         objectSchemaProvider.Type<Person>().AddField("thing", p => p.Id + " - " + p.Name, "A weird field I want");
-        var tree = new GraphQLCompiler(objectSchemaProvider).Compile(
+        var tree = GraphQLParser.Parse(
             @"
 {
 	people { id thing }
-}"
+}",
+            objectSchemaProvider
         );
         Assert.Single(tree.Operations);
         Assert.Single(tree.Operations.First().QueryFields);
@@ -82,11 +84,12 @@ public class QueryTests
         schema.Type<Person>().RemoveField(p => p.Id);
         var ex = Assert.Throws<EntityGraphQLFieldException>(() =>
         {
-            var tree = new GraphQLCompiler(schema).Compile(
+            var tree = GraphQLParser.Parse(
                 @"
             {
                 people { id }
-            }"
+            }",
+                schema
             );
         });
         Assert.Equal("Field 'id' not found on type 'Person'", ex.Message);
@@ -100,10 +103,11 @@ public class QueryTests
         schema.AddType<Person>("Person").AddField("name", p => p.Name, "Person's name");
         schema.Query().AddField("person", new { id = ArgumentHelper.Required<int>() }, (p, args) => p.People.FirstOrDefault(p => p.Id == args.id), "Person");
         var ex = Assert.Throws<EntityGraphQLException>(() =>
-            new GraphQLCompiler(schema).Compile(
+            GraphQLParser.Parse(
                 @"{
                     person(id: 1)
-                }"
+                }",
+                schema
             )
         );
         Assert.Equal("Field 'person' requires a selection set defining the fields you would like to select.", ex.Message);
@@ -112,12 +116,13 @@ public class QueryTests
     [Fact]
     public void CanParseMultipleEntityQuery()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"
             {
                 people { id name }
                 users { id }
-            }"
+            }",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
 
         Assert.Single(tree.Operations);
@@ -140,11 +145,12 @@ public class QueryTests
     [Fact]
     public void CanParseQueryWithRelation()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"
 {
 	people { id name user { field1 } }
-}"
+}",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
         // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
@@ -164,7 +170,7 @@ public class QueryTests
     [Fact]
     public void CanParseQueryWithRelationDeep()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"
         {
         	people {
@@ -174,7 +180,8 @@ public class QueryTests
         			nestedRelation { id name }
         		}
         	}
-        }"
+        }",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
         // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1, NestedRelation = new { Id = p.User.NestedRelation.Id, Name = p.User.NestedRelation.Name } })
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
@@ -200,7 +207,7 @@ public class QueryTests
     public void FailsNonExistingField()
     {
         var ex = Assert.Throws<EntityGraphQLFieldException>(() =>
-            new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+            GraphQLParser.Parse(
                 @"
         {
         	people { id
@@ -209,7 +216,8 @@ public class QueryTests
         			blahs { id name }
         		}
         	}
-        }"
+        }",
+                SchemaBuilder.FromObject<TestDataContext>()
             )
         );
         Assert.Equal("Field 'blahs' not found on type 'Project'", ex.Message);
@@ -219,7 +227,7 @@ public class QueryTests
     public void FailsNonExistingField2()
     {
         var ex = Assert.Throws<EntityGraphQLFieldException>(() =>
-            new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+            GraphQLParser.Parse(
                 @"
         {
         	people { id
@@ -227,7 +235,8 @@ public class QueryTests
         			name3
         		}
         	}
-        }"
+        }",
+                SchemaBuilder.FromObject<TestDataContext>()
             )
         );
         Assert.Equal("Field 'name3' not found on type 'Project'", ex.Message);
@@ -236,13 +245,14 @@ public class QueryTests
     [Fact]
     public void TestAlias()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"
         {
         	projects {
         		n: name
         	}
-        }"
+        }",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
 
         Assert.Single(tree.Operations.First().QueryFields);
@@ -253,14 +263,15 @@ public class QueryTests
     [Fact]
     public void TestAliasDeep()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"{
                 people { id
                         projects {
                             n: name
                         }
                     }
-                }"
+                }",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
 
         Assert.Single(tree.Operations.First().QueryFields);
@@ -315,10 +326,11 @@ public class QueryTests
     public void TestTopLevelScalar()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        var gql = new GraphQLCompiler(schemaProvider).Compile(
+        var gql = GraphQLParser.Parse(
             @"query {
                 totalPeople
-            }"
+            }",
+            schemaProvider
         );
 
         var context = new TestDataContext();

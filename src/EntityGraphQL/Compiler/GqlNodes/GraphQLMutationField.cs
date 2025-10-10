@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
@@ -18,7 +17,7 @@ public class GraphQLMutationField : BaseGraphQLQueryField
         ISchemaProvider schema,
         string name,
         MutationField mutationField,
-        Dictionary<string, object?>? args,
+        IReadOnlyDictionary<string, object?>? args,
         Expression nextFieldContext,
         ParameterExpression rootParameter,
         IGraphQLNode parentNode

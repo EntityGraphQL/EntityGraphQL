@@ -23,7 +23,7 @@ namespace EntityGraphQL.Compiler;
 /// </summary>
 public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
 {
-    public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.FIELD;
+    public ExecutableDirectiveLocation LocationForDirectives { get; protected set; } = ExecutableDirectiveLocation.Field;
     public ISchemaProvider Schema { get; protected set; }
     public List<GraphQLDirective> Directives { get; set; } = [];
     protected string? OpName { get; set; }
@@ -54,7 +54,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// </summary>
     public ISchemaType? FromType => Field?.FromType;
     public IField? Field { get; }
-    public List<BaseGraphQLField> QueryFields { get; } = [];
+    public virtual List<BaseGraphQLField> QueryFields { get; } = [];
     public Expression? NextFieldContext { get; }
     public IGraphQLNode? ParentNode { get; set; }
 
@@ -84,8 +84,8 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         NextFieldContext = nextFieldContext;
         RootParameter = rootParameter;
         ParentNode = parentNode;
-        this.Arguments = arguments ?? new Dictionary<string, object?>();
-        this.Schema = schema;
+        Arguments = arguments ?? new Dictionary<string, object?>();
+        Schema = schema;
         Field = field;
     }
 
@@ -233,7 +233,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return withoutServiceFields && HasServices ? [] : new List<BaseGraphQLField> { field ?? this };
     }
 
-    public void AddField(BaseGraphQLField field)
+    public virtual void AddField(BaseGraphQLField field)
     {
         QueryFields.Add(field);
     }

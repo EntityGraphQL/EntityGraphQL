@@ -39,7 +39,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
     private readonly SchemaType<TContextType> queryType;
     private readonly ILogger<SchemaProvider<TContextType>>? logger;
-    private readonly GraphQLCompiler graphQLCompiler;
     private readonly bool introspectionEnabled;
     private readonly bool isDevelopment;
     private readonly MutationType mutationType;
@@ -73,7 +72,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         SchemaFieldNamer = fieldNamer ?? SchemaBuilderSchemaOptions.DefaultFieldNamer;
         MethodProvider = new EqlMethodProvider();
         this.logger = logger;
-        this.graphQLCompiler = new GraphQLCompiler(this);
         this.introspectionEnabled = introspectionEnabled;
         this.isDevelopment = isDevelopment;
         queryCache = new QueryCache();
@@ -288,7 +286,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                         throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "PersistedQueryNotFound");
                     else if (compiledQuery == null)
                     {
-                        compiledQuery = graphQLCompiler.Compile(gql);
+                        compiledQuery = GraphQLParser.Parse(gql, this);
                         queryCache.AddCompiledQuery(hash, compiledQuery);
                     }
                 }
@@ -299,7 +297,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                     if (options.EnableQueryCache)
                         compiledQuery = CompileQueryWithCache(gql, options);
                     else
-                        compiledQuery = graphQLCompiler.Compile(gql);
+                        compiledQuery = GraphQLParser.Parse(gql, this);
                 }
             }
             else if (options.EnableQueryCache)
@@ -318,7 +316,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                     throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Query field must be set unless you are using persisted queries");
                 }
 
-                compiledQuery = graphQLCompiler.Compile(gql);
+                compiledQuery = GraphQLParser.Parse(gql, this);
             }
 
             result = await compiledQuery.ExecuteQueryAsync(
@@ -389,7 +387,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         (compiledQuery, var hash) = queryCache.GetCompiledQuery(gql.Query, null);
         if (compiledQuery == null)
         {
-            compiledQuery = graphQLCompiler.Compile(gql);
+            compiledQuery = GraphQLParser.Parse(gql, this);
             queryCache.AddCompiledQuery(hash, compiledQuery);
         }
 

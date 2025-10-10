@@ -13,7 +13,7 @@ public class GraphQLInlineFragmentField : BaseGraphQLField
     public GraphQLInlineFragmentField(ISchemaProvider schema, string name, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
         : base(schema, null, name, nodeExpression, rootParameter, parentNode, null)
     {
-        LocationForDirectives = ExecutableDirectiveLocation.INLINE_FRAGMENT;
+        LocationForDirectives = ExecutableDirectiveLocation.InlineFragment;
     }
 
     public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)

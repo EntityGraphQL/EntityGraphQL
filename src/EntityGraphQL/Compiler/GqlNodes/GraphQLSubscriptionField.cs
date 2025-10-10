@@ -17,7 +17,7 @@ public class GraphQLSubscriptionField : BaseGraphQLQueryField
         ISchemaProvider schema,
         string name,
         SubscriptionField subscriptionField,
-        Dictionary<string, object?>? args,
+        IReadOnlyDictionary<string, object?>? args,
         Expression nextFieldContext,
         ParameterExpression rootParameter,
         IGraphQLNode parentNode

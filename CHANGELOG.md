@@ -1,3 +1,14 @@
+# 6.0.0-beta3
+
+## Breaking Changes
+
+- Fields in `ExecutableDirectiveLocation` enum have been renamed in C# style
+
+## Changes
+
+- Added support for document descriptions as outlined in the latest 2025 spec. Basically string comments in the query document
+- Replaced the previous 3rd party GraphQL document parser.
+
 # 6.0.0-beta2
 
 ## Changes

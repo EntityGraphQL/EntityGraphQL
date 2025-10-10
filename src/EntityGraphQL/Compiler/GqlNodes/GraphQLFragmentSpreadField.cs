@@ -13,7 +13,7 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
     public GraphQLFragmentSpreadField(ISchemaProvider schema, string name, Expression? nodeExpression, ParameterExpression rootParameter, IGraphQLNode parentNode)
         : base(schema, null, name, nodeExpression, rootParameter, parentNode, null)
     {
-        LocationForDirectives = ExecutableDirectiveLocation.FRAGMENT_SPREAD;
+        LocationForDirectives = ExecutableDirectiveLocation.FragmentSpread;
     }
 
     public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)

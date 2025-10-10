@@ -25,7 +25,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
     public GraphQLSubscriptionStatement(ISchemaProvider schema, string? name, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, rootParameter, rootParameter, variables) { }
 
-    protected override ExecutableDirectiveLocation ExecutableDirectiveLocation => ExecutableDirectiveLocation.SUBSCRIPTION;
+    protected override ExecutableDirectiveLocation DirectiveLocation => ExecutableDirectiveLocation.Subscription;
     protected override ISchemaType SchemaType => Schema.GetSchemaType(Schema.SubscriptionType, false, null)!;
 
     public override async Task<(ConcurrentDictionary<string, object?> data, List<GraphQLError> errors)> ExecuteAsync<TContext>(
@@ -61,7 +61,7 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
 
         foreach (var directive in field.Directives)
         {
-            if (directive.VisitNode(ExecutableDirectiveLocation.FIELD, Schema, field, Arguments, null, null) == null)
+            if (directive.VisitNode(ExecutableDirectiveLocation.Field, Schema, field, Arguments, null, null) == null)
                 return (null, false, []);
         }
 

@@ -283,7 +283,17 @@ public class ArgumentTrackerTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
-        schema.Mutation().Add("doTest", (TestInputTracking input) => input);
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (TestInputTracking input) =>
+                {
+                    Assert.True(input.IsSet(nameof(TestInputTracking.Id)));
+                    Assert.False(input.IsSet(nameof(TestInputTracking.Name)));
+                    return true;
+                }
+            );
         var gql = new QueryRequest
         {
             Query = """
@@ -303,9 +313,7 @@ public class ArgumentTrackerTests
         var testSchema = new TestDataContext();
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.NotNull(results.Data!["doTest"]);
-        var testData = (IArgumentsTracker)results.Data!["doTest"]!;
-        Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
+        Assert.True((bool)results.Data!["doTest"]!);
     }
 
     [Fact]
@@ -313,7 +321,18 @@ public class ArgumentTrackerTests
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
-        schema.Mutation().Add("doTest", (TestInputTracking input) => input);
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (TestInputTracking input) =>
+                {
+                    Assert.False(input.IsSet(nameof(TestInputTracking.Id)));
+                    Assert.False(input.IsSet(nameof(TestInputTracking.Name)));
+
+                    return true;
+                }
+            );
         var gql = new QueryRequest
         {
             Query = """
@@ -326,9 +345,7 @@ public class ArgumentTrackerTests
         var testSchema = new TestDataContext();
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
-        Assert.NotNull(results.Data!["doTest"]);
-        var testData = (IArgumentsTracker)results.Data!["doTest"]!;
-        Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
+        Assert.True((bool)results.Data!["doTest"]!);
     }
 
     [Theory]
@@ -341,17 +358,28 @@ public class ArgumentTrackerTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
         schema.AddInputType<NestedTestInputTracking>(nameof(NestedTestInputTracking)).AddAllFields();
-        schema.Mutation().Add("doTest", (NestedTestInputTracking input) => input);
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (NestedTestInputTracking input) =>
+                {
+                    return new NestedWhatIsSet { ParentIdSet = input.IsSet(nameof(NestedTestInputTracking.Id)), ChildIdSet = input.Child?.IsSet(nameof(TestInputTracking.Id)) ?? false };
+                }
+            );
         var gql = new QueryRequest
         {
             Query = $$"""
                 mutation M () {
-                doTest(input : {
+                    doTest(input : {
                         {{(setParent ? "id: \"03d539f8-6bbc-4b62-8f7f-b55c7eb242e6\"" : "")}}
                         child: {
                             {{(setChild ? "id: \"03d539f8-6bbc-4b62-8f7f-b55c7eb242e7\"" : "")}}
-                        } 
-                    })
+                        }
+                    }) {
+                        parentIdSet
+                        childIdSet
+                    }
                 }
                 """,
         };
@@ -360,10 +388,9 @@ public class ArgumentTrackerTests
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
         Assert.Null(results.Errors);
         Assert.NotNull(results.Data!["doTest"]);
-        var testData = (NestedTestInputTracking)results.Data!["doTest"]!;
-        Assert.NotNull(testData.Child);
-        Assert.Equal(setParent, testData.IsSet(nameof(NestedTestInputTracking.Id)));
-        Assert.Equal(setChild, testData.Child.IsSet(nameof(TestInputTracking.Id)));
+        dynamic testData = results.Data!["doTest"]!;
+        Assert.Equal(setParent, (bool)testData.parentIdSet);
+        Assert.Equal(setChild, (bool)testData.childIdSet);
     }
 
     [Fact]
@@ -372,11 +399,19 @@ public class ArgumentTrackerTests
         var testSchema = new TestDataContext();
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddInputType<TestInputTracking>(nameof(TestInputTracking)).AddAllFields();
-        schema.Mutation().Add("doTest", (TestInputTracking input) => input);
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (TestInputTracking input) =>
+                {
+                    return new WhatIsSet { IdSet = input.IsSet(nameof(TestInputTracking.Id)), NameSet = input.IsSet(nameof(TestInputTracking.Name)) };
+                }
+            );
 
         var query = """
             mutation M ($input: TestInputTracking) {
-                doTest(input : $input)
+                doTest(input : $input) { nameSet idSet }
             }
             """;
         var hash = QueryCache.ComputeHash(query);
@@ -401,9 +436,9 @@ public class ArgumentTrackerTests
         };
 
         var results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-        var testData = (IArgumentsTracker)results.Data!["doTest"]!;
-        Assert.True(testData.IsSet(nameof(TestInputTracking.Id)));
-        Assert.False(testData.IsSet(nameof(TestInputTracking.Name)));
+        Assert.Null(results.Errors);
+        Assert.True((bool)(results.Data!["doTest"]! as dynamic).idSet);
+        Assert.False((bool)(results.Data!["doTest"]! as dynamic).nameSet);
 
         gql.Query = null;
         gql.Variables = new QueryVariables()
@@ -415,9 +450,9 @@ public class ArgumentTrackerTests
         };
 
         results = schema.ExecuteRequestWithContext(gql, testSchema, null, null);
-        testData = (IArgumentsTracker)results.Data!["doTest"]!;
-        Assert.True(testData.IsSet(nameof(TestInputTracking.Name)));
-        Assert.False(testData.IsSet(nameof(TestInputTracking.Id)));
+        Assert.Null(results.Errors);
+        Assert.False((bool)(results.Data!["doTest"]! as dynamic).idSet);
+        Assert.True((bool)(results.Data!["doTest"]! as dynamic).nameSet);
     }
 
     [Fact]
@@ -721,5 +756,17 @@ public class ArgumentTrackerTests
     {
         public Guid? Id { get; set; }
         public TestInputTracking? Child { get; set; }
+    }
+
+    private class WhatIsSet
+    {
+        public bool IdSet { get; set; }
+        public bool NameSet { get; set; }
+    }
+
+    private class NestedWhatIsSet
+    {
+        public bool ParentIdSet { get; set; }
+        public bool ChildIdSet { get; set; }
     }
 }

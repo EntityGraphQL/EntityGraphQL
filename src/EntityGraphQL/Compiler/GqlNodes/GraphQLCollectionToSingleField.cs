@@ -62,9 +62,7 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
 
     public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
-        return CollectionSelectionNode.HasServicesAtOrBelow(fragments)
-            || ObjectProjectionNode.HasServicesAtOrBelow(fragments)
-            || ObjectProjectionNode.QueryFields?.Any(f => f.HasServicesAtOrBelow(fragments)) == true;
+        return CollectionSelectionNode.HasServicesAtOrBelow(fragments) || ObjectProjectionNode.HasServicesAtOrBelow(fragments);
     }
 
     protected override Expression? GetFieldExpression(
@@ -159,5 +157,17 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
         else
             exp = ExpressionUtil.MakeCallOnQueryable(capMethod, [genericType], result);
         return exp;
+    }
+
+    public override List<BaseGraphQLField> QueryFields => CollectionSelectionNode.QueryFields;
+
+    public override void AddField(BaseGraphQLField field)
+    {
+        // both need the fields so we can build the right expression
+        // Update the parent node to be the collection node
+        // This ensures child fields use the correct parameter context
+        field.ParentNode = CollectionSelectionNode;
+        CollectionSelectionNode.QueryFields.Add(field);
+        ObjectProjectionNode.QueryFields.Add(field);
     }
 }

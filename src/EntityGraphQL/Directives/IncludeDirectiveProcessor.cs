@@ -9,7 +9,7 @@ public class IncludeDirectiveProcessor : DirectiveProcessor<IncludeArguments>
     public override string Name => "include";
     public override string Description => "Directs the executor to include this field or fragment only when the `if` argument is true.";
 
-    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.FIELD, ExecutableDirectiveLocation.FRAGMENT_SPREAD, ExecutableDirectiveLocation.INLINE_FRAGMENT];
+    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.Field, ExecutableDirectiveLocation.FragmentSpread, ExecutableDirectiveLocation.InlineFragment];
 
     public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
     {

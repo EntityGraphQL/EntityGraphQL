@@ -20,7 +20,7 @@ public class UnionTests
         Assert.True(schema.GetSchemaType(typeof(Cat), false, null).GqlType == GqlTypes.QueryObject);
         Assert.True(schema.GetSchemaType(typeof(Dog), false, null).GqlType == GqlTypes.QueryObject);
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animals {
@@ -34,7 +34,8 @@ public class UnionTests
                             lives
                         }
                     }
-                }"
+                }",
+            schema
         );
         var context = new TestUnionDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -65,7 +66,7 @@ public class UnionTests
         Assert.True(schema.GetSchemaType(typeof(Cat), false, null).GqlType == GqlTypes.QueryObject);
         Assert.True(schema.GetSchemaType(typeof(Dog), false, null).GqlType == GqlTypes.QueryObject);
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
         query {
             animals {
@@ -78,7 +79,8 @@ public class UnionTests
                     lives
                 }
             }
-        }"
+        }",
+            schema
         );
         var context = new TestUnionDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -109,7 +111,7 @@ public class UnionTests
         Assert.True(schema.GetSchemaType(typeof(Cat), false, null).GqlType == GqlTypes.QueryObject);
         Assert.True(schema.GetSchemaType(typeof(Dog), false, null).GqlType == GqlTypes.QueryObject);
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     animals {
@@ -118,7 +120,8 @@ public class UnionTests
                             hasBone
                         }
                     }
-                }"
+                }",
+            schema
         );
         var context = new TestUnionDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -149,7 +152,7 @@ public class UnionTests
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Cat), false, null).GqlType);
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Dog), false, null).GqlType);
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
             query {
                 animals {
@@ -158,7 +161,8 @@ public class UnionTests
                         lives
                     }
                 }
-            }"
+            }",
+            schema
         );
         var context = new TestUnionDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -189,12 +193,13 @@ public class UnionTests
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Cat), false, null).GqlType);
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Dog), false, null).GqlType);
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"query {
                 animals {
                     __typename
                 }
-            }"
+            }",
+            schema
         );
         var context = new TestUnionDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -225,7 +230,7 @@ public class UnionTests
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Cat), null).GqlType);
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Dog), null).GqlType);
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             """
             query {
                 petOwner(id: 1) {
@@ -253,7 +258,8 @@ public class UnionTests
                     }
                 }
             }
-            """
+            """,
+            schema
         );
         var context = new TestUnionDataContext2();
         context.PetOwners.Add(
@@ -290,7 +296,7 @@ public class UnionTests
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Cat), null).GqlType);
         Assert.Equal(GqlTypes.QueryObject, schema.GetSchemaType(typeof(Dog), null).GqlType);
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             """
             query {
                 petOwners {
@@ -308,7 +314,8 @@ public class UnionTests
                     }
                 }
             }
-            """
+            """,
+            schema
         );
         var context = new TestUnionDataContext2();
         context.PetOwners.Add(

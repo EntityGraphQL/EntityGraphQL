@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.Compiler;
 

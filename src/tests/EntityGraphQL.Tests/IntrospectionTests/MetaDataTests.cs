@@ -18,10 +18,11 @@ public class MetadataTests
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         // Add a argument field with a require parameter
-        var tree = new GraphQLCompiler(schemaProvider).Compile(
+        var tree = GraphQLParser.Parse(
             @"query {
-	users { __typename id }
-}"
+                users { __typename id }
+            }",
+            schemaProvider
         );
 
         var users = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);

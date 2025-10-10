@@ -1,7 +1,6 @@
 using System.IO;
 using System.Linq;
 using demo.Mutations;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 

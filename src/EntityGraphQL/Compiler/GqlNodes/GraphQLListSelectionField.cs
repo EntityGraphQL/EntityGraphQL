@@ -101,6 +101,9 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
 
         var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
+        if (HasServices)
+            compileContext.AddServices(Field!.Services);
+
         if (selectionFields == null || selectionFields.Count == 0)
         {
             if (withoutServiceFields && HasServices)
@@ -109,9 +112,6 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         }
 
         (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, argumentParams, contextChanged, replacer);
-
-        if (HasServices)
-            compileContext.AddServices(Field!.Services);
 
         Expression? resultExpression = null;
         if (!withoutServiceFields)

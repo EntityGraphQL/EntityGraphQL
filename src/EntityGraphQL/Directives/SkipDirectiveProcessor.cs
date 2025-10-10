@@ -8,7 +8,7 @@ public class SkipDirectiveProcessor : DirectiveProcessor<SkipArguments>
 {
     public override string Name => "skip";
     public override string Description => "Directs the executor to skip this field or fragment when the `if` argument is true.";
-    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.FIELD, ExecutableDirectiveLocation.FRAGMENT_SPREAD, ExecutableDirectiveLocation.INLINE_FRAGMENT];
+    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.Field, ExecutableDirectiveLocation.FragmentSpread, ExecutableDirectiveLocation.InlineFragment];
 
     public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
     {

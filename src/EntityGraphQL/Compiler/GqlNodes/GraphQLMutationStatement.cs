@@ -18,7 +18,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
     public GraphQLMutationStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> variables)
         : base(schema, name, nodeExpression, rootParameter, variables) { }
 
-    protected override ExecutableDirectiveLocation ExecutableDirectiveLocation => ExecutableDirectiveLocation.MUTATION;
+    protected override ExecutableDirectiveLocation DirectiveLocation => ExecutableDirectiveLocation.Mutation;
     protected override ISchemaType SchemaType => Schema.GetSchemaType(Schema.MutationType, false, null)!;
 
     protected override async Task<(object? data, bool didExecute, List<GraphQLError> errors)> ExecuteOperationField<TContext>(
@@ -75,7 +75,7 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
         // apply directives
         foreach (var directive in node.Directives)
         {
-            if (directive.VisitNode(ExecutableDirectiveLocation.FIELD, Schema, node, Arguments, null, null) == null)
+            if (directive.VisitNode(ExecutableDirectiveLocation.Field, Schema, node, Arguments, null, null) == null)
                 return (null, false, null);
         }
 

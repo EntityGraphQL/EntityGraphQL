@@ -1,4 +1,3 @@
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using Xunit;
 

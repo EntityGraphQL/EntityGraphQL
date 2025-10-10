@@ -5,9 +5,10 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using EntityGraphQL.Directives;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
 
-// can remove this when we drop netstandard2.1
+// can remove this when/if we drop netstandard2.1
 #pragma warning disable CA1305
 namespace EntityGraphQL.Schema;
 
@@ -53,13 +54,8 @@ public class SchemaGenerator
         {
             if (!string.IsNullOrEmpty(directive.Description))
                 schemaBuilder.AppendLine($"\"\"\"{EscapeString(directive.Description)}\"\"\"");
-            schemaBuilder.AppendLine(
-#if NETSTANDARD2_1
-                $"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i)))}"
-#else
-                $"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => Enum.GetName(i)))}"
-#endif
-            );
+
+            schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => i.GetDescription()))}");
         }
         schemaBuilder.AppendLine();
 

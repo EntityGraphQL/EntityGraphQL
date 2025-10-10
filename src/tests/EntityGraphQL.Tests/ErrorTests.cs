@@ -422,7 +422,7 @@ public class ErrorTests
         {
             Query =
                 @"mutation AddPerson($name: String) {
-                    addPersonNullableError(name: $name)
+                    addPersonNullableError(name: $name) { id }
                 }",
             Variables = new QueryVariables { { "name", "Bill" } },
         };
@@ -453,8 +453,8 @@ public class ErrorTests
         {
             Query =
                 @"mutation AddPerson($name: String) {
-                    a: addPersonNullableError(name: $name)
-                    b: addPersonNullableError(name: $name)
+                    a: addPersonNullableError(name: $name) { id }
+                    b: addPersonNullableError(name: $name) { id }
                 }",
             Variables = new QueryVariables { { "name", "Bill" } },
         };
@@ -488,7 +488,7 @@ public class ErrorTests
             Query =
                 @"mutation AddPerson($name: String) {
                     addPersonError(name: $name)
-                    addPersonNullableError(name: $name)
+                    addPersonNullableError(name: $name) { id }
                 }",
             Variables = new QueryVariables { { "name", "Bill" } },
         };
@@ -496,7 +496,7 @@ public class ErrorTests
         var testSchema = new TestDataContext();
         var results = schemaProvider.ExecuteRequestWithContext(gql, testSchema, null, null);
 
-        Assert.True(results.ContainsKey("data"));
+        Assert.True(results.HasDataKey);
         var data = results.Data?.Values;
         Assert.NotNull(data);
         Assert.Single(data);

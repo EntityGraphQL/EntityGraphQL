@@ -1,7 +1,5 @@
 using System;
-using System.Linq;
 using System.Threading;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;

@@ -30,7 +30,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// <summary>
     /// Variables that are expected to be passed in to execute this query
     /// </summary>
-    protected Dictionary<string, ArgType> OpDefinedVariables { get; set; } = [];
+    protected IReadOnlyDictionary<string, ArgType> OpDefinedVariables { get; set; }
     public ISchemaProvider Schema { get; protected set; }
 
     public ParameterExpression? OpVariableParameter { get; }
@@ -53,14 +53,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// <summary>
     /// The executable directive location for this operation type
     /// </summary>
-    protected abstract ExecutableDirectiveLocation ExecutableDirectiveLocation { get; }
+    protected abstract ExecutableDirectiveLocation DirectiveLocation { get; }
 
     /// <summary>
     /// The schema type for this operation
     /// </summary>
     protected abstract ISchemaType SchemaType { get; }
 
-    public ExecutableGraphQLStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, Dictionary<string, ArgType> opVariables)
+    public ExecutableGraphQLStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, IReadOnlyDictionary<string, ArgType> opVariables)
     {
         Name = name;
         NextFieldContext = nodeExpression;
@@ -102,7 +102,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (context == null && serviceProvider == null)
             throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Either context or serviceProvider must be provided.");
 
-        Schema.CheckTypeAccess(this.SchemaType, requestContext);
+        Schema.CheckTypeAccess(SchemaType, requestContext);
 
         // build separate expression for all root level nodes in the op e.g. op is
         // query Op1 {
@@ -116,7 +116,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // pass to directives
         foreach (var directive in Directives)
         {
-            if (directive.VisitNode(ExecutableDirectiveLocation, Schema, this, Arguments, null, null) == null)
+            if (directive.VisitNode(DirectiveLocation, Schema, this, Arguments, null, null) == null)
                 return (result, allErrors);
         }
         try

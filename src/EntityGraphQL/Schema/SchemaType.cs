@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using Nullability;
 

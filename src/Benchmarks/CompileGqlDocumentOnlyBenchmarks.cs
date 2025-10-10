@@ -22,6 +22,15 @@ namespace Benchmarks;
 /// | Query_List                                        | 2.431 us | 0.0055 us | 0.0046 us | 0.9117 | 0.0076 |   5.59 KB |
 /// | Query_ListWithTakeArg                             | 8.482 us | 0.1298 us | 0.1151 us | 2.5177 | 0.0305 |  15.49 KB |
 ///
+/// 6.0.0
+/// | Method                                            | Mean     | Error     | StdDev    | Gen0   | Gen1   | Allocated |
+/// |-------------------------------------------------- |---------:|----------:|----------:|-------:|-------:|----------:|
+/// | Query_SingleObjectWithArg                         | 3.897 us | 0.0454 us | 0.0379 us | 1.0376 |      - |    6.5 KB |
+/// | Query_SingleObjectWithArg_IncludeSubObject        | 4.452 us | 0.0890 us | 0.1060 us | 1.1902 |      - |   7.39 KB |
+/// | Query_SingleObjectWithArg_IncludeSubObjectAndList | 5.113 us | 0.1020 us | 0.1558 us | 1.3733 |      - |    8.5 KB |
+/// | Query_List                                        | 1.784 us | 0.0120 us | 0.0113 us | 0.5760 | 0.0019 |   3.54 KB |
+/// | Query_ListWithTakeArg                             | 7.991 us | 0.0361 us | 0.0320 us | 2.1515 | 0.0153 |   13.2 KB |
+///
 /// </summary>
 [MemoryDiagnoser]
 public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
@@ -29,7 +38,7 @@ public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
     [Benchmark]
     public void Query_SingleObjectWithArg()
     {
-        new GraphQLCompiler(Schema).Compile(
+        GraphQLParser.Parse(
             new QueryRequest
             {
                 Query =
@@ -38,14 +47,15 @@ public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
                             id name released
                         }
                     }",
-            }
+            },
+            Schema
         );
     }
 
     [Benchmark]
     public void Query_SingleObjectWithArg_IncludeSubObject()
     {
-        new GraphQLCompiler(Schema).Compile(
+        GraphQLParser.Parse(
             new QueryRequest
             {
                 Query =
@@ -57,14 +67,15 @@ public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
                         }
                     }
                 }",
-            }
+            },
+            Schema
         );
     }
 
     [Benchmark]
     public void Query_SingleObjectWithArg_IncludeSubObjectAndList()
     {
-        new GraphQLCompiler(Schema).Compile(
+        GraphQLParser.Parse(
             new QueryRequest
             {
                 Query =
@@ -79,14 +90,15 @@ public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
                         }
                     }
                 }",
-            }
+            },
+            Schema
         );
     }
 
     [Benchmark]
     public void Query_List()
     {
-        new GraphQLCompiler(Schema).Compile(
+        GraphQLParser.Parse(
             new QueryRequest
             {
                 Query =
@@ -95,7 +107,8 @@ public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
                         id name released
                     }
                 }",
-            }
+            },
+            Schema
         );
     }
 
@@ -108,7 +121,7 @@ public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
     [Benchmark]
     public void Query_ListWithTakeArg()
     {
-        new GraphQLCompiler(Schema).Compile(
+        GraphQLParser.Parse(
             new QueryRequest
             {
                 Query =
@@ -117,7 +130,8 @@ public class CompileGqlDocumentOnlyBenchmarks : BaseBenchmark
                         id name released
                     }
                 }",
-            }
+            },
+            Schema
         );
     }
 }

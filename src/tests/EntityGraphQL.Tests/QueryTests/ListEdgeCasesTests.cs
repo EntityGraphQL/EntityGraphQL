@@ -17,14 +17,14 @@ public class ListEdgeCasesTests
         // empty schema
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Type<Person>().RemoveField(p => p.Id);
-        var ex = Assert.Throws<EntityGraphQLException>(
-            () =>
-                new GraphQLCompiler(schema).Compile(
-                    @"
+        var ex = Assert.Throws<EntityGraphQLException>(() =>
+            GraphQLParser.Parse(
+                @"
             {
                 people
-            }"
-                )
+            }",
+                schema
+            )
         );
         Assert.Equal("Field 'people' requires a selection set defining the fields you would like to select.", ex.Message);
     }
@@ -36,14 +36,14 @@ public class ListEdgeCasesTests
         var schema = SchemaBuilder.Create<TestDataContext>();
         schema.AddType<Person>("Person").AddField("name", p => p.Name, "Person's name");
         schema.Query().AddField("people", p => p.People, "People");
-        var ex = Assert.Throws<EntityGraphQLException>(
-            () =>
-                new GraphQLCompiler(schema).Compile(
-                    @"
+        var ex = Assert.Throws<EntityGraphQLException>(() =>
+            GraphQLParser.Parse(
+                @"
             {
                 people
-            }"
-                )
+            }",
+                schema
+            )
         );
         Assert.Equal("Field 'people' requires a selection set defining the fields you would like to select.", ex.Message);
     }
@@ -51,11 +51,12 @@ public class ListEdgeCasesTests
     [Fact]
     public void CanParseQueryWithCollection()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"
         {
         	people { id name projects { name } }
-        }"
+        }",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
         // People.Select(p => new { Id = p.Id, Name = p.Name, User = new { Field1 = p.User.Field1 })
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
@@ -77,8 +78,9 @@ public class ListEdgeCasesTests
     [Fact]
     public void CanParseQueryWithCollectionDeep()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"
+            
         {
         	people { id
         		projects {
@@ -86,7 +88,8 @@ public class ListEdgeCasesTests
         			tasks { id name }
         		}
         	}
-        }"
+        }",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
         var result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
         Assert.Equal(1, Enumerable.Count((dynamic)result.Data!["people"]!));

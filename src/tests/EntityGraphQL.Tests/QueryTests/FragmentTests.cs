@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Compiler;
@@ -15,7 +14,7 @@ public class FragmentTests
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         // Add a argument field with a require parameter
-        var tree = new GraphQLCompiler(schemaProvider).Compile(
+        var tree = GraphQLParser.Parse(
             @"
                 query {
                     people { ...info projects { id name } }
@@ -23,7 +22,8 @@ public class FragmentTests
                 fragment info on Person {
                     id name
                 }
-            "
+            ",
+            schemaProvider
         );
 
         Assert.Single(tree.Operations.First().QueryFields);
@@ -41,17 +41,18 @@ public class FragmentTests
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         // Add a argument field with a require parameter
-        var tree = new GraphQLCompiler(schemaProvider).Compile(
+        var tree = GraphQLParser.Parse(
             @"
-query {
-    people {
-        ...info @skip(if: true)
-        projects { id name } }
-}
-fragment info on Person {
-    id name
-}
-"
+                query {
+                    people {
+                        ...info @skip(if: true)
+                        projects { id name } }
+                }
+                fragment info on Person {
+                    id name
+                }
+                ",
+            schemaProvider
         );
 
         Assert.Single(tree.Operations.First().QueryFields);
@@ -225,7 +226,7 @@ fragment info on Person {
             catType.AddField("isAngry", "Is the cat angry").Resolve<CatAngerService>((cat, service) => service.IsAngry(cat.Id));
         });
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
             query {
                 animals {
@@ -234,7 +235,8 @@ fragment info on Person {
                         isAngry
                     }
                 }
-            }"
+            }",
+            schema
         );
         var context = new TestUnionDataContext();
         context.Animals.Add(new Dog() { Name = "steve", HasBone = true });
@@ -259,10 +261,9 @@ fragment info on Person {
     public void TestFragmentSpreadMustNotFormCycles_DirectCycle()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        var compiler = new GraphQLCompiler(schemaProvider);
 
         var exception = Assert.Throws<EntityGraphQLException>(() =>
-            compiler.Compile(
+            GraphQLParser.Parse(
                 @"
                 query {
                     people { ...PersonInfo }
@@ -271,7 +272,8 @@ fragment info on Person {
                     name
                     ...PersonInfo
                 } 
-            "
+            ",
+                schemaProvider
             )
         );
 
@@ -282,10 +284,9 @@ fragment info on Person {
     public void TestFragmentSpreadMustNotFormCycles_IndirectCycle()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        var compiler = new GraphQLCompiler(schemaProvider);
 
         var exception = Assert.Throws<EntityGraphQLException>(() =>
-            compiler.Compile(
+            GraphQLParser.Parse(
                 @"
                 query {
                     people { ...PersonInfo }
@@ -298,7 +299,8 @@ fragment info on Person {
                     name
                     ...PersonInfo
                 }
-            "
+            ",
+                schemaProvider
             )
         );
 
@@ -309,10 +311,9 @@ fragment info on Person {
     public void TestFragmentSpreadMustNotFormCycles_ComplexCycle()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        var compiler = new GraphQLCompiler(schemaProvider);
 
         var exception = Assert.Throws<EntityGraphQLException>(() =>
-            compiler.Compile(
+            GraphQLParser.Parse(
                 @"
                 query {
                     people { ...A }
@@ -329,7 +330,8 @@ fragment info on Person {
                     lastName
                     ...A
                 }
-            "
+            ",
+                schemaProvider
             )
         );
 
@@ -340,9 +342,8 @@ fragment info on Person {
     public void TestFragmentSpreadMustNotFormCycles_ValidNoCycle()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        var compiler = new GraphQLCompiler(schemaProvider);
 
-        var tree = compiler.Compile(
+        var tree = GraphQLParser.Parse(
             @"
             query {
                 people { 
@@ -358,7 +359,8 @@ fragment info on Person {
                 name
                 id
             }
-        "
+        ",
+            schemaProvider
         );
 
         Assert.NotNull(tree);
@@ -370,9 +372,8 @@ fragment info on Person {
     public void TestFragmentSpreadMustNotFormCycles_ValidReusedFragment()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        var compiler = new GraphQLCompiler(schemaProvider);
 
-        var tree = compiler.Compile(
+        var tree = GraphQLParser.Parse(
             @"
             query {
                 people { 
@@ -391,7 +392,8 @@ fragment info on Person {
                 name
                 id
             }
-        "
+        ",
+            schemaProvider
         );
 
         Assert.NotNull(tree);

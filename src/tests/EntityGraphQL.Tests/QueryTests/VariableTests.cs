@@ -26,7 +26,7 @@ public class VariableTests
 ",
             Variables = new QueryVariables { { "limit", 5 } },
         };
-        var tree = new GraphQLCompiler(schema).Compile(gql);
+        var tree = GraphQLParser.Parse(gql, schema);
 
         Assert.Single(tree.Operations.First().QueryFields);
         TestDataContext context = new TestDataContext().FillWithTestData();
@@ -46,12 +46,13 @@ public class VariableTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().ReplaceField("people", new { limit = ArgumentHelper.Required<int>() }, (db, p) => db.People.Take(p.limit), "List of people with limit");
         // Add a argument field with a require parameter
-        var tree = new GraphQLCompiler(schema).Compile(
+        var tree = GraphQLParser.Parse(
             @"
         query MyQuery($limit: Int = 10) {
             people(limit: $limit) { id name }
         }
-        "
+        ",
+            schema
         );
 
         Assert.Single(tree.Operations.First().QueryFields);
@@ -74,12 +75,13 @@ public class VariableTests
         schema.Query().ReplaceField("people", new { limit = 5 }, (db, p) => db.People.Take(p.limit), "List of people with limit");
 
         // should use gql default of 6
-        var tree = new GraphQLCompiler(schema).Compile(
+        var tree = GraphQLParser.Parse(
             @"
         query MyQuery($limit: Int = 6) {
             people(limit: $limit) { id name }
         }
-        "
+        ",
+            schema
         );
 
         Assert.Single(tree.Operations.First().QueryFields);

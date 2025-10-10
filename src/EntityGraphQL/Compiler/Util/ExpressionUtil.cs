@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -13,6 +14,8 @@ namespace EntityGraphQL.Compiler.Util;
 
 public static class ExpressionUtil
 {
+    public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
+
     /// <summary>
     /// List of methods that take a list and return a single item. We need to handle these differently as we need to
     /// add a Select() before the method call to optimize EF queries.
@@ -229,7 +232,7 @@ public static class ExpressionUtil
         if (
             (argumentNonNullType == typeof(Guid) || argumentNonNullType == typeof(Guid?) || argumentNonNullType == typeof(RequiredField<Guid>) || argumentNonNullType == typeof(RequiredField<Guid?>))
             && fromType == typeof(string)
-            && QueryWalkerHelper.GuidRegex.IsMatch(value.ToString()!)
+            && GuidRegex.IsMatch(value.ToString()!)
         )
         {
             return Guid.Parse(value!.ToString()!);

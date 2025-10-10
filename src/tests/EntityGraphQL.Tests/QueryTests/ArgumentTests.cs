@@ -16,13 +16,14 @@ public class ArgumentTests
     [Fact]
     public void CanExecuteRequiredParameter()
     {
-        var tree = new GraphQLCompiler(SchemaBuilder.FromObject<TestDataContext>()).Compile(
+        var tree = GraphQLParser.Parse(
             @"{
                 project(id: 55) {
                     id
                     name
                 }
-            }"
+            }",
+            SchemaBuilder.FromObject<TestDataContext>()
         );
 
         Assert.Single(tree.Operations.First().QueryFields);
@@ -40,10 +41,11 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
         // Add a argument field with a require parameter
         schema.Query().AddField("user", new { id = ArgumentHelper.Required<int>(), something = true }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return a user by ID");
-        var tree = new GraphQLCompiler(schema).Compile(
+        var tree = GraphQLParser.Parse(
             @"query {
         	user(id: 100, something: false) { id }
-        }"
+        }",
+            schema
         );
         // db => db.Users.Where(u => u.Id == id).Select(u => new {id = u.Id}]).FirstOrDefault()
         dynamic result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null).Data!["user"]!;
@@ -121,10 +123,11 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         // Add a argument field with a default parameter
         schema.Query().AddField("me", new { id = 100 }, (ctx, param) => ctx.Users.Where(u => u.Id == param.id).FirstOrDefault(), "Return me, or someone else");
-        var tree = new GraphQLCompiler(schema).Compile(
+        var tree = GraphQLParser.Parse(
             @"query {
-                        me { id }
-                    }"
+                me { id }
+            }",
+            schema
         );
 
         dynamic result = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null).Data!["me"]!;
@@ -142,11 +145,12 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddEnum("HeightUnit", typeof(HeightUnit), "Unit of height measurement");
         schema.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
-        var result = new GraphQLCompiler(schema)
-            .Compile(
+        var result = GraphQLParser
+            .Parse(
                 @"query {
                         people { id height }
-                    }"
+                    }",
+                schema
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
@@ -168,11 +172,12 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.AddEnum("HeightUnit", typeof(HeightUnit), "Unit of height measurement");
         schema.Type<Person>().ReplaceField("height", new { unit = HeightUnit.Cm }, (p, param) => p.GetHeight(param.unit), "Return me, or someone else");
-        var tree = new GraphQLCompiler(schema)
-            .Compile(
+        var tree = GraphQLParser
+            .Parse(
                 @"query {
                         people { height(unit: Meter) }
-                    }"
+                    }",
+                schema
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
@@ -198,7 +203,7 @@ public class ArgumentTests
                 }",
             Variables = new QueryVariables { { "unitType", "Meter" } },
         };
-        var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables, null);
+        var tree = GraphQLParser.Parse(gql, schema).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables, null);
 
         dynamic result = tree.Data!["people"]!;
         Assert.Equal(1, Enumerable.Count(result));
@@ -213,11 +218,12 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         MakePersonIdGuid(schema);
         // Add a argument field with a require parameter
-        var tree = new GraphQLCompiler(schema)
-            .Compile(
+        var tree = GraphQLParser
+            .Parse(
                 @"query {
                         person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id projects { id name } }
-                    }"
+                    }",
+                schema
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
@@ -242,7 +248,7 @@ public class ArgumentTests
                     }",
             Variables = new QueryVariables { { "id", "cccccccc-bbbb-4444-1111-ccddeeff0033" } },
         };
-        var tree = new GraphQLCompiler(schema).Compile(gql).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables);
+        var tree = GraphQLParser.Parse(gql, schema).ExecuteQuery(new TestDataContext().FillWithTestData(), null, gql.Variables);
 
         dynamic user = tree.Data!["person"]!;
         // we only have the fields requested
@@ -258,11 +264,12 @@ public class ArgumentTests
         MakePersonIdGuid(schema);
         schema.Type<Person>().AddField("project", new { pid = ArgumentHelper.Required<int>() }, (p, args) => p.Projects.FirstOrDefault(s => s.Id == args.pid), "Return a specific project");
         // Add a argument field with a require parameter
-        var tree = new GraphQLCompiler(schema)
-            .Compile(
+        var tree = GraphQLParser
+            .Parse(
                 @"query {
                         person(id: ""cccccccc-bbbb-4444-1111-ccddeeff0033"") { id project(pid: 55) { id name } }
-                    }"
+                    }",
+                schema
             )
             .ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
 
@@ -281,12 +288,13 @@ public class ArgumentTests
         // Add a argument field with a require parameter
         var e = Assert.Throws<EntityGraphQLException>(() =>
         {
-            var tree = new GraphQLCompiler(schema).Compile(
+            var tree = GraphQLParser.Parse(
                 @"
             query MyQuery($limit: Int = 10) {
                 people(limit: $limit) { id name projects { id name } }
             }
-            "
+            ",
+                schema
             );
         });
         Assert.Equal("No argument 'limit' found on field 'people'", e.Message);
@@ -298,10 +306,11 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().ReplaceField("users", new { f = (float?)null }, (db, p) => db.Users, "Testing float");
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"query {
                 users(f: 4.3) { id }
-            }"
+            }",
+            schema
         );
         var context = new TestDataContext().FillWithTestData();
         var qr = gql.ExecuteQuery(context, null, null);
@@ -316,11 +325,12 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().ReplaceField("users", new { str = (string?)null }, (db, p) => db.Users.WhereWhen(u => u.Field2.Contains(p.str!), !string.IsNullOrEmpty(p.str)), "Testing string");
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
         query {
             users(str: ""3"") { id }
-        }"
+        }",
+            schema
         );
         var context = new TestDataContext().FillWithTestData();
         var qr = gql.ExecuteQuery(context, null, null);
@@ -335,11 +345,12 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().ReplaceField("people", new { names = (List<string>?)null }, (db, p) => db.People.WhereWhen(per => p.names!.Any(a => a == per.Name), p.names != null), "Testing list");
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
         query {
             people(names: [""bill"", ""jill""]) { name }
-        }"
+        }",
+            schema
         );
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(
@@ -354,7 +365,7 @@ public class ArgumentTests
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data!["people"]!;
+        dynamic people = qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(2, context.People.Count);
         Assert.Equal(1, Enumerable.Count(people));
@@ -366,11 +377,12 @@ public class ArgumentTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().ReplaceField("people", new { names = (string[]?)null }, (db, p) => db.People.WhereWhen(per => p.names!.Any(a => a == per.Name), p.names != null), "Testing list");
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
         query {
             people(names: [""bill"", ""jill""]) { name }
-        }"
+        }",
+            schema
         );
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(
@@ -408,11 +420,12 @@ public class ArgumentTests
                 "Testing list"
             );
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
         query {
             people(names: [""bill"", ""jill""]) { name }
-        }"
+        }",
+            schema
         );
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(
@@ -427,7 +440,7 @@ public class ArgumentTests
             }
         );
         var qr = gql.ExecuteQuery(context, null, null);
-        dynamic people = (dynamic)qr.Data!["people"]!;
+        dynamic people = qr.Data!["people"]!;
         // we only have the fields requested
         Assert.Equal(2, context.People.Count);
         Assert.Equal(1, Enumerable.Count(people));
@@ -440,10 +453,11 @@ public class ArgumentTests
         schema.AddInputType<PersonArg>("PersonArg", "PersonArgs").AddAllFields();
         schema.Query().ReplaceField("people", new { options = (PersonArg?)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options!.name, p.options != null), "Testing list");
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"query {
                 people(options: {name: ""jill""}) { name }
-            }"
+            }",
+            schema
         );
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(
@@ -470,14 +484,15 @@ public class ArgumentTests
         var schema = SchemaBuilder.Create<TestDataContext>();
         schema.AddType<Person>("Person info").AddAllFields();
         schema.Query().AddField("people", db => db.People, "List of people");
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     people {
                         task(id: 1) { id name }
                         project(id: 2) { id name }
                     }
-                }"
+                }",
+            schema
         );
         var context = new TestDataContext();
         context.People.Add(
@@ -506,11 +521,12 @@ public class ArgumentTests
         schema.AddType<Task>("Task info").AddAllFields();
         schema.Query().AddField("task", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Tasks.FirstOrDefault(t => t.Id == args.id), "Get task");
         schema.Query().AddField("project", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Projects.FirstOrDefault(t => t.Id == args.id), "Get project");
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"query {
                 task(id: 1) { id name }
                 project(id: 2) { id name }
-            }"
+            }",
+            schema
         );
         var context = new TestDataContext
         {
@@ -538,14 +554,15 @@ public class ArgumentTests
         var schema = SchemaBuilder.Create<TestDataContext>();
         schema.AddType<Person>("Person info").AddAllFields();
         schema.Query().AddField("people", db => db.People, "List of people");
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     people {
                         task(id: 1) { id name }
                         task2: task(id: 2) { id name }
                     }
-                }"
+                }",
+            schema
         );
         var context = new TestDataContext();
         context.People.Add(
@@ -572,12 +589,13 @@ public class ArgumentTests
         schema.AddType<Task>("Task info").AddAllFields();
         schema.Query().AddField("task", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Tasks.FirstOrDefault(t => t.Id == args.id), "Get task");
         schema.Query().AddField("project", new { id = ArgumentHelper.Required<int>() }, (db, args) => db.Projects.FirstOrDefault(t => t.Id == args.id), "Get project");
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"
                 query {
                     task(id: 1) { id name }
                     task2: task(id: 2) { id name }
-                }"
+                }",
+            schema
         );
         var context = new TestDataContext { Tasks = [new Task { Id = 1, Name = "Task 1" }, new Task { Id = 2, Name = "Task 2" }] };
         var qr = gql.ExecuteQuery(context, null, null);
@@ -597,10 +615,11 @@ public class ArgumentTests
         schema.AddInputType<PersonArgConstructor>("PersonArgConstructor", "PersonArgConstructors").AddAllFields();
         schema.Query().ReplaceField("people", new { options = (PersonArgConstructor?)null }, (db, p) => db.People.WhereWhen(per => per.Name == p.options!.Name, p.options != null), "Testing list");
 
-        var gql = new GraphQLCompiler(schema).Compile(
+        var gql = GraphQLParser.Parse(
             @"query {
                 people(options: {name: ""jill""}) { name }
-            }"
+            }",
+            schema
         );
         var context = new TestDataContext().FillWithTestData();
         context.People.Add(

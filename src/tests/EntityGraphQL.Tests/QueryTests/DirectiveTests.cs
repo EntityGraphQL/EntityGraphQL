@@ -339,18 +339,18 @@ internal class ExampleDirective : DirectiveProcessor<object>
 
     public override string Description => "Actually does nothing";
 
-    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.FIELD];
+    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.Field];
 }
 
 internal class FormatDirective : DirectiveProcessor<FormatDirectiveArgs>
 {
     public override string Name => "format";
     public override string Description => "Formats DateTime scalar values";
-    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.FIELD];
+    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.Field];
 
     public override IGraphQLNode VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
     {
-        if (location == ExecutableDirectiveLocation.FIELD && arguments is FormatDirectiveArgs args)
+        if (location == ExecutableDirectiveLocation.Field && arguments is FormatDirectiveArgs args)
         {
             if (node is GraphQLScalarField fieldNode)
             {

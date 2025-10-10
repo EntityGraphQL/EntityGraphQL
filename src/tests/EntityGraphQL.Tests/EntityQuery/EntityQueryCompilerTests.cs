@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery.Grammar;
@@ -153,9 +154,7 @@ public class EntityQueryCompilerTests
     public void FailsIfThenElseInlineNoBrackets()
     {
         // no brackets so it reads it as someRelation.relation.id == (99 ? 'wooh' : 66) and fails as 99 is not a bool
-        var ex = Assert.Throws<EntityGraphQLException>(() =>
-            EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext)
-        );
+        var ex = Assert.Throws<EntityGraphQLException>(() => EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext));
         Assert.Equal("Conditional result types mismatch. Types 'String' and 'Int64' must be the same.", ex.Message);
     }
 
@@ -286,22 +285,55 @@ public class EntityQueryCompilerTests
     [InlineData("\"2020-08-11 13:22:11\"")]
     [InlineData("\"2020-08-11 13:22:11.1\"")]
     [InlineData("\"2020-08-11 13:22:11.3000003\"")]
-    [InlineData("\"2020-08-11 13:22:11.3000003+000\"")]
     public void TestEntityQueryWorksWithDateTimes(string dateValue)
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
         var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, compileContext);
         var list = new List<Entry>
         {
-            new("First") { When = new DateTime(2020, 08, 10, 0, 0, 0) },
-            new("Second") { When = new DateTime(2020, 08, 11, 13, 21, 11) },
-            new("Third") { When = new DateTime(2020, 08, 12, 13, 22, 11) },
+            new("First") { When = new DateTime(2020, 08, 10, 0, 0, 0, DateTimeKind.Unspecified) },
+            new("Second") { When = new DateTime(2020, 08, 11, 13, 21, 11, DateTimeKind.Unspecified) },
+            new("Third") { When = new DateTime(2020, 08, 12, 13, 22, 11, DateTimeKind.Unspecified) },
         };
         Assert.Equal(3, list.Count);
         var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
 
         Assert.Single(results);
         Assert.Equal("Third", results.ElementAt(0).Message);
+    }
+
+    [Theory]
+    [InlineData("\"2020-08-11 13:22:11.3000003+0000\"")]
+    [InlineData("\"2020-08-11T13:22:11+0000\"")]
+    public void TestEntityQueryWorksWithDateTimesWithOffset(string dateValue)
+    {
+        var schemaProvider = SchemaBuilder.FromObject<Entry>();
+        var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, compileContext);
+
+        // When parsing a string with an offset, DateTime.Parse converts it to local time
+        // The parsed value will be: UTC time from the string, converted to local timezone
+        var parsedUtcTime = DateTimeOffset.Parse(dateValue.Trim('"'), CultureInfo.InvariantCulture);
+        var parsedAsLocalTime = parsedUtcTime.LocalDateTime;
+
+        var list = new List<Entry>
+        {
+            new("First") { When = new DateTime(2020, 08, 10, 0, 0, 0, DateTimeKind.Unspecified) },
+            new("Second") { When = new DateTime(2020, 08, 11, 13, 21, 11, DateTimeKind.Unspecified) },
+            new("Third") { When = new DateTime(2020, 08, 12, 13, 22, 11, DateTimeKind.Unspecified) },
+        };
+
+        var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile()).ToList();
+
+        // The expected count depends on what the parsed local time is compared to the test data
+        // In UTC timezone: "2020-08-11 13:22:11+0000" stays as 13:22:11, matches only Third
+        // In NY (UTC-4/5): "2020-08-11 13:22:11+0000" becomes 09:22:11 or 08:22:11, matches both Second and Third
+        var expectedMatches = list.Where(e => e.When >= parsedAsLocalTime).ToList();
+
+        Assert.Equal(expectedMatches.Count, results.Count);
+        for (int i = 0; i < expectedMatches.Count; i++)
+        {
+            Assert.Equal(expectedMatches[i].Message, results[i].Message);
+        }
     }
 
     [Theory]
