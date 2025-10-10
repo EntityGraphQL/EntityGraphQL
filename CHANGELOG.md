@@ -6,7 +6,7 @@
 
 ## Changes
 
-- Added support for document descriptions as outlined in the latest 2025 spec. Basically string comments in the query document
+- Added support for [document descriptions](https://spec.graphql.org/September2025/#sec-Descriptions) as outlined in the latest 2025 spec. Basically string comments in the query document
 - Replaced the previous 3rd party GraphQL document parser.
 
 # 6.0.0-beta2
