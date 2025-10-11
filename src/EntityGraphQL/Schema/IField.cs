@@ -91,7 +91,6 @@ public interface IField
     (Expression? expression, ParameterExpression? argumentParam) GetExpression(
         Expression fieldExpression,
         Expression? fieldContext,
-        IGraphQLNode? parentNode,
         BaseGraphQLField? fieldNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,

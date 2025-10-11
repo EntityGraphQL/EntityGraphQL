@@ -164,7 +164,6 @@ public class Field : BaseField
     public override (Expression? expression, ParameterExpression? argumentParam) GetExpression(
         Expression fieldExpression,
         Expression? fieldContext,
-        IGraphQLNode? parentNode,
         BaseGraphQLField? fieldNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,
@@ -178,7 +177,7 @@ public class Field : BaseField
     {
         Expression? expression = fieldExpression;
         // don't store parameterReplacer as a class field as GetExpression is called in compiling - i.e. across threads
-        (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, parentNode, fieldNode, docParam, docVariables, contextChanged, compileContext);
+        (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, fieldNode, docParam, docVariables, contextChanged, compileContext);
         if (result == null)
             return (null, null);
         // the expressions we collect have a different starting parameter. We need to change that
@@ -187,8 +186,8 @@ public class Field : BaseField
         {
             if (fieldContext != null)
                 result = replacer.Replace(result, FieldParam, fieldContext);
-            else if (parentNode?.NextFieldContext != null && parentNode.NextFieldContext.Type != FieldParam.Type)
-                result = replacer.Replace(result, FieldParam, parentNode.NextFieldContext);
+            else if (fieldNode?.ParentNode?.NextFieldContext != null && fieldNode?.ParentNode.NextFieldContext.Type != FieldParam.Type)
+                result = replacer.Replace(result, FieldParam, fieldNode!.ParentNode.NextFieldContext);
         }
         // need to make sure the schema context param is correct
         if (schemaContext != null && !contextChanged)
@@ -202,7 +201,6 @@ public class Field : BaseField
         Expression fieldExpression,
         ParameterReplacer replacer,
         Expression context,
-        IGraphQLNode? parentNode,
         BaseGraphQLField? fieldNode,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,

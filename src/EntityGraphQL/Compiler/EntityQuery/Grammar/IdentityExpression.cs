@@ -50,35 +50,9 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
 
         if (isServiceField && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
             // null context so the service expression param is not replaced and we can replace it in the filter extension
-            (exp, _) = gqlField.GetExpression(
-                gqlField.ResolveExpression!,
-                null,
-                null,
-                null,
-                null,
-                compileContext,
-                new Dictionary<string, object?>(),
-                null,
-                null,
-                [],
-                false,
-                new Util.ParameterReplacer()
-            );
+            (exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, null, null, null, compileContext, new Dictionary<string, object?>(), null, null, [], false, new Util.ParameterReplacer());
         else
-            (exp, _) = gqlField.GetExpression(
-                gqlField.ResolveExpression!,
-                context,
-                null,
-                null,
-                null,
-                compileContext,
-                new Dictionary<string, object?>(),
-                null,
-                null,
-                [],
-                false,
-                new Util.ParameterReplacer()
-            );
+            (exp, _) = gqlField.GetExpression(gqlField.ResolveExpression!, context, null, null, compileContext, new Dictionary<string, object?>(), null, null, [], false, new Util.ParameterReplacer());
 
         // Track service-backed fields for later filter splitting and wrap with a marker only
         // when we are executing in split mode (EF pass + services pass).

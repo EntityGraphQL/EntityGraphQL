@@ -102,7 +102,6 @@ public abstract class BaseField : IField
     public abstract (Expression? expression, ParameterExpression? argumentParam) GetExpression(
         Expression fieldExpression,
         Expression? fieldContext,
-        IGraphQLNode? parentNode,
         BaseGraphQLField? fieldNode,
         ParameterExpression? schemaContext,
         CompileContext compileContext,

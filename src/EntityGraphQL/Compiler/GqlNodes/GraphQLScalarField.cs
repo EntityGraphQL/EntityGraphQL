@@ -59,7 +59,6 @@ public class GraphQLScalarField : BaseGraphQLField
         (var result, _) = Field!.GetExpression(
             nextFieldContext,
             replacementNextFieldContext,
-            ParentNode!,
             this,
             schemaContext,
             compileContext,
