@@ -7,6 +7,7 @@
 ## Changes
 
 - Added support for [document descriptions](https://spec.graphql.org/September2025/#sec-Descriptions) as outlined in the latest 2025 spec. Basically string comments in the query document
+- #474 - Add support for `TimeSpan` as a scalar in the default schema
 - Replaced the previous 3rd party GraphQL document parser.
 
 # 6.0.0-beta2
