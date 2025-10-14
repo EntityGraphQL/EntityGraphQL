@@ -227,8 +227,10 @@ public class EqlMethodProvider : IMethodProvider
             typeof(Guid),
             typeof(Guid?),
             typeof(DateTimeOffset),
-            typeof(DateTimeOffset?)
-#if NET5_0_OR_GREATER
+            typeof(DateTimeOffset?),
+            typeof(TimeSpan),
+            typeof(TimeSpan?)
+#if NET6_0_OR_GREATER
             ,
             typeof(DateOnly),
             typeof(DateOnly?),

@@ -169,6 +169,14 @@ public static class ExpressionUtil
                 return DateTime.Parse((string)value, CultureInfo.InvariantCulture);
             if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
                 return DateTimeOffset.Parse((string)value, CultureInfo.InvariantCulture);
+            if (toType == typeof(TimeSpan) || toType == typeof(TimeSpan?))
+                return TimeSpan.Parse((string)value, CultureInfo.InvariantCulture);
+#if NET6_0_OR_GREATER
+            if (toType == typeof(DateOnly) || toType == typeof(DateOnly?))
+                return DateOnly.Parse((string)value, CultureInfo.InvariantCulture);
+            if (toType == typeof(TimeOnly) || toType == typeof(TimeOnly?))
+                return TimeOnly.Parse((string)value, CultureInfo.InvariantCulture);
+#endif
         }
         else if (toType != typeof(long) && fromType == typeof(long))
         {
@@ -176,6 +184,14 @@ public static class ExpressionUtil
                 return new DateTime((long)value);
             if (toType == typeof(DateTimeOffset) || toType == typeof(DateTimeOffset?))
                 return new DateTimeOffset((long)value, TimeSpan.Zero);
+            if (toType == typeof(TimeSpan) || toType == typeof(TimeSpan?))
+                return new TimeSpan((long)value);
+#if NET6_0_OR_GREATER
+            if (toType == typeof(DateOnly) || toType == typeof(DateOnly?))
+                return DateOnly.FromDateTime(new DateTime((long)value));
+            if (toType == typeof(TimeOnly) || toType == typeof(TimeOnly?))
+                return TimeOnly.FromTimeSpan(new TimeSpan((long)value));
+#endif
         }
 
         var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType)! : toType;
