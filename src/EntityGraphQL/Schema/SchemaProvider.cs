@@ -45,7 +45,12 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     private readonly SubscriptionType subscriptionType;
     private readonly Dictionary<Type, IExtensionAttributeHandler> attributeHandlers = [];
 
+    // Legacy from-type converters (kept for backward compatibility)
     public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
+
+    private readonly Dictionary<(Type from, Type to), TryConvertShim> fromToConverters = new();
+    private readonly Dictionary<Type, TryConvertShim> toConverters = new();
+    private readonly Dictionary<Type, TryConvertShim> fromConverters = new();
 
     public List<AllowedException> AllowedExceptions { get; } = [];
 
@@ -168,6 +173,149 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     {
         TypeConverters.Add(typeConverter.Type, typeConverter);
     }
+
+    public ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, ISchemaProvider, TTo> convert)
+    {
+        fromToConverters[(typeof(TFrom), typeof(TTo))] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                result = convert((TFrom)obj!, schema);
+                return true;
+            };
+        return this;
+    }
+
+    public ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(TypeConverterTryFromTo<TFrom, TTo> tryConvert)
+    {
+        fromToConverters[(typeof(TFrom), typeof(TTo))] =
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                var ok = tryConvert((TFrom)obj!, schema, out var r);
+                result = r;
+                return ok;
+            };
+        return this;
+    }
+
+    public ISchemaProvider AddCustomTypeConverter<TTo>(Func<object?, ISchemaProvider, TTo> convert)
+    {
+        toConverters[typeof(TTo)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                result = convert(obj, schema);
+                return true;
+            };
+        return this;
+    }
+
+    public ISchemaProvider AddCustomTypeConverter<TTo>(TypeConverterTryTo<TTo> tryConvert)
+    {
+        toConverters[typeof(TTo)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                if (tryConvert(obj, to, schema, out var r))
+                {
+                    result = r;
+                    return true;
+                }
+                result = null;
+                return false;
+            };
+        return this;
+    }
+
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert)
+    {
+        fromConverters[typeof(TFrom)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                result = convert((TFrom)obj!, to, schema);
+                return true;
+            };
+        return this;
+    }
+
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert)
+    {
+        fromConverters[typeof(TFrom)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                return tryConvert((TFrom)obj!, to, schema, out result);
+            };
+        return this;
+    }
+
+    public bool TryConvertCustom(object? value, Type toType, out object? result)
+    {
+        var fromType = value?.GetType();
+
+        if (TryConvertFromTo(value, fromType, toType, out result))
+        {
+            return true;
+        }
+        if (TryConvertToOnly(value, toType, out result))
+        {
+            return true;
+        }
+        if (TryConvertFromOnly(value, fromType, toType, out result))
+        {
+            return true;
+        }
+        if (TryConvertLegacyFromOnly(value, fromType, toType, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryConvertFromTo(object? value, Type? fromType, Type toType, out object? result)
+    {
+        if (fromType != null && fromToConverters.TryGetValue((fromType, toType), out var shim))
+        {
+            return shim(value, toType, this, out result);
+        }
+        result = null;
+        return false;
+    }
+
+    private bool TryConvertToOnly(object? value, Type toType, out object? result)
+    {
+        if (toConverters.TryGetValue(toType, out var shim))
+        {
+            return shim(value, toType, this, out result);
+        }
+        result = null;
+        return false;
+    }
+
+    private bool TryConvertFromOnly(object? value, Type? fromType, Type toType, out object? result)
+    {
+        if (fromType != null && fromConverters.TryGetValue(fromType, out var shim))
+        {
+            return shim(value, toType, this, out result);
+        }
+        result = null;
+        return false;
+    }
+
+    private bool TryConvertLegacyFromOnly(object? value, Type? fromType, Type toType, out object? result)
+    {
+        if (fromType != null && TypeConverters.TryGetValue(fromType, out var legacy))
+        {
+            var v = legacy.ChangeType(value!, toType, this);
+            if (v == null || v.GetType() == toType)
+            {
+                result = v;
+                return true;
+            }
+        }
+        result = null;
+        return false;
+    }
+
+    private delegate bool TryConvertShim(object? value, Type toType, ISchemaProvider schema, out object? result);
 
     private void SetupIntrospectionTypesAndField()
     {

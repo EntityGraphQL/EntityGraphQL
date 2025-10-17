@@ -5,6 +5,11 @@ using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema;
 
+// Generic TryConvert delegate for custom converters
+public delegate bool TypeConverterTryFromTo<TFrom, TTo>(TFrom value, ISchemaProvider schema, out TTo result);
+public delegate bool TypeConverterTryTo<TTo>(object? value, Type toType, ISchemaProvider schema, out TTo result);
+public delegate bool TypeConverterTryFrom<TFrom>(TFrom value, Type toType, ISchemaProvider schema, out object? result);
+
 /// <summary>
 /// An interface that the Compiler uses to help understand the types it is building against. This abstraction lets us
 /// have a simple provider that maps directly to an object as well as other complex providers that read a schema from else where
@@ -23,6 +28,17 @@ public interface ISchemaProvider
     string QueryContextName { get; }
     IDictionary<Type, ICustomTypeConverter> TypeConverters { get; }
     EqlMethodProvider MethodProvider { get; }
+
+    ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, ISchemaProvider, TTo> convert);
+    ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(TypeConverterTryFromTo<TFrom, TTo> tryConvert);
+    ISchemaProvider AddCustomTypeConverter<TTo>(Func<object?, ISchemaProvider, TTo> convert);
+    ISchemaProvider AddCustomTypeConverter<TTo>(TypeConverterTryTo<TTo> tryConvert);
+    ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert);
+    ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert);
+
+    // Attempts to convert the value using custom converters (from-to first, then to-only, then from-only, then legacy from-only).
+    bool TryConvertCustom(object? value, Type toType, out object? result);
+    
     void AddDirective(IDirectiveProcessor directive);
     ISchemaType AddEnum(string name, Type type, string description);
     SchemaType<TEnum> AddEnum<TEnum>(string name, string description);
