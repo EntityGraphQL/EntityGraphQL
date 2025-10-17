@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Directives;
 
@@ -38,6 +39,10 @@ public interface ISchemaProvider
 
     // Attempts to convert the value using custom converters (from-to first, then to-only, then from-only, then legacy from-only).
     bool TryConvertCustom(object? value, Type toType, out object? result);
+
+    // Query literal parser extension point (used by Binary literal-to-type parsing)
+    ISchemaProvider RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression);
+    bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression);
     
     void AddDirective(IDirectiveProcessor directive);
     ISchemaType AddEnum(string name, Type type, string description);

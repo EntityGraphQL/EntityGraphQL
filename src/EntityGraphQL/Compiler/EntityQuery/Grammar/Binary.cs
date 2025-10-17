@@ -20,76 +20,80 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
         var right = Right.Compile(context, schema, requestContext, methodProvider);
         if (left.Type != right.Type)
         {
-            // if (op == ExpressionType.Equal || op == ExpressionType.NotEqual)
-            // {
-            //     var result = DoObjectComparisonOnDifferentTypes(op, left, right);
-
-            //     if (result != null)
-            //         return result;
-            // }
-            return ConvertLeftOrRight(Op, left, right);
+            return ConvertLeftOrRight(Op, left, right, schema);
         }
         return Expression.MakeBinary(Op, left, right);
     }
 
-    private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right)
+    private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right, ISchemaProvider? schema)
     {
-        if (left.Type.IsNullableType() && !right.Type.IsNullableType())
-            right = Expression.Convert(right, right.Type.GetNullableType());
-        else if (right.Type.IsNullableType() && !left.Type.IsNullableType())
-            left = Expression.Convert(left, left.Type.GetNullableType());
-        else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
-            right = Expression.Convert(right, left.Type);
-        else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
-            left = Expression.Convert(left, right.Type);
-
+        // Defer nullable promotion and numeric width alignment until after we attempt literal parsing and specific conversions
         if (left.Type != right.Type)
         {
+            // Allow schema-registered literal parsers to handle string → target conversions first
+            if (schema != null)
+            {
+                if (right.Type == typeof(string) && left.Type != typeof(string) && schema.TryGetLiteralParser(left.Type, out var leftParser))
+                    right = leftParser(right);
+                else if (left.Type == typeof(string) && right.Type != typeof(string) && schema.TryGetLiteralParser(right.Type, out var rightParser))
+                    left = rightParser(left);
+            }
+
             if (left.Type.IsEnum && right.Type.IsEnum)
                 throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");
-            if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
-                right = ConvertToGuid(right);
-            else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
-                left = ConvertToGuid(left);
-            else if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
-                right = ConvertToDateTime(right);
-            else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
-                left = ConvertToDateTime(left);
-            else if (left.Type == typeof(DateTimeOffset) || left.Type == typeof(DateTimeOffset?) && right.Type == typeof(string))
-                right = ConvertToDateTimeOffset(right);
-            else if (right.Type == typeof(DateTimeOffset) || right.Type == typeof(DateTimeOffset?) && left.Type == typeof(string))
-                left = ConvertToDateTimeOffset(left);
-            else if (left.Type == typeof(TimeSpan) || left.Type == typeof(TimeSpan?) && right.Type == typeof(string))
-                right = ConvertToTimeSpan(right);
-            else if (right.Type == typeof(TimeSpan) || right.Type == typeof(TimeSpan?) && left.Type == typeof(string))
-                left = ConvertToTimeSpan(left);
+
+            // If types are now equal after literal parser, skip further specific conversions
+            if (left.Type != right.Type)
+            {
+                if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
+                    right = ConvertToGuid(right);
+                else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
+                    left = ConvertToGuid(left);
+                else if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
+                    right = ConvertToDateTime(right);
+                else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
+                    left = ConvertToDateTime(left);
+                else if (left.Type == typeof(DateTimeOffset) || left.Type == typeof(DateTimeOffset?) && right.Type == typeof(string))
+                    right = ConvertToDateTimeOffset(right);
+                else if (right.Type == typeof(DateTimeOffset) || right.Type == typeof(DateTimeOffset?) && left.Type == typeof(string))
+                    left = ConvertToDateTimeOffset(left);
+                else if (left.Type == typeof(TimeSpan) || left.Type == typeof(TimeSpan?) && right.Type == typeof(string))
+                    right = ConvertToTimeSpan(right);
+                else if (right.Type == typeof(TimeSpan) || right.Type == typeof(TimeSpan?) && left.Type == typeof(string))
+                    left = ConvertToTimeSpan(left);
 #if NET6_0_OR_GREATER
-            else if (left.Type == typeof(DateOnly) || left.Type == typeof(DateOnly?) && right.Type == typeof(string))
-                right = ConvertToDateOnly(right);
-            else if (right.Type == typeof(DateOnly) || right.Type == typeof(DateOnly?) && left.Type == typeof(string))
-                left = ConvertToDateOnly(left);
-            else if (left.Type == typeof(TimeOnly) || left.Type == typeof(TimeOnly?) && right.Type == typeof(string))
-                right = ConvertToTimeOnly(right);
-            else if (right.Type == typeof(TimeOnly) || right.Type == typeof(TimeOnly?) && left.Type == typeof(string))
-                left = ConvertToTimeOnly(left);
+                else if (left.Type == typeof(DateOnly) || left.Type == typeof(DateOnly?) && right.Type == typeof(string))
+                    right = ConvertToDateOnly(right);
+                else if (right.Type == typeof(DateOnly) || right.Type == typeof(DateOnly?) && left.Type == typeof(string))
+                    left = ConvertToDateOnly(left);
+                else if (left.Type == typeof(TimeOnly) || left.Type == typeof(TimeOnly?) && right.Type == typeof(string))
+                    right = ConvertToTimeOnly(right);
+                else if (right.Type == typeof(TimeOnly) || right.Type == typeof(TimeOnly?) && left.Type == typeof(string))
+                    left = ConvertToTimeOnly(left);
 #endif
-            else if (left.Type.IsEnum && right.Type == typeof(string))
-                right = ConvertToEnum(right, left.Type);
-            else if (right.Type.IsEnum && left.Type == typeof(string))
-                left = ConvertToEnum(left, right.Type);
-            // convert ints "up" to float/decimal
-            else if (
-                (left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong))
-                && (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal))
-            )
-                left = Expression.Convert(left, right.Type);
-            else if (
-                (right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong))
-                && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
-            )
-                right = Expression.Convert(right, left.Type);
-            else // default try to make types match
-                left = Expression.Convert(left, right.Type);
+                else if (left.Type.IsEnum && right.Type == typeof(string))
+                    right = ConvertToEnum(right, left.Type);
+                else if (right.Type.IsEnum && left.Type == typeof(string))
+                    left = ConvertToEnum(left, right.Type);
+                // Align int/uint/short/long widths if mixed
+                else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
+                    right = Expression.Convert(right, left.Type);
+                else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
+                    left = Expression.Convert(left, right.Type);
+                // convert ints "up" to float/decimal
+                else if (
+                    (left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong))
+                    && (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal))
+                )
+                    left = Expression.Convert(left, right.Type);
+                else if (
+                    (right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong))
+                    && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
+                )
+                    right = Expression.Convert(right, left.Type);
+                else if (left.Type != right.Type) // default try to make types match
+                    left = Expression.Convert(left, right.Type);
+            }
         }
 
         if (left.Type.IsNullableType() && !right.Type.IsNullableType())
@@ -139,25 +143,4 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
             enumType
         );
     }
-
-    // private static Expression? DoObjectComparisonOnDifferentTypes(ExpressionType op, Expression left, Expression right)
-    // {
-    //     var convertedToSameTypes = false;
-
-    //     // leftGuid == 'asdasd' == null ? (Guid) null : new Guid('asdasdas'.ToString())
-    //     // leftGuid == null
-    //     if (left.Type == typeof(Guid) && right.Type != typeof(Guid))
-    //     {
-    //         right = ConvertToGuid(right);
-    //         convertedToSameTypes = true;
-    //     }
-    //     else if (right.Type == typeof(Guid) && left.Type != typeof(Guid))
-    //     {
-    //         left = ConvertToGuid(left);
-    //         convertedToSameTypes = true;
-    //     }
-
-    //     var result = convertedToSameTypes ? (Expression)Expression.MakeBinary(op, left, right) : null;
-    //     return result;
-    // }
 }

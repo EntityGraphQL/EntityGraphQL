@@ -13,6 +13,7 @@ using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Schema;
 
@@ -51,6 +52,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     private readonly Dictionary<(Type from, Type to), TryConvertShim> fromToConverters = new();
     private readonly Dictionary<Type, TryConvertShim> toConverters = new();
     private readonly Dictionary<Type, TryConvertShim> fromConverters = new();
+
+    // Literal parsers for query string literals → target CLR type
+    private readonly Dictionary<Type, Func<Expression, Expression>> literalParsers = new();
 
     public List<AllowedException> AllowedExceptions { get; } = [];
 
@@ -243,6 +247,17 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 return tryConvert((TFrom)obj!, to, schema, out result);
             };
         return this;
+    }
+
+    public ISchemaProvider RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression)
+    {
+        literalParsers[typeof(TTarget)] = makeParseExpression;
+        return this;
+    }
+
+    public bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression)
+    {
+        return literalParsers.TryGetValue(toType, out makeParseExpression!);
     }
 
     public bool TryConvertCustom(object? value, Type toType, out object? result)
