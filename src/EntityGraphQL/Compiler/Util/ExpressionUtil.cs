@@ -141,14 +141,10 @@ public static class ExpressionUtil
                 return null;
         }
 
-        // custom type converters after we unwind JSON elements
-        if (schema?.TypeConverters.TryGetValue(fromType, out var converter) == true)
+        // custom type converters: (from,to) -> to-only -> from-only -> legacy from-only
+        if (schema != null && schema.TryConvertCustom(value, toType, out var converted))
         {
-            value = converter.ChangeType(value, toType, schema);
-            fromType = value?.GetType()!;
-
-            if (value == null || fromType == toType)
-                return value;
+            return converted;
         }
 
         if (toType != typeof(string) && fromType == typeof(string))

@@ -14,10 +14,13 @@ namespace EntityGraphQL.Compiler.EntityQuery;
 public class EqlMethodProvider : IMethodProvider
 {
     private readonly Dictionary<string, RegisteredMethodInfo> registeredMethods;
+    private readonly HashSet<Type> isAnySupportedTypes = new();
+    private readonly List<Func<Type, bool>> isAnyExtraPredicates = new();
 
     public EqlMethodProvider()
     {
         registeredMethods = new Dictionary<string, RegisteredMethodInfo>(StringComparer.OrdinalIgnoreCase);
+        InitializeIsAnySupportedTypes();
         RegisterDefaultMethods();
     }
 
@@ -193,9 +196,10 @@ public class EqlMethodProvider : IMethodProvider
         RegisterMethodWithTypePredicate(CreateIsAnyTypePredicate(), "isAny", DefaultMethodImplementations.MakeIsAnyMethod);
     }
 
-    private static Func<Type, bool> CreateIsAnyTypePredicate()
+    private void InitializeIsAnySupportedTypes()
     {
-        var supportedTypes = new HashSet<Type>
+        isAnySupportedTypes.Clear();
+        var defaults = new[]
         {
             typeof(string),
             typeof(long),
@@ -238,8 +242,28 @@ public class EqlMethodProvider : IMethodProvider
             typeof(TimeOnly?)
 #endif
         };
+        foreach (var t in defaults)
+        {
+            isAnySupportedTypes.Add(t);
+        }
+    }
 
-        return supportedTypes.Contains;
+    public void ExtendIsAnySupportedTypes(params Type[] types)
+    {
+        foreach (var t in types)
+        {
+            isAnySupportedTypes.Add(t);
+        }
+    }
+
+    public void ExtendIsAnyTypePredicate(Func<Type, bool> predicate)
+    {
+        isAnyExtraPredicates.Add(predicate);
+    }
+
+    private Func<Type, bool> CreateIsAnyTypePredicate()
+    {
+        return t => isAnySupportedTypes.Contains(t) || isAnyExtraPredicates.Any(p => p(t));
     }
 
     #endregion
