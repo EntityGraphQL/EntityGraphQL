@@ -152,4 +152,113 @@ public class BinaryComparisonTests
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
     }
+    
+        [Fact]
+    public void Binary_Version_All_Operators_Work_With_LiteralParser()
+    {
+        var schema = MakeSchemaWithVersionLiteralParser();
+        var data = new List<WithVersion>
+        {
+            new(new Version(1,2,2), "A"),
+            new(new Version(1,2,3), "B"),
+            new(new Version(2,0,0), "C"),
+        };
+
+        // ==
+        var eq = EntityQueryCompiler.Compile("v == \"1.2.3\"", schema, compileContext);
+        var eqRes = data.Where((Func<WithVersion, bool>)eq.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "B" }, eqRes);
+
+        // !=
+        var ne = EntityQueryCompiler.Compile("v != \"1.2.3\"", schema, compileContext);
+        var neRes = data.Where((Func<WithVersion, bool>)ne.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "A", "C" }, neRes);
+
+        // <
+        var lt = EntityQueryCompiler.Compile("v < \"1.2.3\"", schema, compileContext);
+        var ltRes = data.Where((Func<WithVersion, bool>)lt.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "A" }, ltRes);
+
+        // <=
+        var lte = EntityQueryCompiler.Compile("v <= \"1.2.3\"", schema, compileContext);
+        var lteRes = data.Where((Func<WithVersion, bool>)lte.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "A", "B" }, lteRes);
+
+        // >
+        var gt = EntityQueryCompiler.Compile("v > \"1.2.3\"", schema, compileContext);
+        var gtRes = data.Where((Func<WithVersion, bool>)gt.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "C" }, gtRes);
+
+        // >=
+        var gte = EntityQueryCompiler.Compile("v >= \"1.2.3\"", schema, compileContext);
+        var gteRes = data.Where((Func<WithVersion, bool>)gte.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "B", "C" }, gteRes);
+    }
+
+    [Fact]
+    public void Binary_Version_Literal_On_Left_Uses_LiteralParser()
+    {
+        var schema = MakeSchemaWithVersionLiteralParser();
+        var data = new[] { new WithVersion(new Version(1, 2, 3), "B"), new WithVersion(new Version(2, 0, 0), "C") };
+        var compiled = EntityQueryCompiler.Compile("\"1.2.3\" <= v", schema, compileContext);
+        var res = data.Where((Func<WithVersion, bool>)compiled.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "B", "C" }, res);
+    }
+
+    [Fact]
+    public void Binary_NullableVersion_Handles_Nulls_Correctly()
+    {
+        var schema = SchemaBuilder.FromObject<WithNullableVersion>();
+        schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+
+        var compiled = EntityQueryCompiler.Compile("v >= \"1.2.3\"", schema, compileContext);
+        var data = new[]
+        {
+            new WithNullableVersion(null, "N"),
+            new WithNullableVersion(new Version(1,2,3), "B"),
+            new WithNullableVersion(new Version(2,0,0), "C"),
+        };
+        var res = data.Where((Func<WithNullableVersion, bool>)compiled.LambdaExpression.Compile()).Select(x => x.Name).ToArray();
+        Assert.Equal(new[] { "B", "C" }, res);
+    }
+
+    [Fact]
+    public void Binary_Version_Invalid_Literal_Shows_Parser_Error()
+    {
+        var schema = MakeSchemaWithVersionLiteralParser();
+        var compiled = EntityQueryCompiler.Compile("v >= \"not-a-version\"", schema, compileContext);
+        var pred = (Func<WithVersion, bool>)compiled.LambdaExpression.Compile();
+        // Evaluate on a single row to trigger Version.Parse of the literal
+        var ex = Assert.ThrowsAny<Exception>(() => pred(new WithVersion(new Version(0,0), "X")));
+        Assert.Contains("Version", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+    
+    private static SchemaProvider<WithVersion> MakeSchemaWithVersionLiteralParser()
+    {
+        var schema = SchemaBuilder.FromObject<WithVersion>();
+        schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+        return schema;
+    }
+    
+    private class WithVersion
+    {
+        public WithVersion(Version v, string name)
+        {
+            V = v;
+            Name = name;
+        }
+        public Version V { get; set; }
+        public string Name { get; set; }
+    }
+
+    private class WithNullableVersion
+    {
+        public WithNullableVersion(Version? v, string name)
+        {
+            V = v;
+            Name = name;
+        }
+        public Version? V { get; set; }
+        public string Name { get; set; }
+    }
 }
