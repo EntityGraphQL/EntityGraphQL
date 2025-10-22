@@ -22,8 +22,8 @@ public class SerializationTests
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.AddInputType<InputObject>("InputObject", "Using an object in the arguments");
         schemaProvider.AddMutationsFrom<PeopleMutations>();
-        schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
-        schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
+        schemaProvider.AddCustomTypeConverter<JObject>(JObjectTypeConverter.ChangeType);
+        schemaProvider.AddCustomTypeConverter<JToken>(JTokenTypeConverter.ChangeType);
         // Simulate a JSON request with JSON.NET
         // variables will end up having JObjects
         var gql = JsonConvert.DeserializeObject<QueryRequest>(
@@ -59,8 +59,8 @@ public class SerializationTests
         // test that even though we don't know about JArray they are IEnumerable and can easily be handled
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.AddMutationsFrom<PeopleMutations>();
-        schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
-        schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
+        schemaProvider.AddCustomTypeConverter<JObject>(JObjectTypeConverter.ChangeType);
+        schemaProvider.AddCustomTypeConverter<JToken>(JTokenTypeConverter.ChangeType);
 
         var gql = JsonConvert.DeserializeObject<QueryRequest>(
             @"
@@ -86,8 +86,8 @@ public class SerializationTests
         // test that even though we don't know about JArray they are IEnumerable and can easily be handled
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.AddMutationsFrom<PeopleMutations>();
-        schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
-        schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
+        schemaProvider.AddCustomTypeConverter<JObject>(JObjectTypeConverter.ChangeType);
+        schemaProvider.AddCustomTypeConverter<JToken>(JTokenTypeConverter.ChangeType);
 
         var gql = JsonConvert.DeserializeObject<QueryRequest>(
             @"
@@ -112,9 +112,9 @@ public class SerializationTests
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
-        schemaProvider.AddCustomTypeConverter(new JObjectTypeConverter());
-        schemaProvider.AddCustomTypeConverter(new JTokenTypeConverter());
-        schemaProvider.AddCustomTypeConverter(new JValueTypeConverter());
+        schemaProvider.AddCustomTypeConverter<JObject>(JObjectTypeConverter.ChangeType);
+        schemaProvider.AddCustomTypeConverter<JToken>(JTokenTypeConverter.ChangeType);
+        schemaProvider.AddCustomTypeConverter<JValue>(JValueTypeConverter.ChangeType);
 
         var gql = JsonConvert.DeserializeObject<QueryRequest>(
             @"
@@ -165,33 +165,27 @@ public class SerializationTests
     }
 }
 
-internal class JObjectTypeConverter : ICustomTypeConverter
+internal static class JObjectTypeConverter
 {
-    public Type Type => typeof(JObject);
-
-    public object ChangeType(object value, Type toType, ISchemaProvider schema)
+    public static object ChangeType(object value, Type toType, ISchemaProvider schema)
     {
         // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
         return ((JObject)value).ToObject(toType)!;
     }
 }
 
-internal class JTokenTypeConverter : ICustomTypeConverter
+internal class JTokenTypeConverter
 {
-    public Type Type => typeof(JToken);
-
-    public object ChangeType(object value, Type toType, ISchemaProvider schema)
+    public static object ChangeType(object value, Type toType, ISchemaProvider schema)
     {
         // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
         return ((JToken)value).ToObject(toType)!;
     }
 }
 
-internal class JValueTypeConverter : ICustomTypeConverter
+internal static class JValueTypeConverter
 {
-    public Type Type => typeof(JValue);
-
-    public object ChangeType(object value, Type toType, ISchemaProvider schema)
+    public static object ChangeType(object value, Type toType, ISchemaProvider schema)
     {
         return ((JValue)value).ToString();
     }

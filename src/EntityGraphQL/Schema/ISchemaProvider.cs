@@ -7,9 +7,25 @@ using EntityGraphQL.Directives;
 namespace EntityGraphQL.Schema;
 
 // Generic TryConvert delegate for custom converters
-public delegate bool TypeConverterTryFromTo<TFrom, TTo>(TFrom value, ISchemaProvider schema, out TTo result);
+
+/// <summary>
+/// A delegate for trying to convert from one type to another with an out parameter for the result
+/// </summary>
+/// <typeparam name="TFrom">type to convert from</typeparam>
+/// <typeparam name="TTo">type to convert to</typeparam>
+public delegate bool TypeConverterTryFromTo<in TFrom, TTo>(TFrom value, ISchemaProvider schema, out TTo result);
+
+/// <summary>
+/// A delegate for trying to convert from object to a specific type with an out parameter for the result
+/// </summary>
+/// <typeparam name="TTo">type to convert to</typeparam>
 public delegate bool TypeConverterTryTo<TTo>(object? value, Type toType, ISchemaProvider schema, out TTo result);
-public delegate bool TypeConverterTryFrom<TFrom>(TFrom value, Type toType, ISchemaProvider schema, out object? result);
+
+/// <summary>
+/// A delegate for trying to convert from a specific type to object with an out parameter for the result
+/// </summary>
+/// <typeparam name="TFrom">type to convert from</typeparam>
+public delegate bool TypeConverterTryFrom<in TFrom>(TFrom value, Type toType, ISchemaProvider schema, out object? result);
 
 /// <summary>
 /// An interface that the Compiler uses to help understand the types it is building against. This abstraction lets us
@@ -27,7 +43,6 @@ public interface ISchemaProvider
     Func<string, string> SchemaFieldNamer { get; }
     IGqlAuthorizationService AuthorizationService { get; set; }
     string QueryContextName { get; }
-    IDictionary<Type, ICustomTypeConverter> TypeConverters { get; }
     EqlMethodProvider MethodProvider { get; }
 
     ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, ISchemaProvider, TTo> convert);
@@ -37,7 +52,7 @@ public interface ISchemaProvider
     ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert);
     ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert);
 
-    // Attempts to convert the value using custom converters (from-to first, then to-only, then from-only, then legacy from-only).
+    // Attempts to convert the value using custom converters (from-to first, then to-only, then from-only).
     bool TryConvertCustom(object? value, Type toType, out object? result);
 
     // Query literal parser extension point (used by Binary literal-to-type parsing)

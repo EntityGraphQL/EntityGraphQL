@@ -141,7 +141,7 @@ public static class ExpressionUtil
                 return null;
         }
 
-        // custom type converters: (from,to) -> to-only -> from-only -> legacy from-only
+        // custom type converters: (from,to) -> to-only -> from-only
         if (schema != null && schema.TryConvertCustom(value, toType, out var converted))
         {
             return converted;
