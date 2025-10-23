@@ -277,6 +277,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// </summary>
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
     /// <param name="convert">A function that does the conversion</param>
+    /// <param name="supportedToTypes">The target types this converter supports</param>
     /// <returns>The schema provider for chaining</returns>
     public ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert,
         params Span<Type> supportedToTypes)
@@ -306,6 +307,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// </summary>
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
     /// <param name="tryConvert">A function that does the conversion, returning true if it worked</param>
+    /// <param name="supportedToTypes">The target types this converter supports</param>
     /// <returns>The schema provider for chaining</returns>
     public ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert,
         params Span<Type> supportedToTypes)
