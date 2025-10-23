@@ -81,4 +81,22 @@ public class EqlMethodProviderIsAnyTests
         schema.AddCustomTypeConverter<string, Version>((o, sp) => Version.Parse(o.ToString()!));
         Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
     }
+    
+    private enum MyEnum { A = 1, B = 2 }
+
+    [Fact]
+    public void IsAny_When_Extended_With_ValueTypeTarget_Adds_Nullable_Variant()
+    {
+        var schema = new SchemaProvider<object>();
+        // Precondition: enum and enum? are not supported by default
+        Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(MyEnum), "isAny"));
+        Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(MyEnum?), "isAny"));
+
+        // Register converter targeting the enum type
+        schema.AddCustomTypeConverter<string, MyEnum>((s, _) => (MyEnum)Enum.Parse(typeof(MyEnum), s, ignoreCase: true));
+
+        // Both the enum and its nullable form should be supported now
+        Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(MyEnum), "isAny"));
+        Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(MyEnum?), "isAny"));
+    }
 }

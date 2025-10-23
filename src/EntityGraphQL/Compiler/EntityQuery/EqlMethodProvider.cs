@@ -251,7 +251,23 @@ public class EqlMethodProvider : IMethodProvider
     {
         foreach (var t in types)
         {
+            // Always add the provided type
             isAnySupportedTypes.Add(t);
+
+            // If a nullable form is provided, also add its underlying type (non-nullable)
+            var underlying = Nullable.GetUnderlyingType(t);
+            if (underlying != null)
+            {
+                isAnySupportedTypes.Add(underlying);
+                continue;
+            }
+
+            // If a non-nullable value type is provided, also add its nullable variant
+            if (t.IsValueType)
+            {
+                var nullable = typeof(Nullable<>).MakeGenericType(t);
+                isAnySupportedTypes.Add(nullable);
+            }
         }
     }
 
