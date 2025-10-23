@@ -60,7 +60,7 @@ public class EqlMethodProviderIsAnyTests
         Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
         schema.AddCustomTypeConverter<string>(
             (v, t, sp) => t == typeof(Version) ? Version.Parse(v) : v,
-            new[] { typeof(Version) });
+            typeof(Version));
         Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
     }
     
