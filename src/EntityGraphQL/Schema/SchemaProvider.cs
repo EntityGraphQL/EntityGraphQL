@@ -278,7 +278,8 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
     /// <param name="convert">A function that does the conversion</param>
     /// <returns>The schema provider for chaining</returns>
-    public ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert)
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert,
+        params Span<Type> supportedToTypes)
     {
         fromConverters[typeof(TFrom)] = 
             (object? obj, Type to, ISchemaProvider schema, out object? result) =>
@@ -286,9 +287,11 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 result = convert((TFrom)obj!, to, schema);
                 return true;
             };
-        // extend isAny by the second parameter (the toType) of the provided convert function
-        Type toType = convert.Method.GetParameters()[1].ParameterType;
-        MethodProvider.ExtendIsAnySupportedTypes(toType);
+
+        foreach (var toType in supportedToTypes)
+        {
+            MethodProvider.ExtendIsAnySupportedTypes(toType);
+        }
         return this;
     }
 
@@ -304,16 +307,19 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
     /// <param name="tryConvert">A function that does the conversion, returning true if it worked</param>
     /// <returns>The schema provider for chaining</returns>
-    public ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert)
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert,
+        params Span<Type> supportedToTypes)
     {
         fromConverters[typeof(TFrom)] = 
             (object? obj, Type to, ISchemaProvider schema, out object? result) =>
             {
                 return tryConvert((TFrom)obj!, to, schema, out result);
             };
-        // extend isAny by the second parameter (the toType) of the provided tryConvert function
-        Type toType = tryConvert.Method.GetParameters()[1].ParameterType;
-        MethodProvider.ExtendIsAnySupportedTypes(toType);
+        
+        foreach (var toType in supportedToTypes)
+        {
+            MethodProvider.ExtendIsAnySupportedTypes(toType);
+        }
         return this;
     }
 

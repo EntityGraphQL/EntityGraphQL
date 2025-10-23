@@ -49,8 +49,8 @@ public interface ISchemaProvider
     ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(TypeConverterTryFromTo<TFrom, TTo> tryConvert);
     ISchemaProvider AddCustomTypeConverter<TTo>(Func<object?, ISchemaProvider, TTo> convert);
     ISchemaProvider AddCustomTypeConverter<TTo>(TypeConverterTryTo<TTo> tryConvert);
-    ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert);
-    ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert);
+    ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert, params Span<Type> supportedToTypes);
+    ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert, params Span<Type> supportedToTypes);
 
     // Attempts to convert the value using custom converters (from-to first, then to-only, then from-only).
     bool TryConvertCustom(object? value, Type toType, out object? result);

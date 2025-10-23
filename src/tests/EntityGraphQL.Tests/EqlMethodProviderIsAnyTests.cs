@@ -1,5 +1,6 @@
 ﻿using System;
 using EntityGraphQL.Compiler.EntityQuery;
+using EntityGraphQL.Schema;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -41,5 +42,43 @@ public class EqlMethodProviderIsAnyTests
         Assert.False(provider.EntityTypeHasMethod(type, "isAny"));
         provider.ExtendIsAnySupportedTypes(type);
         Assert.True(provider.EntityTypeHasMethod(type, "isAny"));
+    }
+    
+    [Fact]
+    public void IsAny_Cant_Be_Extended_By_Type_Via_AddCustomTypeConverter_FromType()
+    {
+        var schema = new SchemaProvider<object>();
+        Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
+        schema.AddCustomTypeConverter<string>((v, t, sp) => t == typeof(Version) ? Version.Parse(v) : v);
+        Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
+    }
+    
+    [Fact]
+    public void IsAny_Can_Be_Extended_By_SupportedToTypes_Via_AddCustomTypeConverter_FromType()
+    {
+        var schema = new SchemaProvider<object>();
+        Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
+        schema.AddCustomTypeConverter<string>(
+            (v, t, sp) => t == typeof(Version) ? Version.Parse(v) : v,
+            new[] { typeof(Version) });
+        Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
+    }
+    
+    [Fact]
+    public void IsAny_Can_Be_Extended_By_Type_Via_AddCustomTypeConverter_ToType()
+    {
+        var schema = new SchemaProvider<object>();
+        Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
+        schema.AddCustomTypeConverter<Version>((o, sp) => Version.Parse(o!.ToString()!));
+        Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
+    }
+    
+    [Fact]
+    public void IsAny_Can_Be_Extended_By_Type_Via_AddCustomTypeConverter_FromToType()
+    {
+        var schema = new SchemaProvider<object>();
+        Assert.False(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
+        schema.AddCustomTypeConverter<string, Version>((o, sp) => Version.Parse(o.ToString()!));
+        Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
     }
 }
