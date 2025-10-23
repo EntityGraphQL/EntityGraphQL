@@ -32,6 +32,24 @@ public class IsAnyAndConvertersTests
     }
 
     [Fact]
+    public void IsAny_For_Version_With_String_List_Uses_Converters()
+    {
+        var schema = SchemaBuilder.FromObject<WithVersion>();
+        schema.MethodProvider.ExtendIsAnySupportedTypes(typeof(Version));
+        schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
+
+        var compiled = EntityQueryCompiler.Compile("v.isAny([\"1.2.3\", \"2.0.0\"]) ", schema, compileContext, schema.MethodProvider);
+        var data = new[]
+        {
+            new WithVersion(new Version(1,2,2), "A"),
+            new WithVersion(new Version(1,2,3), "B"),
+            new WithVersion(new Version(2,0,0), "C"),
+        };
+        var res = data.Where((Func<WithVersion, bool>)compiled.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "B", "C" }, res);
+    }
+    
+    [Fact]
     public void IsAny_On_Unextended_CustomType_Shows_Clear_Error()
     {
         var schema = SchemaBuilder.FromObject<WithVersion>();
