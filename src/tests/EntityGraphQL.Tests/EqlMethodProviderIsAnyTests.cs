@@ -32,21 +32,14 @@ public class EqlMethodProviderIsAnyTests
 #endif
     }
 
-    [Fact]
-    public void IsAny_Can_Be_Extended_By_Type()
+    [Theory]
+    [InlineData(typeof(Version))]
+    [InlineData(typeof(Uri))]
+    public void IsAny_Can_Be_Extended_By_Type(Type type)
     {
         var provider = new EqlMethodProvider();
-        Assert.False(provider.EntityTypeHasMethod(typeof(Version), "isAny"));
-        provider.ExtendIsAnySupportedTypes(typeof(Version));
-        Assert.True(provider.EntityTypeHasMethod(typeof(Version), "isAny"));
-    }
-
-    [Fact]
-    public void IsAny_Can_Be_Extended_By_Predicate()
-    {
-        var provider = new EqlMethodProvider();
-        Assert.False(provider.EntityTypeHasMethod(typeof(Uri), "isAny"));
-        provider.ExtendIsAnyTypePredicate(t => t == typeof(Uri));
-        Assert.True(provider.EntityTypeHasMethod(typeof(Uri), "isAny"));
+        Assert.False(provider.EntityTypeHasMethod(type, "isAny"));
+        provider.ExtendIsAnySupportedTypes(type);
+        Assert.True(provider.EntityTypeHasMethod(type, "isAny"));
     }
 }

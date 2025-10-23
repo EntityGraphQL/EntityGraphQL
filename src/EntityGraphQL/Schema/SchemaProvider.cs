@@ -183,6 +183,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 result = convert((TFrom)obj!, schema);
                 return true;
             };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
 
@@ -208,6 +209,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 result = r;
                 return ok;
             };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
 
@@ -231,6 +233,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 result = convert(obj, schema);
                 return true;
             };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
 
@@ -259,6 +262,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 result = null;
                 return false;
             };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
 
@@ -282,6 +286,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 result = convert((TFrom)obj!, to, schema);
                 return true;
             };
+        // extend isAny by the second parameter (the toType) of the provided convert function
+        Type toType = convert.Method.GetParameters()[1].ParameterType;
+        MethodProvider.ExtendIsAnySupportedTypes(toType);
         return this;
     }
 
@@ -304,6 +311,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             {
                 return tryConvert((TFrom)obj!, to, schema, out result);
             };
+        // extend isAny by the second parameter (the toType) of the provided tryConvert function
+        Type toType = tryConvert.Method.GetParameters()[1].ParameterType;
+        MethodProvider.ExtendIsAnySupportedTypes(toType);
         return this;
     }
 

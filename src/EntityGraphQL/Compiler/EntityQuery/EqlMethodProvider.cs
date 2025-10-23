@@ -15,7 +15,6 @@ public class EqlMethodProvider : IMethodProvider
 {
     private readonly Dictionary<string, RegisteredMethodInfo> registeredMethods;
     private readonly HashSet<Type> isAnySupportedTypes = new();
-    private readonly List<Func<Type, bool>> isAnyExtraPredicates = new();
 
     public EqlMethodProvider()
     {
@@ -248,7 +247,7 @@ public class EqlMethodProvider : IMethodProvider
         }
     }
 
-    public void ExtendIsAnySupportedTypes(params Type[] types)
+    internal void ExtendIsAnySupportedTypes(params Type[] types)
     {
         foreach (var t in types)
         {
@@ -256,14 +255,9 @@ public class EqlMethodProvider : IMethodProvider
         }
     }
 
-    public void ExtendIsAnyTypePredicate(Func<Type, bool> predicate)
-    {
-        isAnyExtraPredicates.Add(predicate);
-    }
-
     private Func<Type, bool> CreateIsAnyTypePredicate()
     {
-        return t => isAnySupportedTypes.Contains(t) || isAnyExtraPredicates.Any(p => p(t));
+        return t => isAnySupportedTypes.Contains(t);
     }
 
     #endregion

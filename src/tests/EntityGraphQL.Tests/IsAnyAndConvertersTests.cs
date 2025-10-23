@@ -35,7 +35,6 @@ public class IsAnyAndConvertersTests
     public void IsAny_For_Version_With_String_List_Uses_Converters()
     {
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        schema.MethodProvider.ExtendIsAnySupportedTypes(typeof(Version));
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
 
         var compiled = EntityQueryCompiler.Compile("v.isAny([\"1.2.3\", \"2.0.0\"]) ", schema, compileContext, schema.MethodProvider);
@@ -50,14 +49,19 @@ public class IsAnyAndConvertersTests
     }
     
     [Fact]
-    public void IsAny_On_Unextended_CustomType_Shows_Clear_Error()
+    public void IsAny_On_CustomType_Is_Auto_Extended_By_Converters()
     {
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        // Do not extend isAny for Version here
+        // Adding a converter to Version should automatically enable isAny on Version
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
-        var ex = Assert.ThrowsAny<Exception>(() => EntityQueryCompiler.Compile("v.isAny([\"1.2.3\"]) ", schema, compileContext, schema.MethodProvider));
-        Assert.Contains("isAny", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Version", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var compiled = EntityQueryCompiler.Compile("v.isAny([\"1.2.3\"]) ", schema, compileContext, schema.MethodProvider);
+        var data = new[]
+        {
+            new WithVersion(new Version(1,2,2), "A"),
+            new WithVersion(new Version(1,2,3), "B"),
+        };
+        var res = data.Where((Func<WithVersion, bool>)compiled.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
+        Assert.Equal(new[] { "B" }, res);
     }
 
     [Fact]
@@ -75,7 +79,6 @@ public class IsAnyAndConvertersTests
     {
         // This test simulates variable conversion path by pre-converting a string list via converters
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        schema.MethodProvider.ExtendIsAnySupportedTypes(typeof(Version));
         schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
 

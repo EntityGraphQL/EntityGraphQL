@@ -138,18 +138,16 @@ public class CustomConvertersWithBinaryAndIsAnyTests
     }
 
     [Fact]
-    public void Combining_AllThree_Extensions_In_Single_Query_And_Execution_Path()
+    public void Combining_Extensions_In_Single_Query_And_Execution_Path()
     {
         // Arrange
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        // 1) Extend isAny to support Version (not enabled by default)
-        schema.MethodProvider.ExtendIsAnySupportedTypes(typeof(Version));
-        Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
-        // 2) Register literal parser so Binary can parse string literals to Version
+        // Register literal parser so Binary can parse string literals to Version
         schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
-        // 3) Register custom converters for Version (from-to and to-only)
+        // Register custom converters for Version (from-to and to-only). This automatically enables isAny for Version
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
         schema.AddCustomTypeConverter<Version>((obj, _) => obj is Version v ? v : Version.Parse(obj!.ToString()!));
+        Assert.True(schema.MethodProvider.EntityTypeHasMethod(typeof(Version), "isAny"));
 
         // Query combines: string isAny + binary (uses literal parser)
         var compiled = EntityQueryCompiler.Compile("name.isAny([\"B\", \"C\"]) && v >= \"1.2.3\"", schema, compileContext, schema.MethodProvider);
