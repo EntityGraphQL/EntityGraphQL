@@ -1,9 +1,31 @@
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema;
+
+// Generic TryConvert delegate for custom converters
+
+/// <summary>
+/// A delegate for trying to convert from one type to another with an out parameter for the result
+/// </summary>
+/// <typeparam name="TFrom">type to convert from</typeparam>
+/// <typeparam name="TTo">type to convert to</typeparam>
+public delegate bool TypeConverterTryFromTo<in TFrom, TTo>(TFrom value, ISchemaProvider schema, out TTo result);
+
+/// <summary>
+/// A delegate for trying to convert from object to a specific type with an out parameter for the result
+/// </summary>
+/// <typeparam name="TTo">type to convert to</typeparam>
+public delegate bool TypeConverterTryTo<TTo>(object? value, Type toType, ISchemaProvider schema, out TTo result);
+
+/// <summary>
+/// A delegate for trying to convert from a specific type to object with an out parameter for the result
+/// </summary>
+/// <typeparam name="TFrom">type to convert from</typeparam>
+public delegate bool TypeConverterTryFrom<in TFrom>(TFrom value, Type toType, ISchemaProvider schema, out object? result);
 
 /// <summary>
 /// An interface that the Compiler uses to help understand the types it is building against. This abstraction lets us
@@ -21,8 +43,35 @@ public interface ISchemaProvider
     Func<string, string> SchemaFieldNamer { get; }
     IGqlAuthorizationService AuthorizationService { get; set; }
     string QueryContextName { get; }
-    IDictionary<Type, ICustomTypeConverter> TypeConverters { get; }
     EqlMethodProvider MethodProvider { get; }
+
+    ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, ISchemaProvider, TTo> convert);
+    ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(TypeConverterTryFromTo<TFrom, TTo> tryConvert);
+    ISchemaProvider AddCustomTypeConverter<TTo>(Func<object?, ISchemaProvider, TTo> convert);
+    ISchemaProvider AddCustomTypeConverter<TTo>(TypeConverterTryTo<TTo> tryConvert);
+    ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert, params Type[] supportedToTypes);
+    ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert, params Type[] supportedToTypes);
+
+    // Attempts to convert the value using custom converters (from-to first, then to-only, then from-only).
+    bool TryConvertCustom(object? value, Type toType, out object? result);
+
+    /// <summary>
+    /// Registers a parser for binary comparisons that converts a string operand to TTarget at compile time.
+    /// Applied when one side is string and the other is TTarget or Nullable<TTarget>. Works for string literals and string-typed variables.
+    /// </summary>
+    /// <typeparam name="TTarget">Target type.</typeparam>
+    /// <param name="makeParseExpression">Factory that turns a string Expression into a TTarget Expression.</param>
+    /// <returns>The schema provider.</returns>
+    ISchemaProvider RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression);
+
+    /// <summary>
+    /// Gets the registered parser for a target type used by binary comparisons when the other operand is string.
+    /// </summary>
+    /// <param name="toType">Target type (nullable allowed).</param>
+    /// <param name="makeParseExpression">Parser factory (string Expression → target Expression).</param>
+    /// <returns>True if found; otherwise false.</returns>
+    bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression);
+    
     void AddDirective(IDirectiveProcessor directive);
     ISchemaType AddEnum(string name, Type type, string description);
     SchemaType<TEnum> AddEnum<TEnum>(string name, string description);
