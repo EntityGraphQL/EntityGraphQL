@@ -3,12 +3,16 @@
 ## Breaking Changes
 
 - Fields in `ExecutableDirectiveLocation` enum have been renamed in C# style
+- #476 - Introduce generic custom type converters (from-to, to-only, from-only) for flexible runtime value conversion.
+  - Expand `isAny` to support additional types through the method provider
+  - Removes `ICustomTypeConverter`. See updated docs and the more flexible converting methods available
 
 ## Changes
 
 - Added support for [document descriptions](https://spec.graphql.org/September2025/#sec-Descriptions) as outlined in the latest 2025 spec. Basically string comments in the query document
 - #474 - Add support for `TimeSpan` as a scalar in the default schema
 - Replaced the previous 3rd party GraphQL document parser.
+- Add `net10.0` as a target
 
 # 6.0.0-beta2
 

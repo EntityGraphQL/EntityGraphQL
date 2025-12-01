@@ -38,15 +38,17 @@ public class CustomTypeConvertersGenericTests
     public void ToTypeConverter_Func_ObjectToUri()
     {
         var schema = new SchemaProvider<object>();
-        schema.AddCustomTypeConverter<Uri>((obj, _) =>
-        {
-            return obj switch
+        schema.AddCustomTypeConverter<Uri>(
+            (obj, _) =>
             {
-                string s => new Uri(s, UriKind.RelativeOrAbsolute),
-                Uri u => u,
-                _ => new Uri(obj!.ToString()!, UriKind.RelativeOrAbsolute),
-            };
-        });
+                return obj switch
+                {
+                    string s => new Uri(s, UriKind.RelativeOrAbsolute),
+                    Uri u => u,
+                    _ => new Uri(obj!.ToString()!, UriKind.RelativeOrAbsolute),
+                };
+            }
+        );
 
         var input = "https://example.com/b";
         var result = ExpressionUtil.ConvertObjectType(input, typeof(Uri), schema);
@@ -54,20 +56,22 @@ public class CustomTypeConvertersGenericTests
         Assert.IsType<Uri>(result);
         Assert.Equal(new Uri(input), (Uri)result!);
     }
-    
+
     [Fact]
     public void FromConverter_Func_StringSources()
     {
         var schema = new SchemaProvider<object>();
         // from-only: string => toType can be Uri or Version
-        schema.AddCustomTypeConverter<string>((s, to, _) =>
-        {
-            if (to == typeof(Uri))
-                return new Uri(s, UriKind.RelativeOrAbsolute);
-            if (to == typeof(Version))
-                return Version.Parse(s);
-            return s; // no-op for other targets
-        });
+        schema.AddCustomTypeConverter<string>(
+            (s, to, _) =>
+            {
+                if (to == typeof(Uri))
+                    return new Uri(s, UriKind.RelativeOrAbsolute);
+                if (to == typeof(Version))
+                    return Version.Parse(s);
+                return s; // no-op for other targets
+            }
+        );
 
         var input1 = "https://example.com/c";
         var r1 = ExpressionUtil.ConvertObjectType(input1, typeof(Uri), schema);
@@ -82,19 +86,23 @@ public class CustomTypeConvertersGenericTests
     public void FromConverter_Try_StringSources()
     {
         var schema = new SchemaProvider<object>();
-        schema.AddCustomTypeConverter<string>((string s, Type to, ISchemaProvider _, out object? result) =>
-        {
-            if (to == typeof(int))
+        schema.AddCustomTypeConverter<string>(
+            (string s, Type to, ISchemaProvider _, out object? result) =>
             {
-                if (int.TryParse(s, out var i)) { result = i; return true; }
+                if (to == typeof(int) && int.TryParse(s, out var i))
+                {
+                    result = i;
+                    return true;
+                }
+                else if (to == typeof(Guid) && Guid.TryParse(s, out var g))
+                {
+                    result = g;
+                    return true;
+                }
+                result = null;
+                return false;
             }
-            else if (to == typeof(Guid))
-            {
-                if (Guid.TryParse(s, out var g)) { result = g; return true; }
-            }
-            result = null;
-            return false;
-        });
+        );
 
         var guidStr = Guid.NewGuid().ToString();
         var r1 = ExpressionUtil.ConvertObjectType(guidStr, typeof(Guid), schema);
@@ -103,7 +111,7 @@ public class CustomTypeConvertersGenericTests
         var r2 = ExpressionUtil.ConvertObjectType("123", typeof(int), schema);
         Assert.Equal(123, r2);
     }
-    
+
     [Fact]
     public void Converters_Array_To_List_And_Vice_Versa_Are_Converted()
     {
@@ -118,27 +126,34 @@ public class CustomTypeConvertersGenericTests
         var listResult = ExpressionUtil.ConvertObjectType(arr, typeof(List<Version>), schema);
         Assert.NotNull(listResult);
         var versionList = Assert.IsType<List<Version>>(listResult);
-        Assert.Equal(new Version(1,2,3), versionList[0]);
-        Assert.Equal(new Version(2,0,0), versionList[1]);
+        Assert.Equal(new Version(1, 2, 3), versionList[0]);
+        Assert.Equal(new Version(2, 0, 0), versionList[1]);
 
         // List<string> -> Version[]
         var strList = new List<string> { "3.0.0", "3.1.0" };
         var arrayResult = ExpressionUtil.ConvertObjectType(strList, typeof(Version[]), schema);
         Assert.NotNull(arrayResult);
         var versionArray = Assert.IsType<Version[]>(arrayResult);
-        Assert.Equal(new Version(3,0,0), versionArray[0]);
-        Assert.Equal(new Version(3,1,0), versionArray[1]);
+        Assert.Equal(new Version(3, 0, 0), versionArray[0]);
+        Assert.Equal(new Version(3, 1, 0), versionArray[1]);
     }
 
     [Fact]
     public void Converters_String_To_NullableInt_And_Null_Input_Remains_Null()
     {
         var schema = new SchemaProvider<object>();
-        schema.AddCustomTypeConverter<string>((string s, Type to, ISchemaProvider _, out object? result) =>
-        {
-            if ((to == typeof(int) || to == typeof(int?)) && int.TryParse(s, out var i)) { result = i; return true; }
-            result = null; return false;
-        });
+        schema.AddCustomTypeConverter<string>(
+            (string s, Type to, ISchemaProvider _, out object? result) =>
+            {
+                if ((to == typeof(int) || to == typeof(int?)) && int.TryParse(s, out var i))
+                {
+                    result = i;
+                    return true;
+                }
+                result = null;
+                return false;
+            }
+        );
 
         var r1 = ExpressionUtil.ConvertObjectType("123", typeof(int?), schema);
         Assert.NotNull(r1);
@@ -149,18 +164,25 @@ public class CustomTypeConvertersGenericTests
         Assert.Null(r2);
     }
 
-    private enum MyColor { Red = 1, Green = 2, Blue = 3 }
+    private enum MyColor
+    {
+        Red = 1,
+        Green = 2,
+        Blue = 3,
+    }
 
     [Fact]
     public void Converters_String_To_Enum_Succeeds_And_Invalid_Fails()
     {
         var schema = new SchemaProvider<object>();
-        schema.AddCustomTypeConverter<string, MyColor>((s, _) =>
-        {
-            if (Enum.TryParse<MyColor>(s, ignoreCase: true, out var val))
-                return val;
-            throw new ArgumentException($"Invalid enum value '{s}' for {typeof(MyColor).Name}");
-        });
+        schema.AddCustomTypeConverter<string, MyColor>(
+            (s, _) =>
+            {
+                if (Enum.TryParse<MyColor>(s, ignoreCase: true, out var val))
+                    return val;
+                throw new ArgumentException($"Invalid enum value '{s}' for {typeof(MyColor).Name}");
+            }
+        );
 
         var ok = ExpressionUtil.ConvertObjectType("Green", typeof(MyColor), schema);
         Assert.Equal(MyColor.Green, Assert.IsType<MyColor>(ok));

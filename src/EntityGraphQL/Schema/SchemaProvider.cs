@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
@@ -13,7 +14,6 @@ using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
 using Microsoft.Extensions.Logging;
-using System.Linq.Expressions;
 
 namespace EntityGraphQL.Schema;
 
@@ -94,7 +94,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         // TODO 6.0 - Rename Date to DateTime?
         AddScalarType<DateTime>("Date", "Date with time scalar");
         AddScalarType<DateTimeOffset>("DateTimeOffset", "DateTimeOffset scalar");
-        
+
         // default custom scalar for TimeSpan
         AddScalarType<TimeSpan>("TimeSpan", "TimeSpan scalar");
 #if NET6_0_OR_GREATER
@@ -168,7 +168,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// For example a string to DateTime converter.
     ///
     /// Uses a from-to converter, when both the source and target types are known.
-    /// 
+    ///
     /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
     /// </summary>
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
@@ -177,12 +177,16 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <returns>The schema provider for chaining</returns>
     public ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, ISchemaProvider, TTo> convert)
     {
-        fromToConverters[(typeof(TFrom), typeof(TTo))] = 
-            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        fromToConverters[(typeof(TFrom), typeof(TTo))] = (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        {
+            if (obj == null)
             {
-                result = convert((TFrom)obj!, schema);
-                return true;
-            };
+                result = default(TTo);
+                return false;
+            }
+            result = convert((TFrom)obj, schema);
+            return true;
+        };
         MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
@@ -193,7 +197,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// For example a string to DateTime converter.
     ///
     /// Uses a from-to converter, when both the source and target types are known.
-    /// 
+    ///
     /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
     /// </summary>
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
@@ -202,13 +206,12 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <returns>The schema provider for chaining</returns>
     public ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(TypeConverterTryFromTo<TFrom, TTo> tryConvert)
     {
-        fromToConverters[(typeof(TFrom), typeof(TTo))] =
-            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
-            {
-                var ok = tryConvert((TFrom)obj!, schema, out var r);
-                result = r;
-                return ok;
-            };
+        fromToConverters[(typeof(TFrom), typeof(TTo))] = (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        {
+            var ok = tryConvert((TFrom)obj!, schema, out var r);
+            result = r;
+            return ok;
+        };
         MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
@@ -219,7 +222,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// For example a string to DateTime converter.
     ///
     /// Uses a to-only converter, when only the target type is known.
-    /// 
+    ///
     /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
     /// </summary>
     /// <typeparam name="TTo">The target type to convert to</typeparam>
@@ -227,12 +230,11 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <returns>The schema provider for chaining</returns>
     public ISchemaProvider AddCustomTypeConverter<TTo>(Func<object?, ISchemaProvider, TTo> convert)
     {
-        toConverters[typeof(TTo)] = 
-            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
-            {
-                result = convert(obj, schema);
-                return true;
-            };
+        toConverters[typeof(TTo)] = (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        {
+            result = convert(obj, schema);
+            return true;
+        };
         MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
@@ -243,7 +245,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// For example a string to DateTime converter.
     ///
     /// Uses a to-only converter, when only the target type is known.
-    /// 
+    ///
     /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
     /// </summary>
     /// <typeparam name="TTo">The target type to convert to</typeparam>
@@ -251,17 +253,16 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <returns>The schema provider for chaining</returns>
     public ISchemaProvider AddCustomTypeConverter<TTo>(TypeConverterTryTo<TTo> tryConvert)
     {
-        toConverters[typeof(TTo)] = 
-            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        toConverters[typeof(TTo)] = (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        {
+            if (tryConvert(obj, to, schema, out var r))
             {
-                if (tryConvert(obj, to, schema, out var r))
-                {
-                    result = r;
-                    return true;
-                }
-                result = null;
-                return false;
-            };
+                result = r;
+                return true;
+            }
+            result = null;
+            return false;
+        };
         MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
         return this;
     }
@@ -272,22 +273,20 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// For example a string to DateTime converter.
     ///
     /// Uses a from-only converter, when only the source type is known.
-    /// 
+    ///
     /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
     /// </summary>
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
     /// <param name="convert">A function that does the conversion</param>
     /// <param name="supportedToTypes">The target types this converter supports</param>
     /// <returns>The schema provider for chaining</returns>
-    public ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert,
-        params Type[] supportedToTypes)
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert, params Type[] supportedToTypes)
     {
-        fromConverters[typeof(TFrom)] = 
-            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
-            {
-                result = convert((TFrom)obj!, to, schema);
-                return true;
-            };
+        fromConverters[typeof(TFrom)] = (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        {
+            result = convert((TFrom)obj!, to, schema);
+            return true;
+        };
 
         foreach (var toType in supportedToTypes)
         {
@@ -302,22 +301,20 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// For example a string to DateTime converter.
     ///
     /// Uses a from-only converter, when only the source type is known.
-    /// 
+    ///
     /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
     /// </summary>
     /// <typeparam name="TFrom">The source type to convert from</typeparam>
     /// <param name="tryConvert">A function that does the conversion, returning true if it worked</param>
     /// <param name="supportedToTypes">The target types this converter supports</param>
     /// <returns>The schema provider for chaining</returns>
-    public ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert,
-        params Type[] supportedToTypes)
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert, params Type[] supportedToTypes)
     {
-        fromConverters[typeof(TFrom)] = 
-            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
-            {
-                return tryConvert((TFrom)obj!, to, schema, out result);
-            };
-        
+        fromConverters[typeof(TFrom)] = (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+        {
+            return tryConvert((TFrom)obj!, to, schema, out result);
+        };
+
         foreach (var toType in supportedToTypes)
         {
             MethodProvider.ExtendIsAnySupportedTypes(toType);
@@ -333,7 +330,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
     public bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression)
     {
-        return literalParsers.TryGetValue(toType, out makeParseExpression!);
+        // Unwrap nullable types to find the underlying type's parser
+        var targetType = Nullable.GetUnderlyingType(toType) ?? toType;
+        return literalParsers.TryGetValue(targetType, out makeParseExpression!);
     }
 
     public bool TryConvertCustom(object? value, Type toType, out object? result)

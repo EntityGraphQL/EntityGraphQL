@@ -4,7 +4,9 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+#if NET9_0_OR_GREATER
 using System.Threading;
+#endif
 
 namespace EntityGraphQL.Compiler.Util;
 
@@ -17,7 +19,6 @@ public static class LinqRuntimeTypeBuilder
     public static readonly string DynamicTypePrefix = "Dynamic_";
     private static readonly AssemblyName assemblyName = new() { Name = DynamicAssemblyName };
     private static readonly ModuleBuilder moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(assemblyName.Name);
-    private static readonly Dictionary<string, Type> builtTypes = [];
 
 #if NET9_0_OR_GREATER
     private static readonly Lock lockObj = new();
@@ -25,12 +26,25 @@ public static class LinqRuntimeTypeBuilder
     private static readonly object lockObj = new();
 #endif
 
-    // We build a class name based on all the selected fields so we can cache the anonymous types we built
-    // Names can't be > 1024 length, so we store them against a shorter Guid string
-    private static readonly Dictionary<string, string> typesByFullName = [];
+    // We build a key based on all the selected fields so we can cache the anonymous types we built
+    // Type names can't be > 1024 length, so we store them against a shorter Guid string
+    // Key: concatenated field names + field types
+    // Value: (ClassName, Type)
+    private static readonly Dictionary<int, (string ClassName, Type Type)> typesByFullName = [];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GetTypeKey(Dictionary<string, Type> fields) => fields.OrderBy(f => f.Key).Aggregate(DynamicTypePrefix, (current, field) => current + field.Key + field.Value.GetHashCode());
+    private static int GetTypeKey(IReadOnlyDictionary<string, Type> fields, Type? parentType)
+    {
+        var hash = new HashCode();
+        foreach (var field in fields.OrderBy(f => f.Key))
+        {
+            hash.Add(field.Key);
+            hash.Add(field.Value);
+        }
+        if (parentType != null)
+            hash.Add(parentType.Name);
+        return hash.ToHashCode();
+    }
 
     /// <summary>
     /// Build a dynamic type based on the fields. Types are cached so they only are created once
@@ -41,7 +55,7 @@ public static class LinqRuntimeTypeBuilder
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static Type GetDynamicType(Dictionary<string, Type> fields, string description, Type? parentType = null)
+    public static Type GetDynamicType(IReadOnlyDictionary<string, Type> fields, string description, Type? parentType = null)
     {
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(fields, nameof(fields));
@@ -50,19 +64,16 @@ public static class LinqRuntimeTypeBuilder
             throw new ArgumentNullException(nameof(fields));
 #endif
 
-        string classFullName = GetTypeKey(fields) + parentType?.Name.GetHashCode();
+        var typeHashCode = GetTypeKey(fields, parentType);
         lock (lockObj)
         {
-            if (!typesByFullName.TryGetValue(classFullName, out var classId))
+            if (typesByFullName.TryGetValue(typeHashCode, out var typeInfo))
             {
-                classId = $"{DynamicTypePrefix}{(description != null ? $"{description}_" : "")}{Guid.NewGuid()}";
-                typesByFullName[classFullName] = classId;
+                return typeInfo.Type;
             }
 
-            if (builtTypes.TryGetValue(classId, out var builtType))
-                return builtType;
-
-            var typeBuilder = moduleBuilder.DefineType(classId.ToString(), TypeAttributes.Public | TypeAttributes.Class, parentType);
+            var className = $"{DynamicTypePrefix}{description}_{Guid.NewGuid()}";
+            var typeBuilder = moduleBuilder.DefineType(className, TypeAttributes.Public | TypeAttributes.Class, parentType);
 
             foreach (var field in fields)
             {
@@ -72,8 +83,8 @@ public static class LinqRuntimeTypeBuilder
                 typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
             }
 
-            builtTypes[classId] = typeBuilder.CreateTypeInfo()!.AsType();
-            return builtTypes[classId];
+            typesByFullName[typeHashCode] = (className, typeBuilder.CreateTypeInfo()!.AsType());
+            return typesByFullName[typeHashCode].Type;
         }
     }
 }
