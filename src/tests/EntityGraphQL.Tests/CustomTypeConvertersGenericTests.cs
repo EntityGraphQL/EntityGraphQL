@@ -136,10 +136,7 @@ public class CustomTypeConvertersGenericTests
         var schema = new SchemaProvider<object>();
         schema.AddCustomTypeConverter<string>((string s, Type to, ISchemaProvider _, out object? result) =>
         {
-            if (to == typeof(int) || to == typeof(int?))
-            {
-                if (int.TryParse(s, out var i)) { result = i; return true; }
-            }
+            if ((to == typeof(int) || to == typeof(int?)) && int.TryParse(s, out var i)) { result = i; return true; }
             result = null; return false;
         });
 
