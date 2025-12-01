@@ -174,7 +174,7 @@ internal static class JObjectTypeConverter
     }
 }
 
-internal class JTokenTypeConverter
+internal static class JTokenTypeConverter
 {
     public static object ChangeType(object value, Type toType, ISchemaProvider schema)
     {
