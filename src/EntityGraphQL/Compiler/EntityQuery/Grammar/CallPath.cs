@@ -99,14 +99,13 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
                     var body = Expression.Convert(convertCall, targetType);
                     var lambda = Expression.Lambda(body, p);
 
-                    if (typeof(IQueryable).IsAssignableFrom(array.Type))
-                    {
-                        array = Expression.Call(typeof(Queryable), nameof(Queryable.Select), new[] { arrayEleType, targetType }, array, lambda);
-                    }
-                    else
-                    {
-                        array = Expression.Call(typeof(Enumerable), nameof(Enumerable.Select), new[] { arrayEleType, targetType }, array, lambda);
-                    }
+                    array = Expression.Call(
+                        typeof(IQueryable).IsAssignableFrom(array.Type) ? typeof(Queryable) : typeof(Enumerable),
+                        nameof(Queryable.Select),
+                        new[] { arrayEleType, targetType },
+                        array,
+                        lambda
+                    );
 
                     args[0] = array;
                 }
