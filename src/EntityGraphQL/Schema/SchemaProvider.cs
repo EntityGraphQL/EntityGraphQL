@@ -13,6 +13,7 @@ using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 
 namespace EntityGraphQL.Schema;
 
@@ -45,7 +46,12 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     private readonly SubscriptionType subscriptionType;
     private readonly Dictionary<Type, IExtensionAttributeHandler> attributeHandlers = [];
 
-    public IDictionary<Type, ICustomTypeConverter> TypeConverters { get; } = new Dictionary<Type, ICustomTypeConverter>();
+    private readonly Dictionary<(Type from, Type to), TryConvertShim> fromToConverters = new();
+    private readonly Dictionary<Type, TryConvertShim> toConverters = new();
+    private readonly Dictionary<Type, TryConvertShim> fromConverters = new();
+
+    // Literal parsers for query string literals → target CLR type
+    private readonly Dictionary<Type, Func<Expression, Expression>> literalParsers = new();
 
     public List<AllowedException> AllowedExceptions { get; } = [];
 
@@ -161,13 +167,227 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// the request which may be strings or JSON into the dotnet types on the argument classes.
     /// For example a string to DateTime converter.
     ///
+    /// Uses a from-to converter, when both the source and target types are known.
+    /// 
     /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
     /// </summary>
-    /// <param name="typeConverter"></param>
-    public void AddCustomTypeConverter(ICustomTypeConverter typeConverter)
+    /// <typeparam name="TFrom">The source type to convert from</typeparam>
+    /// <typeparam name="TTo">The target type to convert to</typeparam>
+    /// <param name="convert">A function that does the conversion</param>
+    /// <returns>The schema provider for chaining</returns>
+    public ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, ISchemaProvider, TTo> convert)
     {
-        TypeConverters.Add(typeConverter.Type, typeConverter);
+        fromToConverters[(typeof(TFrom), typeof(TTo))] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                result = convert((TFrom)obj!, schema);
+                return true;
+            };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
+        return this;
     }
+
+    /// <summary>
+    /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming variables from
+    /// the request which may be strings or JSON into the dotnet types on the argument classes.
+    /// For example a string to DateTime converter.
+    ///
+    /// Uses a from-to converter, when both the source and target types are known.
+    /// 
+    /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
+    /// </summary>
+    /// <typeparam name="TFrom">The source type to convert from</typeparam>
+    /// <typeparam name="TTo">The target type to convert to</typeparam>
+    /// <param name="tryConvert">A function that does the conversion, returning true if it worked</param>
+    /// <returns>The schema provider for chaining</returns>
+    public ISchemaProvider AddCustomTypeConverter<TFrom, TTo>(TypeConverterTryFromTo<TFrom, TTo> tryConvert)
+    {
+        fromToConverters[(typeof(TFrom), typeof(TTo))] =
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                var ok = tryConvert((TFrom)obj!, schema, out var r);
+                result = r;
+                return ok;
+            };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
+        return this;
+    }
+
+    /// <summary>
+    /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming variables from
+    /// the request which may be strings or JSON into the dotnet types on the argument classes.
+    /// For example a string to DateTime converter.
+    ///
+    /// Uses a to-only converter, when only the target type is known.
+    /// 
+    /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
+    /// </summary>
+    /// <typeparam name="TTo">The target type to convert to</typeparam>
+    /// <param name="convert">A function that does the conversion</param>
+    /// <returns>The schema provider for chaining</returns>
+    public ISchemaProvider AddCustomTypeConverter<TTo>(Func<object?, ISchemaProvider, TTo> convert)
+    {
+        toConverters[typeof(TTo)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                result = convert(obj, schema);
+                return true;
+            };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
+        return this;
+    }
+
+    /// <summary>
+    /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming variables from
+    /// the request which may be strings or JSON into the dotnet types on the argument classes.
+    /// For example a string to DateTime converter.
+    ///
+    /// Uses a to-only converter, when only the target type is known.
+    /// 
+    /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
+    /// </summary>
+    /// <typeparam name="TTo">The target type to convert to</typeparam>
+    /// <param name="tryConvert">A function that does the conversion, returning true if it worked</param>
+    /// <returns>The schema provider for chaining</returns>
+    public ISchemaProvider AddCustomTypeConverter<TTo>(TypeConverterTryTo<TTo> tryConvert)
+    {
+        toConverters[typeof(TTo)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                if (tryConvert(obj, to, schema, out var r))
+                {
+                    result = r;
+                    return true;
+                }
+                result = null;
+                return false;
+            };
+        MethodProvider.ExtendIsAnySupportedTypes(typeof(TTo));
+        return this;
+    }
+
+    /// <summary>
+    /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming variables from
+    /// the request which may be strings or JSON into the dotnet types on the argument classes.
+    /// For example a string to DateTime converter.
+    ///
+    /// Uses a from-only converter, when only the source type is known.
+    /// 
+    /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
+    /// </summary>
+    /// <typeparam name="TFrom">The source type to convert from</typeparam>
+    /// <param name="convert">A function that does the conversion</param>
+    /// <param name="supportedToTypes">The target types this converter supports</param>
+    /// <returns>The schema provider for chaining</returns>
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(Func<TFrom, Type, ISchemaProvider, object?> convert,
+        params Type[] supportedToTypes)
+    {
+        fromConverters[typeof(TFrom)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                result = convert((TFrom)obj!, to, schema);
+                return true;
+            };
+
+        foreach (var toType in supportedToTypes)
+        {
+            MethodProvider.ExtendIsAnySupportedTypes(toType);
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Add a custom type converter to convert query variables into the expected dotnet types. I.e. the incoming variables from
+    /// the request which may be strings or JSON into the dotnet types on the argument classes.
+    /// For example a string to DateTime converter.
+    ///
+    /// Uses a from-only converter, when only the source type is known.
+    /// 
+    /// EntityGraphQL already handles Guid, DateTime, InputTypes from the schema, arrays/lists, System.Text.Json elements, float/double/decimal/int/short/uint/long/etc
+    /// </summary>
+    /// <typeparam name="TFrom">The source type to convert from</typeparam>
+    /// <param name="tryConvert">A function that does the conversion, returning true if it worked</param>
+    /// <param name="supportedToTypes">The target types this converter supports</param>
+    /// <returns>The schema provider for chaining</returns>
+    public ISchemaProvider AddCustomTypeConverter<TFrom>(TypeConverterTryFrom<TFrom> tryConvert,
+        params Type[] supportedToTypes)
+    {
+        fromConverters[typeof(TFrom)] = 
+            (object? obj, Type to, ISchemaProvider schema, out object? result) =>
+            {
+                return tryConvert((TFrom)obj!, to, schema, out result);
+            };
+        
+        foreach (var toType in supportedToTypes)
+        {
+            MethodProvider.ExtendIsAnySupportedTypes(toType);
+        }
+        return this;
+    }
+
+    public ISchemaProvider RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression)
+    {
+        literalParsers[typeof(TTarget)] = makeParseExpression;
+        return this;
+    }
+
+    public bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression)
+    {
+        return literalParsers.TryGetValue(toType, out makeParseExpression!);
+    }
+
+    public bool TryConvertCustom(object? value, Type toType, out object? result)
+    {
+        var fromType = value?.GetType();
+
+        if (TryConvertFromTo(value, fromType, toType, out result))
+        {
+            return true;
+        }
+        if (TryConvertToOnly(value, toType, out result))
+        {
+            return true;
+        }
+        if (TryConvertFromOnly(value, fromType, toType, out result))
+        {
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    private bool TryConvertFromTo(object? value, Type? fromType, Type toType, out object? result)
+    {
+        if (fromType != null && fromToConverters.TryGetValue((fromType, toType), out var shim))
+        {
+            return shim(value, toType, this, out result);
+        }
+        result = null;
+        return false;
+    }
+
+    private bool TryConvertToOnly(object? value, Type toType, out object? result)
+    {
+        if (toConverters.TryGetValue(toType, out var shim))
+        {
+            return shim(value, toType, this, out result);
+        }
+        result = null;
+        return false;
+    }
+
+    private bool TryConvertFromOnly(object? value, Type? fromType, Type toType, out object? result)
+    {
+        if (fromType != null && fromConverters.TryGetValue(fromType, out var shim))
+        {
+            return shim(value, toType, this, out result);
+        }
+        result = null;
+        return false;
+    }
+
+    private delegate bool TryConvertShim(object? value, Type toType, ISchemaProvider schema, out object? result);
 
     private void SetupIntrospectionTypesAndField()
     {

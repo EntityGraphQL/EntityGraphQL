@@ -14,10 +14,12 @@ namespace EntityGraphQL.Compiler.EntityQuery;
 public class EqlMethodProvider : IMethodProvider
 {
     private readonly Dictionary<string, RegisteredMethodInfo> registeredMethods;
+    private readonly HashSet<Type> isAnySupportedTypes = new();
 
     public EqlMethodProvider()
     {
         registeredMethods = new Dictionary<string, RegisteredMethodInfo>(StringComparer.OrdinalIgnoreCase);
+        InitializeIsAnySupportedTypes();
         RegisterDefaultMethods();
     }
 
@@ -193,9 +195,10 @@ public class EqlMethodProvider : IMethodProvider
         RegisterMethodWithTypePredicate(CreateIsAnyTypePredicate(), "isAny", DefaultMethodImplementations.MakeIsAnyMethod);
     }
 
-    private static Func<Type, bool> CreateIsAnyTypePredicate()
+    private void InitializeIsAnySupportedTypes()
     {
-        var supportedTypes = new HashSet<Type>
+        isAnySupportedTypes.Clear();
+        var defaults = new[]
         {
             typeof(string),
             typeof(long),
@@ -238,8 +241,39 @@ public class EqlMethodProvider : IMethodProvider
             typeof(TimeOnly?)
 #endif
         };
+        foreach (var t in defaults)
+        {
+            isAnySupportedTypes.Add(t);
+        }
+    }
 
-        return supportedTypes.Contains;
+    internal void ExtendIsAnySupportedTypes(params Type[] types)
+    {
+        foreach (var t in types)
+        {
+            // Always add the provided type
+            isAnySupportedTypes.Add(t);
+
+            // If a nullable form is provided, also add its underlying type (non-nullable)
+            var underlying = Nullable.GetUnderlyingType(t);
+            if (underlying != null)
+            {
+                isAnySupportedTypes.Add(underlying);
+                continue;
+            }
+
+            // If a non-nullable value type is provided, also add its nullable variant
+            if (t.IsValueType)
+            {
+                var nullable = typeof(Nullable<>).MakeGenericType(t);
+                isAnySupportedTypes.Add(nullable);
+            }
+        }
+    }
+
+    private Func<Type, bool> CreateIsAnyTypePredicate()
+    {
+        return t => isAnySupportedTypes.Contains(t);
     }
 
     #endregion

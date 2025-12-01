@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
@@ -71,6 +73,45 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         var localContext = currentContext; // Create a local variable to store the value of currentContext
         // Compile the arguments with the new context
         var args = arguments?.Select(a => a.Compile(localContext, schema, requestContext, methodProvider))?.ToList();
+
+        // Special handling for isAny: if the provided array/list element type doesn't match the context type,
+        // convert the list elements to the context type using schema-aware converters first.
+        if (string.Equals(method, "isAny", StringComparison.OrdinalIgnoreCase) && args != null && args.Count == 1)
+        {
+            var array = args[0];
+            var arrayEleType = array.Type.GetEnumerableOrArrayType();
+            if (arrayEleType != null)
+            {
+                var ctxType = outerContext.Type;
+                // unwrap Nullable<T> for comparison
+                var targetType = ctxType.IsNullableType() ? Nullable.GetUnderlyingType(ctxType)! : ctxType;
+                if (arrayEleType != targetType)
+                {
+                    var p = Expression.Parameter(arrayEleType, "x");
+                    var convertCall = Expression.Call(
+                        typeof(ExpressionUtil),
+                        nameof(ExpressionUtil.ConvertObjectType),
+                        Type.EmptyTypes,
+                        Expression.Convert(p, typeof(object)),
+                        Expression.Constant(targetType, typeof(Type)),
+                        Expression.Constant(schema, typeof(ISchemaProvider))
+                    );
+                    var body = Expression.Convert(convertCall, targetType);
+                    var lambda = Expression.Lambda(body, p);
+
+                    array = Expression.Call(
+                        typeof(IQueryable).IsAssignableFrom(array.Type) ? typeof(Queryable) : typeof(Enumerable),
+                        nameof(Queryable.Select),
+                        new[] { arrayEleType, targetType },
+                        array,
+                        lambda
+                    );
+
+                    args[0] = array;
+                }
+            }
+        }
+
         var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args, outerContext.Type);
         currentContext = call;
         return call;
