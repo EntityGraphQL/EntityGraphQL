@@ -20,21 +20,31 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
         var right = Right.Compile(context, parser, schema, requestContext, methodProvider);
         if (left.Type != right.Type)
         {
-            return ConvertLeftOrRight(Op, left, right, parser);
+            return ConvertLeftOrRight(Op, left, right, parser, schema);
         }
         return Expression.MakeBinary(Op, left, right);
     }
 
-    private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right, EntityQueryParser parser)
+    private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right, EntityQueryParser parser, ISchemaProvider? schema)
     {
         // Defer nullable promotion and numeric width alignment until after we attempt literal parsing and specific conversions
         if (left.Type != right.Type)
         {
-            // Allow registered literal parsers to handle string → target conversions first
-            if (right.Type == typeof(string) && left.Type != typeof(string) && parser.TryGetLiteralParser(left.Type, out var leftParser))
-                right = leftParser(right);
-            else if (left.Type == typeof(string) && right.Type != typeof(string) && parser.TryGetLiteralParser(right.Type, out var rightParser))
-                left = rightParser(left);
+            // Try to use type converters for constant string expressions first
+            if (schema != null && right is ConstantExpression { Value: string str } && left.Type != typeof(string))
+            {
+                if (schema.TryConvertCustom(str, left.Type, out var converted))
+                {
+                    right = Expression.Constant(converted, left.Type);
+                }
+            }
+            else if (schema != null && left is ConstantExpression { Value: string str2 } && right.Type != typeof(string))
+            {
+                if (schema.TryConvertCustom(str2, right.Type, out var converted))
+                {
+                    left = Expression.Constant(converted, right.Type);
+                }
+            }
 
             if (left.Type.IsEnum && right.Type.IsEnum)
                 throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Schema;
@@ -147,9 +146,9 @@ public class BinaryComparisonTests
     }
 
     [Fact]
-    public void Binary_Version_All_Operators_Work_With_LiteralParser()
+    public void Binary_Version_All_Operators_Work_With_CustomType()
     {
-        var schema = MakeSchemaWithVersionLiteralParser();
+        var schema = MakeSchemaWithVersionCustomConverter();
         var data = new List<WithVersion> { new(new Version(1, 2, 2), "A"), new(new Version(1, 2, 3), "B"), new(new Version(2, 0, 0), "C") };
 
         // ==
@@ -184,9 +183,9 @@ public class BinaryComparisonTests
     }
 
     [Fact]
-    public void Binary_Version_Literal_On_Left_Uses_LiteralParser()
+    public void Binary_Version_Literal_On_Left_Uses_CustomConverter()
     {
-        var schema = MakeSchemaWithVersionLiteralParser();
+        var schema = MakeSchemaWithVersionCustomConverter();
         var data = new[] { new WithVersion(new Version(1, 2, 3), "B"), new WithVersion(new Version(2, 0, 0), "C") };
         var compiled = EntityQueryCompiler.Compile("\"1.2.3\" <= v", schema, compileContext);
         var res = data.Where((Func<WithVersion, bool>)compiled.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
@@ -197,7 +196,7 @@ public class BinaryComparisonTests
     public void Binary_NullableVersion_Handles_Nulls_Correctly()
     {
         var schema = SchemaBuilder.FromObject<WithNullableVersion>();
-        EntityQueryCompiler.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+        schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
 
         var compiled = EntityQueryCompiler.Compile("v >= \"1.2.3\"", schema, compileContext);
         var data = new[] { new WithNullableVersion(null, "N"), new WithNullableVersion(new Version(1, 2, 3), "B"), new WithNullableVersion(new Version(2, 0, 0), "C") };
@@ -208,18 +207,21 @@ public class BinaryComparisonTests
     [Fact]
     public void Binary_Version_Invalid_Literal_Shows_Parser_Error()
     {
-        var schema = MakeSchemaWithVersionLiteralParser();
-        var compiled = EntityQueryCompiler.Compile("v >= \"not-a-version\"", schema, compileContext);
-        var pred = (Func<WithVersion, bool>)compiled.LambdaExpression.Compile();
+        var schema = MakeSchemaWithVersionCustomConverter();
         // Evaluate on a single row to trigger Version.Parse of the literal
-        var ex = Assert.ThrowsAny<Exception>(() => pred(new WithVersion(new Version(0, 0), "X")));
+        var ex = Assert.ThrowsAny<ArgumentException>(() =>
+        {
+            var compiled = EntityQueryCompiler.Compile("v >= \"not-a-version\"", schema, compileContext);
+            var pred = (Func<WithVersion, bool>)compiled.LambdaExpression.Compile();
+            pred(new WithVersion(new Version(0, 0), "X"));
+        });
         Assert.Contains("Version", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static SchemaProvider<WithVersion> MakeSchemaWithVersionLiteralParser()
+    private static SchemaProvider<WithVersion> MakeSchemaWithVersionCustomConverter()
     {
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        EntityQueryCompiler.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+        schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
         return schema;
     }
 

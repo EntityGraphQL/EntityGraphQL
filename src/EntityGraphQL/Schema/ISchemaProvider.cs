@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Directives;
 

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Compiler.Util;
@@ -71,11 +70,10 @@ public class IsAnyAndConvertersTests
     }
 
     [Fact]
-    public void Query_Mixed_Binary_LiteralParser_And_IsAny_With_Variable_Strings_Simulated()
+    public void Query_Mixed_Binary_CustomConverter_And_IsAny_With_Variable_Strings_Simulated()
     {
         // This test simulates variable conversion path by pre-converting a string list via converters
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        EntityQueryCompiler.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
 
         var compiled = EntityQueryCompiler.Compile("v >= \"1.2.3\"", schema, compileContext);

@@ -182,10 +182,14 @@ EntityGraphQL provides a flexible type converter system that enables runtime val
 
 ### Using Custom Types in Filters
 
-To use a custom type in filter expressions, you typically need to register both:
+To use a custom type in filter expressions, you need to register a type converter:
 
-1. **Type Converter** (`schema.AddCustomTypeConverter`) - For runtime conversion of values (query variables, `isAny` arrays, mutation arguments, etc.). These work throughout EntityGraphQL, not just in filters.
-2. **Literal Parser** (`UseFilterExtension.RegisterLiteralParser` or `EntityQueryCompiler.RegisterLiteralParser`) - For compile-time string literal conversion in binary comparisons within filter expressions. This is a global registration that applies to all filters.
+**Type Converter** (`schema.AddCustomTypeConverter`) - Enables conversion of string values to custom types. This handles:
+- Runtime conversion (query variables, mutation arguments)
+- Compile-time conversion (string literals in binary comparisons like `version >= "1.2.3"`)
+- Array conversions (`isAny` arrays)
+
+Type converters work throughout EntityGraphQL, not just in filters.
 
 ### Example: Filtering by Version
 
@@ -198,14 +202,8 @@ public class Product
 
 var schema = SchemaBuilder.FromObject<ProductContext>();
 
-// Add type converter for runtime conversion (variables, isAny)
+// Add type converter - handles both runtime and compile-time conversion
 schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
-
-// Register literal parser globally (applies to all filter expressions)
-// Can use either UseFilterExtension.RegisterLiteralParser or EntityQueryCompiler.RegisterLiteralParser
-UseFilterExtension.RegisterLiteralParser<Version>(
-    strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr)
-);
 
 // Mark the products field as filterable
 schema.ReplaceField("products", ctx => ctx.Products, "List of products")
