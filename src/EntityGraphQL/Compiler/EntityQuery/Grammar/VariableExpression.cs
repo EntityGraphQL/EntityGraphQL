@@ -21,7 +21,7 @@ public class VariableExpression : IExpression
 
     public Type Type => typeof(object); // Will be resolved at compile time
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, EntityQueryParser parser, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         // Check if we have variable information in the compile context
         if (compileContext.DocumentVariables == null)

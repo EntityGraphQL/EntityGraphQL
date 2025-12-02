@@ -12,5 +12,6 @@ internal sealed class CallExpression(string name, IReadOnlyList<IExpression>? ar
     public string Name { get; } = name;
     public IReadOnlyList<IExpression>? Arguments { get; } = arguments;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider) => throw new NotImplementedException();
+    public Expression Compile(Expression? context, EntityQueryParser parser, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider) =>
+        throw new NotImplementedException();
 }

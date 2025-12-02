@@ -10,6 +10,7 @@ namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
 public sealed class EntityQueryParser
 {
+    private Dictionary<Type, Func<Expression, Expression>> literalParsers = new();
     public static readonly EntityQueryParser Instance;
     private const string MultiplyChar = "*";
     private const string DivideChar = "/";
@@ -107,6 +108,7 @@ public sealed class EntityQueryParser
                             x.Item2.Select(e =>
                                 e.Compile(
                                     ((EntityQueryParseContext)c).Context,
+                                    Instance,
                                     ((EntityQueryParseContext)c).Schema,
                                     ((EntityQueryParseContext)c).RequestContext,
                                     ((EntityQueryParseContext)c).MethodProvider
@@ -139,6 +141,7 @@ public sealed class EntityQueryParser
                                 Expression.Negate(
                                     x.Item2.Compile(
                                         ((EntityQueryParseContext)c).Context,
+                                        Instance,
                                         ((EntityQueryParseContext)c).Schema,
                                         ((EntityQueryParseContext)c).RequestContext,
                                         ((EntityQueryParseContext)c).MethodProvider
@@ -254,11 +257,33 @@ public sealed class EntityQueryParser
         public EqlCompileContext CompileContext { get; }
     }
 
-    public Expression Parse(string query, Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider, EqlCompileContext compileContext)
+    public Expression Parse(
+        string query,
+        Expression? context,
+        ISchemaProvider? schema,
+        QueryRequestContext requestContext,
+        IMethodProvider methodProvider,
+        Dictionary<Type, Func<Expression, Expression>> literalParsers,
+        EqlCompileContext compileContext
+    )
     {
+        this.literalParsers = literalParsers;
         var parseContext = new EntityQueryParseContext(query, context, schema, requestContext, methodProvider, compileContext);
 
         var result = grammar.Parse(parseContext) ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Failed to parse query");
-        return result.Compile(parseContext.Context, parseContext.Schema, parseContext.RequestContext, parseContext.MethodProvider);
+        return result.Compile(parseContext.Context, Instance, parseContext.Schema, parseContext.RequestContext, parseContext.MethodProvider);
+    }
+
+    /// <summary>
+    /// Gets the registered parser for a target type used by binary comparisons when the other operand is string.
+    /// </summary>
+    /// <param name="toType">Target type (nullable allowed).</param>
+    /// <param name="makeParseExpression">Parser factory (string Expression → target Expression).</param>
+    /// <returns>True if found; otherwise false.</returns>
+    public bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression)
+    {
+        // Unwrap nullable types to find the underlying type's parser
+        var targetType = Nullable.GetUnderlyingType(toType) ?? toType;
+        return literalParsers.TryGetValue(targetType, out makeParseExpression!);
     }
 }

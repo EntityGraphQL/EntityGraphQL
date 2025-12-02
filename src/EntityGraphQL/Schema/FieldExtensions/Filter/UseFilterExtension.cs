@@ -1,3 +1,7 @@
+using System;
+using System.Linq.Expressions;
+using EntityGraphQL.Compiler.EntityQuery;
+
 namespace EntityGraphQL.Schema.FieldExtensions;
 
 public static class UseFilterExtension
@@ -12,6 +16,18 @@ public static class UseFilterExtension
     {
         field.AddExtension(new FilterExpressionExtension());
         return field;
+    }
+
+    /// <summary>
+    /// Registers a parser for binary comparisons in filter expressions that converts a string operand to TTarget at compile time.
+    /// Applied when one side is string and the other is TTarget or Nullable&lt;TTarget&gt;.
+    /// This is a global registration that applies to all filter expressions.
+    /// </summary>
+    /// <typeparam name="TTarget">Target type to parse string literals into.</typeparam>
+    /// <param name="makeParseExpression">Factory that turns a string Expression into a TTarget Expression.</param>
+    public static void RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression)
+    {
+        EntityQueryCompiler.RegisterLiteralParser<TTarget>(makeParseExpression);
     }
 }
 

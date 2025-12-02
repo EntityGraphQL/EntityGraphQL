@@ -176,6 +176,145 @@ The expression language supports the following methods, these are called against
 }
 ```
 
+## Custom Type Converters for Filters
+
+EntityGraphQL provides a flexible type converter system that enables runtime value conversion between types. Type converters work throughout EntityGraphQL (for mutation arguments, query variables, etc.), but are particularly useful in filter expressions when working with custom types like `Version`, `Uri`, or custom structs.
+
+### Using Custom Types in Filters
+
+To use a custom type in filter expressions, you typically need to register both:
+
+1. **Type Converter** (`schema.AddCustomTypeConverter`) - For runtime conversion of values (query variables, `isAny` arrays, mutation arguments, etc.). These work throughout EntityGraphQL, not just in filters.
+2. **Literal Parser** (`UseFilterExtension.RegisterLiteralParser` or `EntityQueryCompiler.RegisterLiteralParser`) - For compile-time string literal conversion in binary comparisons within filter expressions. This is a global registration that applies to all filters.
+
+### Example: Filtering by Version
+
+```cs
+public class Product
+{
+    public string Name { get; set; }
+    public Version Version { get; set; }
+}
+
+var schema = SchemaBuilder.FromObject<ProductContext>();
+
+// Add type converter for runtime conversion (variables, isAny)
+schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
+
+// Register literal parser globally (applies to all filter expressions)
+// Can use either UseFilterExtension.RegisterLiteralParser or EntityQueryCompiler.RegisterLiteralParser
+UseFilterExtension.RegisterLiteralParser<Version>(
+    strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr)
+);
+
+// Mark the products field as filterable
+schema.ReplaceField("products", ctx => ctx.Products, "List of products")
+    .UseFilter();
+```
+
+Now you can use both binary comparisons and `isAny` with Version in filters:
+
+```graphql
+{
+  # Binary comparison with string literal
+  products(filter: "version >= \"1.2.0\"") {
+    name
+    version
+  }
+
+  # Using isAny with Version
+  products(filter: "version.isAny([\"1.2.3\", \"2.0.0\"])") {
+    name
+    version
+  }
+
+  # Combining both
+  products(filter: "version >= \"1.2.0\" && version.isAny([\"1.2.3\", \"2.0.0\"])") {
+    name
+    version
+  }
+}
+```
+
+### Converter Patterns
+
+EntityGraphQL supports three registration approaches:
+
+**From-To Converter** - Maps a specific source type to a target type:
+
+```cs
+schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
+```
+
+**To-Only Converter** - Converts any source to a particular target type:
+
+```cs
+schema.AddCustomTypeConverter<Uri>(
+    (obj, _) => obj switch
+    {
+        string s => new Uri(s, UriKind.RelativeOrAbsolute),
+        Uri u => u,
+        _ => new Uri(obj!.ToString()!, UriKind.RelativeOrAbsolute),
+    }
+);
+```
+
+**From-Only Converter** - Converts a source type to multiple possible targets:
+
+```cs
+schema.AddCustomTypeConverter<string>(
+    (s, toType, _) =>
+    {
+        if (toType == typeof(Uri))
+            return new Uri(s, UriKind.RelativeOrAbsolute);
+        if (toType == typeof(Version))
+            return Version.Parse(s);
+        return s;
+    }
+);
+```
+
+### Enum Converters
+
+Custom converters work great with enum types in filters:
+
+```cs
+public enum Status { Active, Inactive, Pending }
+
+schema.AddCustomTypeConverter<string, Status>(
+    (s, _) =>
+    {
+        if (Enum.TryParse<Status>(s, ignoreCase: true, out var val))
+            return val;
+        throw new ArgumentException($"Invalid enum value '{s}'");
+    }
+);
+
+// Use in filter
+{
+  people(filter: "status.isAny([\"Active\", \"Pending\"])") { ... }
+}
+```
+
+### Using with GraphQL Variables
+
+Type converters automatically work with GraphQL variables:
+
+```graphql
+query GetProductsByVersions($versions: [String!]!) {
+  products(filter: "version.isAny($versions)") {
+    name
+    version
+  }
+}
+```
+
+```json
+{
+  "versions": ["1.2.3", "2.0.0"]
+}
+```
+
 The expression language supports ternary and conditional:
 
 - `__ ? __ : __`

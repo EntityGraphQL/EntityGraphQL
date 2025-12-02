@@ -6,46 +6,27 @@ If you are not using EntityGraphQL.AspNet and are trying to deserialize incoming
 
 _Note many JSON libraries will convert sub objects/arrays/etc into their own custom types when dealing with a `Dictionary<string, object>`. This can be used as an example to build other converters._
 
-You can tell EntityGraphQL how to convert types when it is mapping incoming data classes/arguments using the `AddCustomTypeConverter(new MyICustomTypeConverter())` on the schema provider.
+You can tell EntityGraphQL how to convert types when it is mapping incoming data classes/arguments using the `AddCustomTypeConverter` method on the schema provider.
 
 Here is an example to use this to handle Newtonsoft.Json types:
 
 ```cs
-internal class JObjectTypeConverter : ICustomTypeConverter
-{
-    public Type Type => typeof(JObject);
-
-    public object ChangeType(object value, Type toType, ISchemaProvider schema)
-    {
-        return ((JObject)value).ToObject(toType);
-    }
-}
-
-internal class JTokenTypeConverter : ICustomTypeConverter
-{
-    public Type Type => typeof(JToken);
-
-    public object ChangeType(object value, Type toType, ISchemaProvider schema)
-    {
-        return ((JToken)value).ToObject(toType);
-    }
-}
-
-internal class JValueTypeConverter : ICustomTypeConverter
-{
-    public Type Type => typeof(JValue);
-
-    public object ChangeType(object value, Type toType, ISchemaProvider schema)
-    {
-        return ((JValue)value).ToString();
-    }
-}
-
 // Where you build schema
 
-schema.AddCustomTypeConverter(new JObjectTypeConverter());
-schema.AddCustomTypeConverter(new JTokenTypeConverter());
-schema.AddCustomTypeConverter(new JValueTypeConverter());
+// Convert JObject to any target type
+schema.AddCustomTypeConverter<JObject>(
+    (jObj, toType, schema) => jObj.ToObject(toType)!
+);
+
+// Convert JToken to any target type
+schema.AddCustomTypeConverter<JToken>(
+    (jToken, toType, schema) => jToken.ToObject(toType)!
+);
+
+// Convert JValue to any target type (returns string)
+schema.AddCustomTypeConverter<JValue>(
+    (jValue, toType, schema) => jValue.ToString()
+);
 ```
 
-Now EntityGraphQL can convert `JObject`, `JToken` & `JValue` types to classes/types using your version of Newtonsoft.Json. You can use `ICustomTypeConverter` to handle any customer conversion.
+Now EntityGraphQL can convert `JObject`, `JToken` & `JValue` types to classes/types using your version of Newtonsoft.Json.

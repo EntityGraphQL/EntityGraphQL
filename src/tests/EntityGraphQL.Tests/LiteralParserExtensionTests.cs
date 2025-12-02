@@ -20,6 +20,7 @@ public class LiteralParserExtensionTests
             V = v;
             Name = name;
         }
+
         public Version V { get; set; }
         public string Name { get; set; }
     }
@@ -29,15 +30,10 @@ public class LiteralParserExtensionTests
     {
         var schema = SchemaBuilder.FromObject<WithVersion>();
         // Register a literal parser for Version so string literals can be parsed at compile-time
-        schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+        EntityQueryCompiler.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
 
         var compiled = EntityQueryCompiler.Compile("v >= \"1.2.3\"", schema, compileContext);
-        var data = new List<WithVersion>
-        {
-            new(new Version(1,2,2), "A"),
-            new(new Version(1,2,3), "B"),
-            new(new Version(2,0,0), "C"),
-        };
+        var data = new List<WithVersion> { new(new Version(1, 2, 2), "A"), new(new Version(1, 2, 3), "B"), new(new Version(2, 0, 0), "C") };
 
         var res = data.Where((Func<WithVersion, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Equal(2, res.Count);

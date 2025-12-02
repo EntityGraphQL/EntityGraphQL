@@ -18,6 +18,8 @@ namespace EntityGraphQL.Compiler.EntityQuery;
 ///   not(), !
 public static class EntityQueryCompiler
 {
+    private static readonly Dictionary<Type, Func<Expression, Expression>> literalParsers = new();
+
     public static CompiledQueryResult Compile(string query, EqlCompileContext compileContext)
     {
         return Compile(query, null, compileContext, null);
@@ -83,7 +85,19 @@ public static class EntityQueryCompiler
         EqlCompileContext compileContext
     )
     {
-        var expression = EntityQueryParser.Instance.Parse(query, context, schemaProvider, requestContext, methodProvider, compileContext);
+        var expression = EntityQueryParser.Instance.Parse(query, context, schemaProvider, requestContext, methodProvider, literalParsers, compileContext);
         return expression;
+    }
+
+    /// <summary>
+    /// Registers a parser for binary comparisons that converts a string operand to TTarget at compile time.
+    /// Applied when one side is string and the other is TTarget or Nullable<TTarget>. Works for string literals and string-typed variables.
+    /// </summary>
+    /// <typeparam name="TTarget">Target type.</typeparam>
+    /// <param name="makeParseExpression">Factory that turns a string Expression into a TTarget Expression.</param>
+    /// <returns>The schema provider.</returns>
+    public static void RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression)
+    {
+        literalParsers[typeof(TTarget)] = makeParseExpression;
     }
 }

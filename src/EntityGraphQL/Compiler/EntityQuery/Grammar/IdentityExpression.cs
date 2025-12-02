@@ -12,7 +12,7 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
 
     public string Name { get; } = name;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, EntityQueryParser parser, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         return MakePropertyCall(context!, schema, Name, requestContext, compileContext);
     }

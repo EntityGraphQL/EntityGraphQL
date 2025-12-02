@@ -21,13 +21,18 @@ public class IsAnyAndConvertersTests
             V = v;
             Name = name;
         }
+
         public Version V { get; set; }
         public string Name { get; set; } = string.Empty;
     }
 
     private class WithNullableName
     {
-        public WithNullableName(string? name) { Name = name; }
+        public WithNullableName(string? name)
+        {
+            Name = name;
+        }
+
         public string? Name { get; set; }
     }
 
@@ -38,16 +43,11 @@ public class IsAnyAndConvertersTests
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
 
         var compiled = EntityQueryCompiler.Compile("v.isAny([\"1.2.3\", \"2.0.0\"]) ", schema, compileContext, schema.MethodProvider);
-        var data = new[]
-        {
-            new WithVersion(new Version(1,2,2), "A"),
-            new WithVersion(new Version(1,2,3), "B"),
-            new WithVersion(new Version(2,0,0), "C"),
-        };
+        var data = new[] { new WithVersion(new Version(1, 2, 2), "A"), new WithVersion(new Version(1, 2, 3), "B"), new WithVersion(new Version(2, 0, 0), "C") };
         var res = data.Where((Func<WithVersion, bool>)compiled.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
         Assert.Equal(new[] { "B", "C" }, res);
     }
-    
+
     [Fact]
     public void IsAny_On_CustomType_Is_Auto_Extended_By_Converters()
     {
@@ -55,11 +55,7 @@ public class IsAnyAndConvertersTests
         // Adding a converter to Version should automatically enable isAny on Version
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
         var compiled = EntityQueryCompiler.Compile("v.isAny([\"1.2.3\"]) ", schema, compileContext, schema.MethodProvider);
-        var data = new[]
-        {
-            new WithVersion(new Version(1,2,2), "A"),
-            new WithVersion(new Version(1,2,3), "B"),
-        };
+        var data = new[] { new WithVersion(new Version(1, 2, 2), "A"), new WithVersion(new Version(1, 2, 3), "B") };
         var res = data.Where((Func<WithVersion, bool>)compiled.LambdaExpression.Compile()).Select(d => d.Name).ToArray();
         Assert.Equal(new[] { "B" }, res);
     }
@@ -79,16 +75,16 @@ public class IsAnyAndConvertersTests
     {
         // This test simulates variable conversion path by pre-converting a string list via converters
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+        EntityQueryCompiler.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
         schema.AddCustomTypeConverter<string, Version>((s, _) => Version.Parse(s));
 
         var compiled = EntityQueryCompiler.Compile("v >= \"1.2.3\"", schema, compileContext);
         var data = new[]
         {
-            new WithVersion(new Version(1,2,2), "A"),
-            new WithVersion(new Version(1,2,3), "B"),
-            new WithVersion(new Version(2,0,0), "C"),
-            new WithVersion(new Version(3,0,0), "D"),
+            new WithVersion(new Version(1, 2, 2), "A"),
+            new WithVersion(new Version(1, 2, 3), "B"),
+            new WithVersion(new Version(2, 0, 0), "C"),
+            new WithVersion(new Version(3, 0, 0), "D"),
         };
 
         // simulate $versions variable provided as strings and converted

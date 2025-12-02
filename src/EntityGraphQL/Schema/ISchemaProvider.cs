@@ -55,23 +55,6 @@ public interface ISchemaProvider
     // Attempts to convert the value using custom converters (from-to first, then to-only, then from-only).
     bool TryConvertCustom(object? value, Type toType, out object? result);
 
-    /// <summary>
-    /// Registers a parser for binary comparisons that converts a string operand to TTarget at compile time.
-    /// Applied when one side is string and the other is TTarget or Nullable<TTarget>. Works for string literals and string-typed variables.
-    /// </summary>
-    /// <typeparam name="TTarget">Target type.</typeparam>
-    /// <param name="makeParseExpression">Factory that turns a string Expression into a TTarget Expression.</param>
-    /// <returns>The schema provider.</returns>
-    ISchemaProvider RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression);
-
-    /// <summary>
-    /// Gets the registered parser for a target type used by binary comparisons when the other operand is string.
-    /// </summary>
-    /// <param name="toType">Target type (nullable allowed).</param>
-    /// <param name="makeParseExpression">Parser factory (string Expression → target Expression).</param>
-    /// <returns>True if found; otherwise false.</returns>
-    bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression);
-    
     void AddDirective(IDirectiveProcessor directive);
     ISchemaType AddEnum(string name, Type type, string description);
     SchemaType<TEnum> AddEnum<TEnum>(string name, string description);

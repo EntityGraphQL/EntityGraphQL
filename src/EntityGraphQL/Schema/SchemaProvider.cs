@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
@@ -49,9 +48,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     private readonly Dictionary<(Type from, Type to), TryConvertShim> fromToConverters = new();
     private readonly Dictionary<Type, TryConvertShim> toConverters = new();
     private readonly Dictionary<Type, TryConvertShim> fromConverters = new();
-
-    // Literal parsers for query string literals → target CLR type
-    private readonly Dictionary<Type, Func<Expression, Expression>> literalParsers = new();
 
     public List<AllowedException> AllowedExceptions { get; } = [];
 
@@ -320,19 +316,6 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             MethodProvider.ExtendIsAnySupportedTypes(toType);
         }
         return this;
-    }
-
-    public ISchemaProvider RegisterLiteralParser<TTarget>(Func<Expression, Expression> makeParseExpression)
-    {
-        literalParsers[typeof(TTarget)] = makeParseExpression;
-        return this;
-    }
-
-    public bool TryGetLiteralParser(Type toType, out Func<Expression, Expression> makeParseExpression)
-    {
-        // Unwrap nullable types to find the underlying type's parser
-        var targetType = Nullable.GetUnderlyingType(toType) ?? toType;
-        return literalParsers.TryGetValue(targetType, out makeParseExpression!);
     }
 
     public bool TryConvertCustom(object? value, Type toType, out object? result)

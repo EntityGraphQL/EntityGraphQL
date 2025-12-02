@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Schema;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
@@ -15,19 +15,19 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
 
     public Type Type => parts[-1].Type;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, EntityQueryParser parser, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
         if (parts.Count == 1)
         {
             if (parts[0] is CallExpression ce)
             {
-                return MakeMethodCall(schema, methodProvider, ref context!, ce.Name, ce.Arguments, requestContext);
+                return MakeMethodCall(schema, parser, methodProvider, ref context!, ce.Name, ce.Arguments, requestContext);
             }
             if (parts[0] is IdentityExpression ie)
             {
                 return IdentityExpression.MakePropertyCall(context!, schema, ie.Name, requestContext, compileContext);
             }
-            return parts[0].Compile(context, schema, requestContext, methodProvider);
+            return parts[0].Compile(context, parser, schema, requestContext, methodProvider);
         }
         var exp = parts.Aggregate(
             context!,
@@ -35,13 +35,13 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
             {
                 if (next is CallExpression ce)
                 {
-                    return MakeMethodCall(schema, methodProvider, ref currentContext, ce.Name, ce.Arguments, requestContext);
+                    return MakeMethodCall(schema, parser, methodProvider, ref currentContext, ce.Name, ce.Arguments, requestContext);
                 }
                 if (next is IdentityExpression ie)
                 {
                     return IdentityExpression.MakePropertyCall(currentContext!, schema, ie.Name, requestContext, compileContext);
                 }
-                return next.Compile(context, schema, requestContext, methodProvider);
+                return next.Compile(context, parser, schema, requestContext, methodProvider);
             }
         );
         return exp;
@@ -49,6 +49,7 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
 
     internal static Expression MakeMethodCall(
         ISchemaProvider? schema,
+        EntityQueryParser parser,
         IMethodProvider methodProvider,
         ref Expression currentContext,
         string name,
@@ -72,7 +73,7 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         // build our method call
         var localContext = currentContext; // Create a local variable to store the value of currentContext
         // Compile the arguments with the new context
-        var args = arguments?.Select(a => a.Compile(localContext, schema, requestContext, methodProvider))?.ToList();
+        var args = arguments?.Select(a => a.Compile(localContext, parser, schema, requestContext, methodProvider))?.ToList();
 
         // Special handling for isAny: if the provided array/list element type doesn't match the context type,
         // convert the list elements to the context type using schema-aware converters first.

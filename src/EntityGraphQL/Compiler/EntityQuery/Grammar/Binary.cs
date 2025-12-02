@@ -14,30 +14,27 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
     public IExpression Left { get; } = left;
     public IExpression Right { get; } = right;
 
-    public Expression Compile(Expression? context, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
+    public Expression Compile(Expression? context, EntityQueryParser parser, ISchemaProvider? schema, QueryRequestContext requestContext, IMethodProvider methodProvider)
     {
-        var left = Left.Compile(context, schema, requestContext, methodProvider);
-        var right = Right.Compile(context, schema, requestContext, methodProvider);
+        var left = Left.Compile(context, parser, schema, requestContext, methodProvider);
+        var right = Right.Compile(context, parser, schema, requestContext, methodProvider);
         if (left.Type != right.Type)
         {
-            return ConvertLeftOrRight(Op, left, right, schema);
+            return ConvertLeftOrRight(Op, left, right, parser);
         }
         return Expression.MakeBinary(Op, left, right);
     }
 
-    private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right, ISchemaProvider? schema)
+    private static BinaryExpression ConvertLeftOrRight(ExpressionType op, Expression left, Expression right, EntityQueryParser parser)
     {
         // Defer nullable promotion and numeric width alignment until after we attempt literal parsing and specific conversions
         if (left.Type != right.Type)
         {
-            // Allow schema-registered literal parsers to handle string → target conversions first
-            if (schema != null)
-            {
-                if (right.Type == typeof(string) && left.Type != typeof(string) && schema.TryGetLiteralParser(left.Type, out var leftParser))
-                    right = leftParser(right);
-                else if (left.Type == typeof(string) && right.Type != typeof(string) && schema.TryGetLiteralParser(right.Type, out var rightParser))
-                    left = rightParser(left);
-            }
+            // Allow registered literal parsers to handle string → target conversions first
+            if (right.Type == typeof(string) && left.Type != typeof(string) && parser.TryGetLiteralParser(left.Type, out var leftParser))
+                right = leftParser(right);
+            else if (left.Type == typeof(string) && right.Type != typeof(string) && parser.TryGetLiteralParser(right.Type, out var rightParser))
+                left = rightParser(left);
 
             if (left.Type.IsEnum && right.Type.IsEnum)
                 throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Cannot compare enums of different types '{left.Type.Name}' and '{right.Type.Name}'");
@@ -76,9 +73,15 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                 else if (right.Type.IsEnum && left.Type == typeof(string))
                     left = ConvertToEnum(left, right.Type);
                 // Align int/uint/short/long widths if mixed
-                else if (left.Type == typeof(int) && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
+                else if (
+                    left.Type == typeof(int)
+                    && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
+                )
                     right = Expression.Convert(right, left.Type);
-                else if (left.Type == typeof(uint) && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong)))
+                else if (
+                    left.Type == typeof(uint)
+                    && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
+                )
                     left = Expression.Convert(left, right.Type);
                 // convert ints "up" to float/decimal
                 else if (
@@ -87,8 +90,14 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                 )
                     left = Expression.Convert(left, right.Type);
                 else if (
-                    (right.Type == typeof(int) || right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(ushort) || right.Type == typeof(long) || right.Type == typeof(ulong))
-                    && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
+                    (
+                        right.Type == typeof(int)
+                        || right.Type == typeof(uint)
+                        || right.Type == typeof(short)
+                        || right.Type == typeof(ushort)
+                        || right.Type == typeof(long)
+                        || right.Type == typeof(ulong)
+                    ) && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
                 )
                     right = Expression.Convert(right, left.Type);
                 else if (left.Type != right.Type) // default try to make types match

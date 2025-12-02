@@ -17,8 +17,11 @@ public class BinaryComparisonTests
     {
         public GuidHolder(Guid id, Guid? idN, string name)
         {
-            Id = id; IdN = idN; Name = name;
+            Id = id;
+            IdN = idN;
+            Name = name;
         }
+
         public Guid Id { get; set; }
         public Guid? IdN { get; set; }
         public string Name { get; set; }
@@ -30,11 +33,7 @@ public class BinaryComparisonTests
         var schema = SchemaBuilder.FromObject<GuidHolder>();
         var target = Guid.NewGuid();
         var compiled = EntityQueryCompiler.Compile($"id == \"{target}\"", schema, compileContext);
-        var data = new List<GuidHolder>
-        {
-            new(Guid.NewGuid(), null, "A"),
-            new(target, null, "B"),
-        };
+        var data = new List<GuidHolder> { new(Guid.NewGuid(), null, "A"), new(target, null, "B") };
         var res = data.Where((Func<GuidHolder, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
@@ -46,11 +45,7 @@ public class BinaryComparisonTests
         var schema = SchemaBuilder.FromObject<GuidHolder>();
         var target = Guid.NewGuid();
         var compiled = EntityQueryCompiler.Compile($"\"{target}\" == id", schema, compileContext);
-        var data = new List<GuidHolder>
-        {
-            new(Guid.NewGuid(), null, "A"),
-            new(target, null, "B"),
-        };
+        var data = new List<GuidHolder> { new(Guid.NewGuid(), null, "A"), new(target, null, "B") };
         var res = data.Where((Func<GuidHolder, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
@@ -62,21 +57,27 @@ public class BinaryComparisonTests
         var schema = SchemaBuilder.FromObject<GuidHolder>();
         var target = Guid.NewGuid();
         var compiled = EntityQueryCompiler.Compile($"idN == \"{target}\"", schema, compileContext);
-        var data = new List<GuidHolder>
-        {
-            new(Guid.NewGuid(), null, "A"),
-            new(Guid.NewGuid(), target, "B"),
-        };
+        var data = new List<GuidHolder> { new(Guid.NewGuid(), null, "A"), new(Guid.NewGuid(), target, "B") };
         var res = data.Where((Func<GuidHolder, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
     }
 
-    private enum EColor { Red, Green, Blue }
+    private enum EColor
+    {
+        Red,
+        Green,
+        Blue,
+    }
 
     private class EnumHolder
     {
-        public EnumHolder(EColor color, string name) { Color = color; Name = name; }
+        public EnumHolder(EColor color, string name)
+        {
+            Color = color;
+            Name = name;
+        }
+
         public EColor Color { get; set; }
         public string Name { get; set; }
     }
@@ -86,11 +87,7 @@ public class BinaryComparisonTests
     {
         var schema = SchemaBuilder.FromObject<EnumHolder>();
         var compiled = EntityQueryCompiler.Compile("color == \"Green\"", schema, compileContext);
-        var data = new List<EnumHolder>
-        {
-            new(EColor.Red, "A"),
-            new(EColor.Green, "B"),
-        };
+        var data = new List<EnumHolder> { new(EColor.Red, "A"), new(EColor.Green, "B") };
         var res = data.Where((Func<EnumHolder, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
@@ -99,7 +96,15 @@ public class BinaryComparisonTests
     private class NumericHolder
     {
         public NumericHolder(int priceI, uint priceU, decimal priceD, double priceF, int? n, string name)
-        { PriceI = priceI; PriceU = priceU; PriceD = priceD; PriceF = priceF; N = n; Name = name; }
+        {
+            PriceI = priceI;
+            PriceU = priceU;
+            PriceD = priceD;
+            PriceF = priceF;
+            N = n;
+            Name = name;
+        }
+
         public int PriceI { get; set; }
         public uint PriceU { get; set; }
         public decimal PriceD { get; set; }
@@ -113,11 +118,7 @@ public class BinaryComparisonTests
     {
         var schema = SchemaBuilder.FromObject<NumericHolder>();
         var compiled = EntityQueryCompiler.Compile("priceI > 3.5", schema, compileContext);
-        var data = new List<NumericHolder>
-        {
-            new(3, 3, 3m, 3.0, 1, "A"),
-            new(4, 4, 4m, 4.0, 2, "B"),
-        };
+        var data = new List<NumericHolder> { new(3, 3, 3m, 3.0, 1, "A"), new(4, 4, 4m, 4.0, 2, "B") };
         var res = data.Where((Func<NumericHolder, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
@@ -128,11 +129,7 @@ public class BinaryComparisonTests
     {
         var schema = SchemaBuilder.FromObject<NumericHolder>();
         var compiled = EntityQueryCompiler.Compile("priceU == 4", schema, compileContext);
-        var data = new List<NumericHolder>
-        {
-            new(1, 3u, 0m, 0.0, null, "A"),
-            new(2, 4u, 0m, 0.0, null, "B"),
-        };
+        var data = new List<NumericHolder> { new(1, 3u, 0m, 0.0, null, "A"), new(2, 4u, 0m, 0.0, null, "B") };
         var res = data.Where((Func<NumericHolder, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
@@ -143,26 +140,17 @@ public class BinaryComparisonTests
     {
         var schema = SchemaBuilder.FromObject<NumericHolder>();
         var compiled = EntityQueryCompiler.Compile("n == 2", schema, compileContext);
-        var data = new List<NumericHolder>
-        {
-            new(0, 0, 0m, 0.0, 1, "A"),
-            new(0, 0, 0m, 0.0, 2, "B"),
-        };
+        var data = new List<NumericHolder> { new(0, 0, 0m, 0.0, 1, "A"), new(0, 0, 0m, 0.0, 2, "B") };
         var res = data.Where((Func<NumericHolder, bool>)compiled.LambdaExpression.Compile()).ToList();
         Assert.Single(res);
         Assert.Equal("B", res[0].Name);
     }
-    
-        [Fact]
+
+    [Fact]
     public void Binary_Version_All_Operators_Work_With_LiteralParser()
     {
         var schema = MakeSchemaWithVersionLiteralParser();
-        var data = new List<WithVersion>
-        {
-            new(new Version(1,2,2), "A"),
-            new(new Version(1,2,3), "B"),
-            new(new Version(2,0,0), "C"),
-        };
+        var data = new List<WithVersion> { new(new Version(1, 2, 2), "A"), new(new Version(1, 2, 3), "B"), new(new Version(2, 0, 0), "C") };
 
         // ==
         var eq = EntityQueryCompiler.Compile("v == \"1.2.3\"", schema, compileContext);
@@ -209,15 +197,10 @@ public class BinaryComparisonTests
     public void Binary_NullableVersion_Handles_Nulls_Correctly()
     {
         var schema = SchemaBuilder.FromObject<WithNullableVersion>();
-        schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+        EntityQueryCompiler.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
 
         var compiled = EntityQueryCompiler.Compile("v >= \"1.2.3\"", schema, compileContext);
-        var data = new[]
-        {
-            new WithNullableVersion(null, "N"),
-            new WithNullableVersion(new Version(1,2,3), "B"),
-            new WithNullableVersion(new Version(2,0,0), "C"),
-        };
+        var data = new[] { new WithNullableVersion(null, "N"), new WithNullableVersion(new Version(1, 2, 3), "B"), new WithNullableVersion(new Version(2, 0, 0), "C") };
         var res = data.Where((Func<WithNullableVersion, bool>)compiled.LambdaExpression.Compile()).Select(x => x.Name).ToArray();
         Assert.Equal(new[] { "B", "C" }, res);
     }
@@ -229,17 +212,17 @@ public class BinaryComparisonTests
         var compiled = EntityQueryCompiler.Compile("v >= \"not-a-version\"", schema, compileContext);
         var pred = (Func<WithVersion, bool>)compiled.LambdaExpression.Compile();
         // Evaluate on a single row to trigger Version.Parse of the literal
-        var ex = Assert.ThrowsAny<Exception>(() => pred(new WithVersion(new Version(0,0), "X")));
+        var ex = Assert.ThrowsAny<Exception>(() => pred(new WithVersion(new Version(0, 0), "X")));
         Assert.Contains("Version", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
-    
+
     private static SchemaProvider<WithVersion> MakeSchemaWithVersionLiteralParser()
     {
         var schema = SchemaBuilder.FromObject<WithVersion>();
-        schema.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
+        EntityQueryCompiler.RegisterLiteralParser<Version>(strExpr => Expression.Call(typeof(Version), nameof(Version.Parse), null, strExpr));
         return schema;
     }
-    
+
     private class WithVersion
     {
         public WithVersion(Version v, string name)
@@ -247,6 +230,7 @@ public class BinaryComparisonTests
             V = v;
             Name = name;
         }
+
         public Version V { get; set; }
         public string Name { get; set; }
     }
@@ -258,6 +242,7 @@ public class BinaryComparisonTests
             V = v;
             Name = name;
         }
+
         public Version? V { get; set; }
         public string Name { get; set; }
     }
