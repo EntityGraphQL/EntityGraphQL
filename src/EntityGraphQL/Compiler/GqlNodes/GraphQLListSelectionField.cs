@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -138,6 +139,21 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                 useNullCheckMethods,
                 withoutServiceFields || !contextChanged
             );
+
+        // Check if the result is a Task<IEnumerable<T>> from an async service field
+        // If so, we don't need to call ToList as the SelectAsync method already returns an enumerable
+        // and we want to preserve the async nature for proper runtime resolution
+        var resultType = resultExpression.Type;
+        if (resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            var taskResultType = resultType.GetGenericArguments()[0];
+            if (taskResultType.IsEnumerableOrArray())
+            {
+                // The expression is Task<IEnumerable<T>>, return it as-is
+                // Runtime async resolution will handle this properly
+                return resultExpression;
+            }
+        }
 
         var resultElementType = resultExpression.Type.GetEnumerableOrArrayType()!;
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -554,6 +555,26 @@ public static class ExpressionUtil
             );
 
             var selector = Expression.Lambda(previous!, currentContextParam);
+
+            // Check if baseExp.Type is Task<T> where T is enumerable
+            var baseType = baseExp.Type;
+            if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                var taskResultType = baseType.GetGenericArguments()[0];
+                if (taskResultType.IsEnumerableOrArray())
+                {
+                    // For async service fields returning Task<IEnumerable<T>>, build an expression that awaits the task
+                    // and then applies the selector
+                    var elementType = taskResultType.GetEnumerableOrArrayType()!;
+                    var selectAsyncMethod = nullCheck
+                        ? typeof(AsyncEnumerableHelpers).GetMethod(nameof(AsyncEnumerableHelpers.SelectAsyncWithNullCheck))!.MakeGenericMethod(elementType, baseDynamicType)
+                        : typeof(AsyncEnumerableHelpers).GetMethod(nameof(AsyncEnumerableHelpers.SelectAsync))!.MakeGenericMethod(elementType, baseDynamicType);
+
+                    var callExp = Expression.Call(selectAsyncMethod, baseExp, selector);
+                    return (callExp, allNonBaseDynamicTypes);
+                }
+            }
+
             var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
 
             Expression call;
@@ -572,6 +593,26 @@ public static class ExpressionUtil
             if (memberInit == null || dynamicType == null) // nothing to select
                 return (baseExp, null);
             var selector = Expression.Lambda(memberInit, currentContextParam);
+
+            // Check if baseExp.Type is Task<T> where T is enumerable
+            var baseType = baseExp.Type;
+            if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(Task<>))
+            {
+                var taskResultType = baseType.GetGenericArguments()[0];
+                if (taskResultType.IsEnumerableOrArray())
+                {
+                    // For async service fields returning Task<IEnumerable<T>>, build an expression that awaits the task
+                    // and then applies the selector
+                    var elementType = taskResultType.GetEnumerableOrArrayType()!;
+                    var selectAsyncMethod = nullCheck
+                        ? typeof(AsyncEnumerableHelpers).GetMethod(nameof(AsyncEnumerableHelpers.SelectAsyncWithNullCheck))!.MakeGenericMethod(elementType, dynamicType)
+                        : typeof(AsyncEnumerableHelpers).GetMethod(nameof(AsyncEnumerableHelpers.SelectAsync))!.MakeGenericMethod(elementType, dynamicType);
+
+                    var callExp = Expression.Call(selectAsyncMethod, baseExp, selector);
+                    return (callExp, new List<Type> { dynamicType });
+                }
+            }
+
             var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
             Expression call;
             if (nullCheck)

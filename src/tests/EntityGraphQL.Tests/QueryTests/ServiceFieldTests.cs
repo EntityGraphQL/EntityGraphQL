@@ -2016,9 +2016,11 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequest(gql, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.NotNull(res.Data);
-        dynamic project = res.Data["getProject"]!;
+        dynamic project = (object)res.Data["getProject"]!;
+        Assert.NotNull(project);
+
         Assert.Equal(1, project.id);
-        Assert.Equal("Project 1", project.name);
+        Assert.Equal("test", project.name);
         Assert.Equal(1, project.createdBy);
     }
 
@@ -2048,9 +2050,13 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequest(gql, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.NotNull(res.Data);
-        dynamic project = res.Data["getProjects"]!;
+        var projectsData = res.Data["getProjects"];
+        Assert.NotNull(projectsData);
+        var projectsList = ((System.Collections.IEnumerable)projectsData).Cast<object>().ToList();
+        Assert.Single(projectsList);
+        dynamic project = projectsList[0];
         Assert.Equal(1, project.id);
-        Assert.Equal("Project 1", project.name);
+        Assert.Equal("test", project.name);
         Assert.Equal(1, project.createdBy);
     }
 
