@@ -1977,6 +1977,83 @@ public class ServiceFieldTests
         Assert.Equal("getProjectId", Enumerable.ElementAt(project.GetType().GetFields(), 1).Name);
     }
 
+    public class ContextTest
+    {
+        public async Task<Project> GetProject()
+        {
+            return await System.Threading.Tasks.Task.FromResult(new Project() {  Id = 1, Name = "test", CreatedBy = 1 });
+        }
+
+        public async Task<IEnumerable<Project>> GetProjects()
+        {
+            return await System.Threading.Tasks.Task.FromResult(new[] { new Project() { Id = 1, Name = "test", CreatedBy = 1 } });
+        }
+    }
+
+    [Fact]
+    public void TestTopLevelAsyncService()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        // Here the expression project is extracted and the expression is used for a field name, which is a duplicate of the project field
+        schema.Query().AddField("getProject", "Something").ResolveAsync<ContextTest>((context, us) => us.GetProject());
+
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{ 
+                  getProject { id name createdBy }
+                }",
+        };
+
+        var context = new TestDataContext();
+        
+        var serviceCollection = new ServiceCollection();        
+        serviceCollection.AddSingleton(new ContextTest());
+        serviceCollection.AddSingleton(context);
+
+        var res = schema.ExecuteRequest(gql, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.NotNull(res.Data);
+        dynamic project = res.Data["getProject"]!;
+        Assert.Equal(1, project.id);
+        Assert.Equal("Project 1", project.name);
+        Assert.Equal(1, project.createdBy);
+    }
+
+    [Fact]
+    public void TestTopLevelAsyncServiceList()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        // Here the expression project is extracted and the expression is used for a field name, which is a duplicate of the project field
+        schema.Query().AddField("getProjects", "Something").ResolveAsync<ContextTest>((context, us) => us.GetProjects());
+
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{ 
+                  getProjects { id name createdBy }
+                }",
+        };
+
+        var context = new TestDataContext();
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new ContextTest());
+        serviceCollection.AddSingleton(context);
+
+        var res = schema.ExecuteRequest(gql, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.NotNull(res.Data);
+        dynamic project = res.Data["getProjects"]!;
+        Assert.Equal(1, project.id);
+        Assert.Equal("Project 1", project.name);
+        Assert.Equal(1, project.createdBy);
+    }
+
     public class ConfigService
     {
         public ConfigService()
