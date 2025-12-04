@@ -19,15 +19,43 @@ public class EntityQueryCompilerTests
     [Fact]
     public void CompilesNumberConstant()
     {
-        var exp = EntityQueryCompiler.Compile("3", compileContext);
-        Assert.Equal((long)3, exp.Execute());
+        var exp = EntityQueryCompiler.Compile("33000", compileContext);
+        Assert.Equal((int)33000, exp.Execute());
     }
 
     [Fact]
     public void CompilesNegativeNumberConstant()
     {
+        var exp = EntityQueryCompiler.Compile("-33000", compileContext);
+        Assert.Equal((int)-33000, exp.Execute());
+    }
+
+    [Fact]
+    public void CompilesShortNumberConstant()
+    {
+        var exp = EntityQueryCompiler.Compile("3", compileContext);
+        Assert.Equal((short)3, exp.Execute());
+    }
+
+    [Fact]
+    public void CompilesShortNegativeNumberConstant()
+    {
         var exp = EntityQueryCompiler.Compile("-43", compileContext);
-        Assert.Equal((long)-43, exp.Execute());
+        Assert.Equal((short)-43, exp.Execute());
+    }
+
+    [Fact]
+    public void CompilesLongNumberConstant()
+    {
+        var exp = EntityQueryCompiler.Compile("3000000000", compileContext);
+        Assert.Equal((long)3000000000, exp.Execute());
+    }
+
+    [Fact]
+    public void CompilesLongNegativeNumberConstant()
+    {
+        var exp = EntityQueryCompiler.Compile("-3000000000", compileContext);
+        Assert.Equal((long)-3000000000, exp.Execute());
     }
 
     [Fact]
@@ -155,7 +183,7 @@ public class EntityQueryCompilerTests
     {
         // no brackets so it reads it as someRelation.relation.id == (99 ? 'wooh' : 66) and fails as 99 is not a bool
         var ex = Assert.Throws<EntityGraphQLException>(() => EntityQueryCompiler.Compile("someRelation.relation.id == 99 ? \"wooh\" : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext));
-        Assert.Equal("Conditional result types mismatch. Types 'String' and 'Int64' must be the same.", ex.Message);
+        Assert.Equal("Conditional result types mismatch. Types 'String' and 'Int16' must be the same.", ex.Message);
     }
 
     [Fact]
@@ -163,7 +191,7 @@ public class EntityQueryCompilerTests
     {
         // tells it how to read it
         var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 99) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
-        Assert.Equal((long)100, exp.Execute(new TestSchema()));
+        Assert.Equal((short)100, exp.Execute(new TestSchema()));
     }
 
     [Fact]
@@ -171,35 +199,35 @@ public class EntityQueryCompilerTests
     {
         // tells it how to read it
         var exp = EntityQueryCompiler.Compile("(someRelation.relation.id == 98) ? 100 : 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
-        Assert.Equal((long)66, exp.Execute(new TestSchema()));
+        Assert.Equal((short)66, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesIfThenElseTrue()
     {
         var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 99 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
-        Assert.Equal((long)100, exp.Execute(new TestSchema()));
+        Assert.Equal((short)100, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesIfThenElseFalse()
     {
         var exp = EntityQueryCompiler.Compile("if someRelation.relation.id == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
-        Assert.Equal((long)66, exp.Execute(new TestSchema()));
+        Assert.Equal((short)66, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesBinaryWithIntAndUint()
     {
         var exp = EntityQueryCompiler.Compile("if someRelation.unisgnedInt == 33 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
-        Assert.Equal((long)66, exp.Execute(new TestSchema()));
+        Assert.Equal((short)66, exp.Execute(new TestSchema()));
     }
 
     [Fact]
     public void CompilesBinaryWithNullableAndNonNullable()
     {
         var exp = EntityQueryCompiler.Compile("if someRelation.nullableInt == 8 then 100 else 66", SchemaBuilder.FromObject<TestSchema>(), compileContext);
-        Assert.Equal((long)100, exp.Execute(new TestSchema()));
+        Assert.Equal((short)100, exp.Execute(new TestSchema()));
     }
 
     [Fact]
@@ -441,7 +469,16 @@ public class EntityQueryCompilerTests
         var schema = SchemaBuilder.FromObject<TestSchema>();
 
         var res = EntityQueryCompiler.Compile("[1, 4,5]", schema, compileContext).Execute(new TestSchema());
-        Assert.Collection((IEnumerable<long>)res!, i => Assert.Equal(1, i), i => Assert.Equal(4, i), i => Assert.Equal(5, i));
+        Assert.Collection((IEnumerable<short>)res!, i => Assert.Equal(1, i), i => Assert.Equal(4, i), i => Assert.Equal(5, i));
+    }
+
+    [Fact]
+    public void CompilesConstantArrayWithMixedNumericSizes()
+    {
+        var schema = SchemaBuilder.FromObject<TestSchema>();
+
+        var res = EntityQueryCompiler.Compile("[1, 33000,5]", schema, compileContext).Execute(new TestSchema());
+        Assert.Collection((IEnumerable<int>)res!, i => Assert.Equal(1, i), i => Assert.Equal(33000, i), i => Assert.Equal(5, i));
     }
 
     [Fact]

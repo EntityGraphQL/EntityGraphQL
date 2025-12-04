@@ -70,7 +70,16 @@ public sealed class EntityQueryParser
             var bits = decimal.GetBits(d);
             var scale = (int)((bits[3] >> 16) & 0x7F);
 #endif
-            return new EqlExpression(scale == 0 ? Expression.Constant((long)d) : Expression.Constant(d));
+            if (scale != 0)
+                return new EqlExpression(Expression.Constant(d));
+
+            if (d >= short.MinValue && d <= short.MaxValue)
+                return new EqlExpression(Expression.Constant((short)d));
+
+            if (d >= int.MinValue && d <= int.MaxValue)
+                return new EqlExpression(Expression.Constant((int)d));
+
+            return new EqlExpression(Expression.Constant((long)d));
         });
 
     private static readonly Parser<IExpression> strExp = SkipWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble))
@@ -101,20 +110,36 @@ public sealed class EntityQueryParser
             .And(closeArray)
             .Then<IExpression>(
                 static (c, x) =>
-                    new EqlExpression(
+                {
+                    var firstType = x.Item2[0].Type;
+                    var promotedType = IsIntegralNumericType(firstType) ? PromoteIntegralNumericType(x.Item2.Select(expression => expression.Type).ToArray()) : firstType;
+
+                    return new EqlExpression(
                         Expression.NewArrayInit(
-                            x.Item2[0].Type,
+                            promotedType,
                             x.Item2.Select(e =>
-                                e.Compile(
-                                    ((EntityQueryParseContext)c).Context,
-                                    Instance,
-                                    ((EntityQueryParseContext)c).Schema,
-                                    ((EntityQueryParseContext)c).RequestContext,
-                                    ((EntityQueryParseContext)c).MethodProvider
-                                )
+                                e.Type != promotedType
+                                    ? Expression.Convert(
+                                        e.Compile(
+                                            ((EntityQueryParseContext)c).Context,
+                                            Instance,
+                                            ((EntityQueryParseContext)c).Schema,
+                                            ((EntityQueryParseContext)c).RequestContext,
+                                            ((EntityQueryParseContext)c).MethodProvider
+                                        ),
+                                        promotedType
+                                    )
+                                    : e.Compile(
+                                        ((EntityQueryParseContext)c).Context,
+                                        Instance,
+                                        ((EntityQueryParseContext)c).Schema,
+                                        ((EntityQueryParseContext)c).RequestContext,
+                                        ((EntityQueryParseContext)c).MethodProvider
+                                    )
                             )
                         )
-                    )
+                    );
+                }
             );
 
         var call = SkipWhiteSpace(new Identifier()).And(callArgs.Or(emptyCallArgs)).Then<IExpression>(static x => new CallExpression(x.Item1!.ToString()!, x.Item2));
@@ -193,6 +218,25 @@ public sealed class EntityQueryParser
         expression.Parser = conditional.Or(logicalBinary);
 
         grammar = expression;
+    }
+
+    private static bool IsIntegralNumericType(Type type)
+    {
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+        return underlyingType == typeof(short) || underlyingType == typeof(int) || underlyingType == typeof(long);
+    }
+
+    private static Type PromoteIntegralNumericType(Type[] types)
+    {
+        bool hasLong = types.Contains(typeof(long));
+        bool hasInt = types.Contains(typeof(int));
+
+        if (hasLong)
+            return typeof(long);
+        if (hasInt)
+            return typeof(int);
+
+        return types[0];
     }
 
     static EntityQueryParser()
