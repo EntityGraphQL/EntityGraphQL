@@ -16,7 +16,7 @@
 
 ## Fixes
 
-- #481 - handle `ResolveAysnc` on a top level field
+- #481 - handle `ResolveAsync` on a top level field
 
 # 6.0.0-beta2
 

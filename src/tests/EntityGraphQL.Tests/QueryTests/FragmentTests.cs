@@ -376,9 +376,9 @@ public class FragmentTests
         var tree = GraphQLParser.Parse(
             @"
             query {
-                people { 
+                people {
                     ...PersonBasics
-                    projects { 
+                    projects {
                         ...ProjectBasics
                         owner { ...PersonBasics }
                     }
@@ -399,6 +399,54 @@ public class FragmentTests
         Assert.NotNull(tree);
         var qr = tree.ExecuteQuery(new TestDataContext().FillWithTestData(), null, null);
         Assert.NotNull(qr.Data);
+    }
+
+    [Fact]
+    public void TestFragmentWithVariables()
+    {
+        // Issue #483: Variables should be supported in fragments
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+
+        var tree = GraphQLParser.Parse(
+            @"
+            query Projects($taskName: String) {
+                projects {
+                    ...ProjectFragment
+                }
+            }
+
+            fragment ProjectFragment on Project {
+                id
+                name
+                searchTasks(name: $taskName) {
+                    id
+                    name
+                }
+            }
+            ",
+            schemaProvider
+        );
+
+        Assert.NotNull(tree);
+
+        var variables = new QueryVariables { { "taskName", "task 1" } };
+
+        var context = new TestDataContext().FillWithTestData();
+        var qr = tree.ExecuteQuery(context, null, variables);
+
+        Assert.Null(qr.Errors);
+        Assert.NotNull(qr.Data);
+
+        dynamic projects = qr.Data!["projects"]!;
+        Assert.Single(projects);
+
+        dynamic project = projects[0];
+        Assert.Equal(55, project.id);
+        Assert.Equal("Project 3", project.name);
+
+        // Should only get the task matching "task 1"
+        Assert.Single(project.searchTasks);
+        Assert.Equal("task 1", project.searchTasks[0].name);
     }
 }
 

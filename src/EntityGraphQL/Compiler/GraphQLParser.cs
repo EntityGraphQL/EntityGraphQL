@@ -133,6 +133,8 @@ public static class GraphQLParser
         var fragParameter = Expression.Parameter(schemaType.TypeDotnet, $"frag_{typeName}");
         var fragStatement = new GraphQLFragmentStatement(document.Schema, fragmentName, fragParameter, fragParameter);
 
+        parseContext.InFragment = true;
+
         ParseSelectionSet(parseContext, fragStatement, ref reader);
 
         if (directives?.Count > 0)
@@ -143,6 +145,8 @@ public static class GraphQLParser
                 directive.VisitNode(ExecutableDirectiveLocation.FragmentDefinition, document.Schema, fragStatement, new Dictionary<string, object?>(), null, null);
             }
         }
+
+        parseContext.InFragment = false;
 
         document.Fragments.Add(fragmentName, fragStatement);
     }
@@ -501,9 +505,15 @@ public static class GraphQLParser
         {
             case '$':
                 reader.Advance();
-                if (parseContext.CurrentOperation == null)
+                if (parseContext.CurrentOperation == null && !parseContext.InFragment)
                     throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Variable used but no current operation found");
                 var variableName = ReadName(parseContext, ref reader, skipIgnored: false);
+                // If we're in a fragment, we can't resolve the variable yet since fragments don't have operation context
+                // We'll resolve it later when the fragment is expanded into an operation
+                if (parseContext.InFragment)
+                    return new VariableReference(variableName);
+                if (parseContext.CurrentOperation == null)
+                    throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Variable used but no current operation found");
                 var variableExpression = Expression.PropertyOrField(parseContext.CurrentOperation.OpVariableParameter!, variableName);
                 return variableExpression;
             case '"':
@@ -1284,8 +1294,9 @@ public static class GraphQLParser
 
             var argType = field.GetArgumentType(argName);
 
-            if (arg.Value is Expression)
+            if (arg.Value is Expression or VariableReference)
             {
+                // Keep Expression and VariableReference as-is, they'll be resolved later during compilation
                 arguments[argName] = arg.Value;
             }
             else
@@ -1324,8 +1335,9 @@ public static class GraphQLParser
             return Enum.Parse(underlyingType, enumStrNullable, true);
         }
 
-        if (value is Expression)
+        if (value is Expression or VariableReference)
         {
+            // Keep Expression and VariableReference as-is, they'll be resolved later during compilation
             return value;
         }
 
@@ -1546,6 +1558,7 @@ internal ref struct GraphQLParseContext
     public ReadOnlySpan<char> Source { get; }
     public QueryVariables QueryVariables { get; }
     public ExecutableGraphQLStatement? CurrentOperation { get; set; }
+    public bool InFragment { get; set; }
 
     public GraphQLParseContext(ReadOnlySpan<char> query, QueryVariables queryVariables)
     {

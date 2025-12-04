@@ -38,7 +38,30 @@ public static class ArgumentUtil
             object? val;
             try
             {
-                if (args.ContainsKey(argField.Name) && args[argField.Name] is Expression argExpression)
+                // Handle VariableReference from fragments - convert to Expression first
+                if (args.ContainsKey(argField.Name) && args[argField.Name] is VariableReference varRef)
+                {
+                    // Resolve the VariableReference to an Expression now that we have the operation context
+                    if (docParam == null)
+                        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Variable '{varRef.VariableName}' used but no operation context available");
+
+                    var argExpression = Expression.PropertyOrField(docParam, varRef.VariableName);
+
+                    // Process it like a regular Expression
+                    if (docVariables != null)
+                    {
+                        val = Expression.Lambda(argExpression, docParam).Compile().DynamicInvoke([docVariables]);
+                        if (docVariables.IsSet(varRef.VariableName))
+                            setValues.Add(argField.Name);
+                    }
+                    else
+                    {
+                        val = argExpression;
+                        setValues.Add(argField.Name);
+                    }
+                    values.Add(argField.Name, ExpressionUtil.ConvertObjectType(val, argField.RawType, schema));
+                }
+                else if (args.ContainsKey(argField.Name) && args[argField.Name] is Expression argExpression)
                 {
                     // this value comes from the variables from the query document
                     if (docVariables != null)
