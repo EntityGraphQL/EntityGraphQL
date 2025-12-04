@@ -104,6 +104,38 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         if (withoutServiceFields && HasServices && !IsRootField)
             return nextFieldContext;
 
+        // Check if nextFieldContext is a Task<T> - we need to handle field selection on the awaited result
+        // This must be done BEFORE building selection fields, as we need to build them against the awaited type
+        if (nextFieldContext.Type.IsGenericType && nextFieldContext.Type.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>))
+        {
+            var taskResultType = nextFieldContext.Type.GetGenericArguments()[0];
+
+            // Create a parameter representing the awaited result
+            var awaitedParam = Expression.Parameter(taskResultType, $"awaited_{Name}");
+
+            // Build selection fields against the awaited parameter (not the Task)
+            var awaitedSelectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, awaitedParam, schemaContext, contextChanged, replacer);
+            if (awaitedSelectionFields == null || awaitedSelectionFields.Count == 0)
+                return null;
+
+            if (HasServices)
+                compileContext.AddServices(Field!.Services);
+
+            // Build the projection on the awaited result
+            var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, awaitedParam, Field!.ReturnType, awaitedSelectionFields, out Type anonType);
+
+            // Create a lambda: (awaitedResult) => new { ... }
+            var selector = Expression.Lambda(newExp!, awaitedParam);
+
+            // Call the async helper to await and project
+            var isNullable = !taskResultType.IsValueType || taskResultType.IsNullableType();
+            var projectAsyncMethod = isNullable
+                ? typeof(AsyncEnumerableHelpers).GetMethod(nameof(AsyncEnumerableHelpers.ProjectAsyncWithNullCheck))!.MakeGenericMethod(taskResultType, anonType)
+                : typeof(AsyncEnumerableHelpers).GetMethod(nameof(AsyncEnumerableHelpers.ProjectAsync))!.MakeGenericMethod(taskResultType, anonType);
+
+            return Expression.Call(projectAsyncMethod, nextFieldContext, selector);
+        }
+
         var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
         if (selectionFields == null || selectionFields.Count == 0)
             return null;
@@ -118,22 +150,23 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         else
         {
             (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
+
             // build a new {...} - returning a single object {}
-            var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType);
-            var isNullable = !nextFieldContext.Type.IsValueType || nextFieldContext.Type.IsNullableType();
-            if (isNullable && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
+            var newExp2 = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType2);
+            var isNullable2 = !nextFieldContext.Type.IsValueType || nextFieldContext.Type.IsNullableType();
+            if (isNullable2 && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
             {
                 // make a null check from this new expression
                 nextFieldContext = Expression.Condition(
                     Expression.MakeBinary(ExpressionType.Equal, nextFieldContext, Expression.Constant(null)),
-                    Expression.Constant(null, anonType),
-                    newExp!,
-                    anonType
+                    Expression.Constant(null, anonType2),
+                    newExp2!,
+                    anonType2
                 );
             }
             else
             {
-                nextFieldContext = newExp;
+                nextFieldContext = newExp2;
             }
         }
 

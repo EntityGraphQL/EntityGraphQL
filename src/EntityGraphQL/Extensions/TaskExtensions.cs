@@ -29,4 +29,27 @@ public static class AsyncEnumerableHelpers
             return null;
         return result.Select(selector);
     }
+
+    /// <summary>
+    /// Awaits a Task<TSource> and then applies a selector to project fields
+    /// This is used for async service fields that return single objects with field selections
+    /// </summary>
+    public static async Task<TResult> ProjectAsync<TSource, TResult>(Task<TSource> source, Func<TSource, TResult> selector)
+    {
+        var result = await source;
+        if (result == null)
+            return default!;
+        return selector(result);
+    }
+
+    /// <summary>
+    /// Awaits a Task<TSource> and then applies a selector to project fields with null checking
+    /// </summary>
+    public static async Task<TResult?> ProjectAsyncWithNullCheck<TSource, TResult>(Task<TSource> source, Func<TSource, TResult> selector)
+    {
+        var result = await source;
+        if (result == null)
+            return default;
+        return selector(result);
+    }
 }

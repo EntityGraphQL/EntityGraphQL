@@ -2016,9 +2016,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequest(gql, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.NotNull(res.Data);
-        dynamic project = (object)res.Data["getProject"]!;
-        Assert.NotNull(project);
-
+        dynamic project = res.Data["getProject"]!;
         Assert.Equal(1, project.id);
         Assert.Equal("test", project.name);
         Assert.Equal(1, project.createdBy);

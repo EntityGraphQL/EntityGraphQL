@@ -154,6 +154,9 @@ public class FieldToResolveWithArgs<TContext, TParams> : FieldWithContextAndArgs
     public FieldWithContextAndArgs<TContext, TParams> ResolveAsync<TService>(Expression<Func<TContext, TParams, TService, Task>> fieldExpression, int? maxConcurrency = null) =>
         ResolveAsyncImpl(fieldExpression, maxConcurrency);
 
+    public FieldWithContextAndArgs<TContext, TParams> ResolveAsync<TService, TReturn>(Expression<Func<TContext, TParams, TService, Task<TReturn>>> fieldExpression, int? maxConcurrency = null) =>
+        ResolveAsyncImpl(fieldExpression, maxConcurrency);
+
     public FieldWithContextAndArgs<TContext, TParams> ResolveAsync<TService, TReturn>(Expression<Func<TContext, TParams, TService, ValueTask<TReturn>>> fieldExpression, int? maxConcurrency = null) =>
         ResolveAsyncImpl(fieldExpression, maxConcurrency);
 
@@ -298,6 +301,9 @@ public class FieldToResolve<TContext> : FieldWithContext<TContext>
     /// <param name="maxConcurrency">Maximum number of concurrent operations for this field</param>
     /// <returns>The resolved field with concurrency limiting applied</returns>
     public FieldWithContext<TContext> ResolveAsync<TService>(Expression<Func<TContext, TService, Task>> fieldExpression, int? maxConcurrency = null) =>
+        ResolveAsyncImpl(fieldExpression, maxConcurrency);
+
+    public FieldWithContext<TContext> ResolveAsync<TService, TReturn>(Expression<Func<TContext, TService, Task<TReturn>>> fieldExpression, int? maxConcurrency = null) =>
         ResolveAsyncImpl(fieldExpression, maxConcurrency);
 
     public FieldWithContext<TContext> ResolveAsync<TService, TReturn>(Expression<Func<TContext, TService, ValueTask<TReturn>>> fieldExpression, int? maxConcurrency = null) =>
