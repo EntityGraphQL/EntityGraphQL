@@ -96,30 +96,49 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
 
         HandleBeforeRootFieldExpressionBuild(compileContext, GetOperationName(this), Name, contextChanged, IsRootField, ref nextFieldContext);
 
-        bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
-
         (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
         // if we have services and they don't want service fields, return the expression only for extraction
         if (withoutServiceFields && HasServices && !IsRootField)
             return nextFieldContext;
 
-        var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
+        var selectionContext = nextFieldContext;
+        bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields) || ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && IsRootField);
+
+        if (Field?.IsAsync == true && !contextChanged)
+        {
+            // for async fields we need to build the selection on the result of the task
+            var resultType = nextFieldContext.Type.GetGenericArguments()[0];
+            selectionContext = Expression.Parameter(resultType, $"{Name}_result");
+        }
+        else if (needsServiceWrap)
+        {
+            // we need to build the selection on a parameter of the result type
+            selectionContext = Expression.Parameter(nextFieldContext.Type, $"{Name}_result");
+        }
+        var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, selectionContext, schemaContext, contextChanged, replacer);
         if (selectionFields == null || selectionFields.Count == 0)
             return null;
 
         if (HasServices)
             compileContext.AddServices(Field!.Services);
 
-        if (needsServiceWrap || ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && IsRootField))
+        // build a new {...} - returning a single object {}
+        (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
+        var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType)!;
+
+        if (needsServiceWrap || Field?.IsAsync == true)
         {
-            nextFieldContext = WrapWithNullCheck(compileContext, selectionFields, serviceProvider, nextFieldContext, schemaContext, argumentParam, contextChanged, replacer);
+            nextFieldContext = Expression.Call(
+                typeof(EnumerableExtensions),
+                nameof(EnumerableExtensions.ProjectWithNullCheck),
+                [selectionContext.Type, anonType],
+                nextFieldContext,
+                Expression.Lambda(newExp, (ParameterExpression)selectionContext)
+            );
         }
         else
         {
-            (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
-            // build a new {...} - returning a single object {}
-            var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType);
             var isNullable = !nextFieldContext.Type.IsValueType || nextFieldContext.Type.IsNullableType();
             if (isNullable && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
             {
@@ -138,83 +157,6 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         }
 
         return nextFieldContext;
-    }
-
-    /// <summary>
-    /// These expression will be built on the element type
-    /// we might be using a service i.e. ctx => WithService((T r) => r.DoSomething(ctx.Entities.Select(f => f.Id).ToList()))
-    /// if we can we want to avoid calling that multiple times with a expression like
-    /// r.DoSomething(ctx.Entities.Select(f => f.Id).ToList()) == null ? null : new {
-    ///      Field = r.DoSomething(ctx.Entities.Select(f => f.Id).ToList()).Blah
-    /// }
-    /// by wrapping the whole thing in a method that does the null check once.
-    /// This means we build the fieldExpressions on a parameter of the result type
-    /// </summary>
-    /// <param name="selectionFields">Fields to select once we know if this result is null or not</param>
-    /// <param name="serviceProvider"></param>
-    /// <param name="nextFieldContext">The expression that the selection fields will be built from</param>
-    /// <param name="schemaContext"></param>
-    /// <param name="contextChanged">Has the context changes (second pass with services)</param>
-    /// <param name="replacer"></param>
-    /// <returns></returns>
-    private Expression WrapWithNullCheck(
-        CompileContext compileContext,
-        Dictionary<IFieldKey, CompiledField> selectionFields,
-        IServiceProvider? serviceProvider,
-        Expression nextFieldContext,
-        ParameterExpression schemaContext,
-        ParameterExpression? argumentParam,
-        bool contextChanged,
-        ParameterReplacer replacer
-    )
-    {
-        // selectionFields is set up but we need to wrap
-        // we wrap here as we have access to the values and services etc
-        var fieldParamValues = new List<object?>(compileContext.ConstantParameters.Values);
-        var fieldParams = new List<ParameterExpression>(compileContext.ConstantParameters.Keys);
-
-        // do not need to inject services here as this expression is used in the call arguments
-        var updatedExpression = nextFieldContext;
-        // replace with null_wrap
-        // this is the parameter used in the null wrap. We pass it to the wrap function which has the value to match
-        var nullWrapParam = Expression.Parameter(updatedExpression.Type, "nullwrap");
-
-        if (contextChanged)
-        {
-            HashSet<string> propsOrFields = [.. nullWrapParam.Type.GetProperties().Select(i => i.Name), .. nullWrapParam.Type.GetFields().Select(i => i.Name)];
-            foreach (var item in selectionFields)
-            {
-                if (item.Value.Field.HasServices || item.Key.Name == "__typename")
-                    item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
-                else
-                {
-                    // if we can just use Expression.PropertyOrField that is faster
-                    if (propsOrFields.Contains(item.Key.Name, StringComparer.OrdinalIgnoreCase))
-                        item.Value.Expression = Expression.PropertyOrField(nullWrapParam, item.Key.Name);
-                    else
-                        // selecting from a dotnet type (not a anonymous result type) we need to replace the base call not use the field name (item.Key.Name)
-                        // e.g. if we have renamed the field schema.Type<User>().AddField("username", u => u.Name)
-                        item.Value.Expression = replacer.Replace(item.Value.Expression, nextFieldContext, nullWrapParam);
-                }
-            }
-        }
-        else
-        {
-            foreach (var item in selectionFields)
-            {
-                item.Value.Expression = replacer.ReplaceByType(item.Value.Expression, nextFieldContext.Type, nullWrapParam);
-            }
-        }
-
-        (updatedExpression, selectionFields, _) = ProcessExtensionsSelection(updatedExpression, selectionFields, null, argumentParam, contextChanged, replacer);
-        // we need to make sure the wrap can resolve any services in the select
-        var selectionExpressions = selectionFields.ToDictionary(
-            f => f.Key.Name,
-            f => GraphQLHelper.InjectServices(serviceProvider!, compileContext.Services, fieldParamValues, f.Value.Expression, fieldParams, replacer, compileContext.CancellationToken)
-        );
-
-        updatedExpression = ExpressionUtil.WrapObjectProjectionFieldForNullCheck(Name, updatedExpression, fieldParams, selectionExpressions, fieldParamValues, nullWrapParam, schemaContext);
-        return updatedExpression;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

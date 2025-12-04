@@ -14,6 +14,10 @@
 - Replaced the previous 3rd party GraphQL document parser.
 - Add `net10.0` as a target
 
+## Fixes
+
+- #481 - handle `ResolveAysnc` on a top level field
+
 # 6.0.0-beta2
 
 ## Changes

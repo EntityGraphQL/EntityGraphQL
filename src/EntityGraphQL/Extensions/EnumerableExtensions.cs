@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace EntityGraphQL.Extensions;
 
@@ -63,10 +64,40 @@ public static class EnumerableExtensions
         return source.Select(selector);
     }
 
+    public static async Task<IEnumerable<TResult>?> SelectWithNullCheck<TSource, TResult>(this Task<IEnumerable<TSource>> source, Func<TSource, TResult> selector)
+    {
+        if (source == null)
+            return null;
+        return (await source).Select(selector);
+    }
+
     public static IEnumerable<TResult?>? SelectManyWithNullCheck<TSource, TResult>(this IEnumerable<TSource>? source, Func<TSource, IEnumerable<TResult?>> selector, bool returnEmptyList)
     {
         if (source == null)
             return returnEmptyList ? [] : null;
         return source.SelectMany(selector);
+    }
+
+    public static TResult? ProjectWithNullCheck<TSource, TResult>(this TSource? source, Func<TSource, TResult> selector)
+    {
+        if (source == null)
+            return default;
+        return selector(source);
+    }
+
+    // public static async Task<TResult?> ProjectWithNullCheck<TSource, TResult>(this Task<TSource?> source, Func<TSource, TResult> selector)
+    // {
+    //     var result = await source;
+    //     if (result == null)
+    //         return default;
+    //     return selector(result);
+    // }
+
+    public static async Task<TResult?> ProjectWithNullCheck<TSource, TResult>(this Task<TSource> source, Func<TSource, TResult> selector)
+    {
+        var result = await source;
+        if (result == null)
+            return default;
+        return selector(result);
     }
 }

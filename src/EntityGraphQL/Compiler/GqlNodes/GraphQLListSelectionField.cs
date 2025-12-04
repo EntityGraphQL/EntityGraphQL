@@ -142,7 +142,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         var resultElementType = resultExpression.Type.GetEnumerableOrArrayType()!;
 
         // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
-        if (AllowToList && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+        if (AllowToList && Field?.IsAsync == false && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
             resultExpression = useNullCheckMethods
                 ? Expression.Call(
                     typeof(EnumerableExtensions),
