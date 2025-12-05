@@ -2079,6 +2079,35 @@ public class ServiceFieldTests
         Assert.Equal(1, srv.GetProjectsCalled);
     }
 
+    [Fact]
+    public void TestResolveAsyncWithServiceAndAnonymousArgsShouldNotTreatArgsAsService()
+    {
+        // Reproduces issue #487: https://github.com/EntityGraphQL/EntityGraphQL/issues/487
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema
+            .Query()
+            .AddField("testField", new { resourceId = (int?)null }, "Test field with optional argument")
+            .ResolveAsync<TestResolveAsyncService>((ctx, args, service) => service.GetDataAsync(args.resourceId));
+
+        var serviceCollection = new ServiceCollection();
+        var testService = new TestResolveAsyncService();
+        serviceCollection.AddSingleton(testService);
+
+        var query =
+            @"
+            query {
+                testField(resourceId: 42)
+            }
+        ";
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = query }, new TestDataContext(), serviceCollection.BuildServiceProvider(), null);
+
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        Assert.Equal("Data for resource 42", result.Data["testField"]);
+    }
+
     public class ConfigService
     {
         public ConfigService()
@@ -2407,4 +2436,13 @@ public class ProjectConfig
 {
     public int Id { get; set; }
     public string Type { get; set; } = "";
+}
+
+public class TestResolveAsyncService
+{
+    public async Task<string> GetDataAsync(int? resourceId)
+    {
+        await System.Threading.Tasks.Task.CompletedTask;
+        return resourceId.HasValue ? $"Data for resource {resourceId}" : "No resource specified";
+    }
 }

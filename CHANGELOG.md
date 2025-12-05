@@ -18,6 +18,7 @@
 
 - #481 - handle `ResolveAsync` on a top level field
 - #488 - Support async fields with `[GraphQLField]`
+- #487 - Fix `ResolveAsync` with arguments
 
 # 6.0.0-beta2
 

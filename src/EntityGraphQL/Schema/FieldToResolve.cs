@@ -222,8 +222,8 @@ public class FieldToResolveWithArgs<TContext, TParams> : FieldWithContextAndArgs
 
     private FieldWithContextAndArgs<TContext, TParams> ResolveAsyncImpl(LambdaExpression fieldExpression, int? maxConcurrency)
     {
-        SetUpField(fieldExpression, true, false, true);
-        Services = [.. fieldExpression.Parameters.Skip(1)];
+        SetUpField(fieldExpression, true, true, true);
+        Services = [.. fieldExpression.Parameters.Skip(2)];
         var serviceTypes = Services.Select(s => s.Type).ToArray();
 
         // if return type is Task check that it is Task<> otherwise throw
