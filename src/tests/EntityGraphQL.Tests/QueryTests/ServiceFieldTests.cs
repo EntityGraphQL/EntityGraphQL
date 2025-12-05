@@ -2079,6 +2079,46 @@ public class ServiceFieldTests
         Assert.Equal(1, srv.GetProjectsCalled);
     }
 
+    [Fact]
+    public void TestResolveAsyncWithServiceAndAnonymousArgsShouldNotTreatArgsAsService()
+    {
+        // Reproduces issue #487: https://github.com/EntityGraphQL/EntityGraphQL/issues/487
+        // When using ResolveAsync<TService> with a lambda like (ctx, args, service) => ...,
+        // where args is an anonymous type, the library incorrectly treats the args parameter
+        // as a service dependency, resulting in error:
+        // "Service <>f__AnonymousType not found in service provider"
+        //
+        // Expected: args parameter should not be registered as a service
+        // Actual: All parameters after ctx (skip 1) are treated as services
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        schema.Query().AddField("testField",
+            new { resourceId = (int?)null },
+            "Test field with optional argument")
+            .ResolveAsync<TestResolveAsyncService>((ctx, args, service) => service.GetDataAsync(args.resourceId));
+
+        var serviceCollection = new ServiceCollection();
+        var testService = new TestResolveAsyncService();
+        serviceCollection.AddSingleton(testService);
+
+        var query = @"
+            query {
+                testField(resourceId: 42)
+            }
+        ";
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = query },
+            new TestDataContext(),
+            serviceCollection.BuildServiceProvider(),
+            null);
+
+        // Should succeed without "Service <>f__AnonymousType not found" error
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        Assert.Equal("Data for resource 42", result.Data["testField"]);
+    }
+
     public class ConfigService
     {
         public ConfigService()
@@ -2400,6 +2440,15 @@ public class CancellationTestService
         cancellationToken.ThrowIfCancellationRequested();
 
         return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
+    }
+}
+
+public class TestResolveAsyncService
+{
+    public async Task<string> GetDataAsync(int? resourceId)
+    {
+        await System.Threading.Tasks.Task.CompletedTask;
+        return resourceId.HasValue ? $"Data for resource {resourceId}" : "No resource specified";
     }
 }
 
