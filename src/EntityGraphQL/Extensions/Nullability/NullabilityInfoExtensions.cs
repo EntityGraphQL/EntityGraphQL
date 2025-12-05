@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
-using EntityGraphQL;
 
 namespace Nullability;
 
@@ -66,17 +65,6 @@ public static class NullabilityInfoExtensions
         return info.ReturnParameter.GetNullabilityInfo();
     }
 
-    public static NullabilityState GetNullability(this MemberInfo info)
-    {
-        return GetReadOrWriteState(info.GetNullabilityInfo());
-    }
-
-    public static bool IsNullable(this MemberInfo info)
-    {
-        var nullability = info.GetNullabilityInfo();
-        return IsNullable(info.Name, nullability);
-    }
-
     public static NullabilityInfo GetNullabilityInfo(this FieldInfo info)
     {
         return fieldCache.GetOrAdd(
@@ -87,17 +75,6 @@ public static class NullabilityInfoExtensions
                 return nullabilityContext.Create(inner);
             }
         );
-    }
-
-    public static NullabilityState GetNullability(this FieldInfo info)
-    {
-        return GetReadOrWriteState(info.GetNullabilityInfo());
-    }
-
-    public static bool IsNullable(this FieldInfo info)
-    {
-        var nullability = info.GetNullabilityInfo();
-        return IsNullable(info.Name, nullability);
     }
 
     public static NullabilityInfo GetNullabilityInfo(this EventInfo info)
@@ -112,17 +89,6 @@ public static class NullabilityInfoExtensions
         );
     }
 
-    public static NullabilityState GetNullability(this EventInfo info)
-    {
-        return GetReadOrWriteState(info.GetNullabilityInfo());
-    }
-
-    public static bool IsNullable(this EventInfo info)
-    {
-        var nullability = info.GetNullabilityInfo();
-        return IsNullable(info.Name, nullability);
-    }
-
     public static NullabilityInfo GetNullabilityInfo(this PropertyInfo info)
     {
         return propertyCache.GetOrAdd(
@@ -135,17 +101,6 @@ public static class NullabilityInfoExtensions
         );
     }
 
-    public static NullabilityState GetNullability(this PropertyInfo info)
-    {
-        return GetReadOrWriteState(info.GetNullabilityInfo());
-    }
-
-    public static bool IsNullable(this PropertyInfo info)
-    {
-        var nullability = info.GetNullabilityInfo();
-        return IsNullable(info.Name, nullability);
-    }
-
     public static NullabilityInfo GetNullabilityInfo(this ParameterInfo info)
     {
         return parameterCache.GetOrAdd(
@@ -156,49 +111,6 @@ public static class NullabilityInfoExtensions
                 return nullabilityContext.Create(inner);
             }
         );
-    }
-
-    public static NullabilityState GetNullability(this ParameterInfo info)
-    {
-        return GetReadOrWriteState(info.GetNullabilityInfo());
-    }
-
-    public static bool IsNullable(this ParameterInfo info)
-    {
-        var nullability = info.GetNullabilityInfo();
-        return IsNullable(info.Name!, nullability);
-    }
-
-    private static NullabilityState GetReadOrWriteState(NullabilityInfo nullability)
-    {
-        if (nullability.ReadState != NullabilityState.Unknown)
-        {
-            return nullability.ReadState;
-        }
-
-        return nullability.WriteState;
-    }
-
-    private static NullabilityState GetKnownState(string name, NullabilityInfo nullability)
-    {
-        var readState = nullability.ReadState;
-        if (readState != NullabilityState.Unknown)
-        {
-            return readState;
-        }
-
-        var writeState = nullability.WriteState;
-        if (writeState != NullabilityState.Unknown)
-        {
-            return writeState;
-        }
-
-        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"The nullability of '{nullability.Type.FullName}.{name}' is unknown. Assembly: {nullability.Type.Assembly.FullName}.");
-    }
-
-    private static bool IsNullable(string name, NullabilityInfo nullability)
-    {
-        return GetKnownState(name, nullability) == NullabilityState.Nullable;
     }
 
     //Patching
