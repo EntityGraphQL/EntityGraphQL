@@ -200,7 +200,6 @@ public static class SchemaBuilder
         (string name, string description) = GetNameAndDescription(method, schema);
 
         options ??= new SchemaBuilderOptions();
-        var isAsync = method.GetCustomAttribute<AsyncStateMachineAttribute>() != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
         var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(method);
 
         LambdaExpression? le = null;
@@ -278,16 +277,23 @@ public static class SchemaBuilder
             le = Expression.Lambda(call, param);
         }
 
-        var baseReturnType = GetBaseReturnType(schema, le.ReturnType, options);
-
+        var returnType = GetReturnType(le.ReturnType, out bool isAsyncFromReturn);
+        var baseReturnType = GetBaseReturnType(schema, returnType, options);
         if (options.IgnoreTypes.Contains(baseReturnType))
             return null;
 
         var schemaType = CacheType(baseReturnType, schema, options, false);
-
         var nullabilityInfo = method.GetNullabilityInfo();
-        var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schemaType ?? schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
+        var returnTypeInfo = MakeGraphQlType(schema, isInputType, returnType, schemaType, name, fromType, nullabilityInfo);
+
         var field = new Field(schema, fromType, name, le, description, fieldSchemaArgs, returnTypeInfo, requiredClaims);
+
+        // Set IsAsync for async methods so the field execution handles the Task<> properly
+        if (isAsyncFromReturn)
+        {
+            field.IsAsync = true;
+        }
+
         options.OnFieldCreated?.Invoke(field);
 
         if (fieldServices.Count > 0)
@@ -497,21 +503,30 @@ public static class SchemaBuilder
         return propType.IsGenericType ? $"{propType.Name[..propType.Name.IndexOf('`')]}{string.Join("", propType.GetGenericArguments().Select(BuildTypeName))}" : propType.Name;
     }
 
-    public static GqlTypeInfo MakeGraphQlType(ISchemaProvider schema, bool isInputType, Type returnType, string? returnSchemaType, string fieldName, ISchemaType fromType)
+    public static GqlTypeInfo MakeGraphQlType(
+        ISchemaProvider schema,
+        bool isInputType,
+        Type returnType,
+        ISchemaType? returnSchemaType,
+        string fieldName,
+        ISchemaType fromType,
+        NullabilityInfo? nullabilityInfo = null
+    )
     {
-        Func<ISchemaType> typeGetter = !string.IsNullOrEmpty(returnSchemaType)
-            ? () => schema.Type(returnSchemaType) // We can look the type up by it's unique schema name
-            // we need to look it up by the dotnet type
-            : () =>
-            {
-                var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
-                if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
-                    return schemaType!;
-                throw new EntityGraphQLSchemaException(
-                    $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
-                );
-            };
-        return new GqlTypeInfo(typeGetter, returnType);
+        Func<ISchemaType> typeGetter =
+            returnSchemaType != null
+                ? () => returnSchemaType // We can look the type up by it's unique schema name
+                // we need to look it up by the dotnet type
+                : () =>
+                {
+                    var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
+                    if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
+                        return schemaType!;
+                    throw new EntityGraphQLSchemaException(
+                        $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
+                    );
+                };
+        return new GqlTypeInfo(typeGetter, returnType, nullabilityInfo);
     }
 
     public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(
@@ -606,6 +621,30 @@ public static class SchemaBuilder
                 CacheType(inputType, schema, options, true);
             }
         }
+    }
+
+    public static Type GetReturnType(Type returnType, out bool isAsync)
+    {
+        isAsync = false;
+        // For async-returning shapes, extract underlying T for schema building and mark as async
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            isAsync = true;
+            returnType = returnType.GetGenericArguments()[0];
+        }
+        else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+        {
+            isAsync = true;
+            returnType = returnType.GetGenericArguments()[0];
+        }
+        else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
+        {
+            isAsync = true;
+            var t = returnType.GetGenericArguments()[0];
+            returnType = typeof(IEnumerable<>).MakeGenericType(t);
+        }
+
+        return returnType;
     }
 }
 

@@ -250,8 +250,9 @@ public class Field : BaseField
     protected void SetUpField(LambdaExpression fieldExpression, bool withServices, bool hasArguments, bool isAsync)
     {
         ProcessResolveExpression(fieldExpression, withServices, hasArguments);
-        // Because we use the return type as object to make the compile time interface nicer we need to get the real return type
         var returnType = fieldExpression.Body.Type;
+
+        // Because we use the return type as object to make the compile time interface nicer we need to get the real return type
         if (fieldExpression.Body.NodeType == ExpressionType.Convert)
         {
             returnType = ((UnaryExpression)fieldExpression.Body).Operand.Type;
@@ -261,23 +262,10 @@ public class Field : BaseField
         if (fieldExpression.Body.NodeType == ExpressionType.Call)
             returnType = ((MethodCallExpression)fieldExpression.Body).Type;
 
-        // For async-returning shapes, extract underlying T for schema building and mark as async
-        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
-        {
+        // do the above before unwrapping Task<>
+        returnType = SchemaBuilder.GetReturnType(returnType, out bool returnsAsync);
+        if (returnsAsync)
             IsAsync = true;
-            returnType = returnType.GetGenericArguments()[0];
-        }
-        else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
-        {
-            IsAsync = true;
-            returnType = returnType.GetGenericArguments()[0];
-        }
-        else if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
-        {
-            IsAsync = true;
-            var t = returnType.GetGenericArguments()[0];
-            returnType = typeof(IEnumerable<>).MakeGenericType(t);
-        }
 
         if (!isAsync && IsAsync)
             throw new EntityGraphQLSchemaException("Field is synchronous but returns an async type. Use ResolveAsync() or resolve the field expression with .GetAwaiter().GetResult()");

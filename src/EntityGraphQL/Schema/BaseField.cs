@@ -35,7 +35,7 @@ public abstract class BaseField : IField
     /// <summary>
     /// Indicates if this field returns a Task and requires async resolution
     /// </summary>
-    public bool IsAsync { get; protected set; }
+    public bool IsAsync { get; internal set; }
 
     public Expression? ResolveExpression { get; protected set; }
 

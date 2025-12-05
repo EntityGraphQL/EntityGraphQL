@@ -76,7 +76,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
         }
         returnType = returnSchemaType.TypeDotnet;
 
-        field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, connectionName, field.Name, field.FromType));
+        field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));
 
         // Update field arguments
         field.AddArguments(new ConnectionArgs());

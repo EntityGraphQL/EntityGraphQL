@@ -60,7 +60,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         }
         returnType = returnSchemaType.TypeDotnet;
 
-        field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, page, field.Name, field.FromType));
+        field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));
 
         // Update field arguments
         field.AddArguments(new OffsetArgs());
