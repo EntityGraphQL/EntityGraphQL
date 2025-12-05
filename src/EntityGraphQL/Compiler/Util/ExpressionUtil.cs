@@ -507,6 +507,7 @@ public static class ExpressionUtil
         Expression baseExp,
         IDictionary<IFieldKey, CompiledField> fieldExpressions,
         bool nullCheck,
+        bool isAsync,
         bool finalExecution
     )
     {
@@ -557,7 +558,7 @@ public static class ExpressionUtil
             var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
 
             Expression call;
-            if (nullCheck)
+            if (nullCheck || isAsync)
                 call = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.SelectWithNullCheck), [currentContextParam.Type, baseDynamicType], baseExp, selector);
             else
                 call = isQueryable
@@ -574,7 +575,7 @@ public static class ExpressionUtil
             var selector = Expression.Lambda(memberInit, currentContextParam);
             var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
             Expression call;
-            if (nullCheck)
+            if (nullCheck || isAsync)
                 call = Expression.Call(
                     isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
                     isQueryable ? nameof(QueryableExtensions.SelectWithNullCheck) : nameof(EnumerableExtensions.SelectWithNullCheck),

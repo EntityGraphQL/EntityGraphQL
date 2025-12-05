@@ -114,16 +114,25 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, argumentParams, contextChanged, replacer);
 
         Expression? resultExpression = null;
+        var isAsync = Field?.IsAsync == true;
         if (!withoutServiceFields)
         {
             bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields);
-            if (needsServiceWrap)
+            if (needsServiceWrap || isAsync)
             {
                 // To support a common use case where we are coming from a service result to another service field where the
                 // service is the Query Context. Which we are assuming is likely an EF context and we don't need the null check
                 // Use ExecutionOptions.ExecuteServiceFieldsSeparately = false to disable this behavior
                 var nullCheck = Field!.Services.Any(s => s.Type != Field.Schema.QueryContextType);
-                (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(this, nextFieldContext!, listContext, selectionFields, nullCheck, withoutServiceFields);
+                (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(
+                    this,
+                    nextFieldContext!,
+                    listContext,
+                    selectionFields,
+                    nullCheck,
+                    isAsync,
+                    withoutServiceFields
+                );
             }
         }
 
@@ -136,6 +145,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                 listContext,
                 selectionFields,
                 useNullCheckMethods,
+                isAsync,
                 withoutServiceFields || !contextChanged
             );
 

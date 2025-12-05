@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace EntityGraphQL.Extensions;
 
@@ -38,5 +39,13 @@ public static class QueryableExtensions
         if (source == null)
             return null;
         return source.Select(selector);
+    }
+
+    public static async Task<IQueryable<TResult>?> SelectWithNullCheck<TSource, TResult>(this Task<IQueryable<TSource>> source, Expression<Func<TSource, TResult>> selector)
+    {
+        var awaitedSource = await source;
+        if (awaitedSource == null)
+            return null;
+        return awaitedSource.Select(selector);
     }
 }

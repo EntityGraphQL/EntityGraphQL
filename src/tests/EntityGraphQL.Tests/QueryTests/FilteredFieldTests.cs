@@ -301,36 +301,4 @@ public class FilteredFieldTests
     {
         public int DapId { get; set; }
     }
-
-    [Fact]
-    public void TestAsyncGraphQLFieldReturnsCorrectSchemaType_Issue488()
-    {
-        // Test for https://github.com/EntityGraphQL/EntityGraphQL/issues/488
-        var schema = SchemaBuilder.FromObject<JobContext>();
-        var sdl = schema.ToGraphQLSchemaString();
-
-        // Verify it's defined as an array type (with square brackets)
-        // The async Task wrapper should be properly unwrapped to recognize the IEnumerable
-        Assert.Contains("jobs(search: String!): [Job!]!", sdl);
-    }
-
-    private class JobContext
-    {
-        [GraphQLIgnore]
-        public List<Job> AllJobs { get; set; } = [];
-
-        [GraphQLField("jobs", "Search for jobs")]
-        public async Task<IEnumerable<Job>> JobSearch(string search)
-        {
-            // Simulate async operation
-            await System.Threading.Tasks.Task.Delay(1);
-            return AllJobs.Where(j => j.Name.Contains(search));
-        }
-    }
-
-    private class Job
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-    }
 }

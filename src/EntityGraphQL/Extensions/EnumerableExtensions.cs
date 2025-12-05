@@ -57,18 +57,19 @@ public static class EnumerableExtensions
         return source.Select(selector);
     }
 
+    public static async Task<IEnumerable<TResult>?> SelectWithNullCheck<TSource, TResult>(this Task<IEnumerable<TSource>> source, Func<TSource, TResult> selector)
+    {
+        var awaitedSource = await source;
+        if (awaitedSource == null)
+            return null;
+        return awaitedSource.Select(selector);
+    }
+
     public static IEnumerable<TResult>? SelectWithNullCheck<TSource, TResult>(this IEnumerable<TSource>? source, Func<TSource, TResult> selector, bool returnEmptyList)
     {
         if (source == null)
             return returnEmptyList ? [] : null;
         return source.Select(selector);
-    }
-
-    public static async Task<IEnumerable<TResult>?> SelectWithNullCheck<TSource, TResult>(this Task<IEnumerable<TSource>> source, Func<TSource, TResult> selector)
-    {
-        if (source == null)
-            return null;
-        return (await source).Select(selector);
     }
 
     public static IEnumerable<TResult?>? SelectManyWithNullCheck<TSource, TResult>(this IEnumerable<TSource>? source, Func<TSource, IEnumerable<TResult?>> selector, bool returnEmptyList)

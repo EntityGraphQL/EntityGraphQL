@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -122,5 +125,57 @@ public class AsyncTests
         Assert.Single(result2.Errors);
         Assert.Equal("The operation was canceled.", result2.Errors[0].Message);
         Assert.Null(result2.Data);
+    }
+
+    [Fact]
+    public void TestAsyncGraphQLFieldReturnsCorrectSchemaType_Issue488()
+    {
+        // Test for https://github.com/EntityGraphQL/EntityGraphQL/issues/488
+        var schema = SchemaBuilder.FromObject<JobContext>();
+        var sdl = schema.ToGraphQLSchemaString();
+
+        // Verify it's defined as an array type (with square brackets)
+        // The async Task wrapper should be properly unwrapped to recognize the IEnumerable
+        Assert.Contains("jobs(search: String!): [Job!]!", sdl);
+
+        // make sure it executes
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    jobs(search: ""Dev"") {
+                        id
+                        name
+                    }
+                }",
+        };
+        var context = new JobContext();
+        context.AllJobs.Add(new Job { Id = 1, Name = "DevOps Engineer" });
+        context.AllJobs.Add(new Job { Id = 2, Name = "Marketing Manager" });
+        var result = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        var jobs = (IEnumerable<dynamic>)result.Data!["jobs"]!;
+        Assert.Single(jobs); // one job added so should have one result
+    }
+
+    private class JobContext
+    {
+        [GraphQLIgnore]
+        public List<Job> AllJobs { get; set; } = [];
+
+        [GraphQLField("jobs", "Search for jobs")]
+        public async Task<IEnumerable<Job>> JobSearch(string search)
+        {
+            // Simulate async operation
+            await System.Threading.Tasks.Task.Delay(1);
+            return AllJobs.Where(j => j.Name.Contains(search));
+        }
+    }
+
+    private class Job
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 }
