@@ -13,7 +13,7 @@ public static class ConnectionHelper
     /// <returns></returns>
     public static unsafe string SerializeCursor(int index)
     {
-        // resuts in less allocations
+        // results in less allocations
         const int totalUtf8Bytes = 4 * (20 / 3);
         Span<byte> resultSpan = stackalloc byte[totalUtf8Bytes];
         if (!Utf8Formatter.TryFormat(index, resultSpan, out int writtenBytes))

@@ -3,24 +3,34 @@ using System.ComponentModel;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
-public class Connection<TEntity>
+public class Connection<TEntity>(dynamic arguments)
 {
-    public Connection(int totalCount, dynamic arguments)
-    {
-        TotalCount = totalCount;
-        PageInfo = new ConnectionPageInfo(totalCount, arguments);
-        arguments.TotalCount = totalCount;
-    }
+    private readonly dynamic arguments = arguments;
 
-    [GraphQLNotNull]
     [Description("Edge information about each node in the collection")]
     public IEnumerable<ConnectionEdge<TEntity>> Edges { get; set; } = new List<ConnectionEdge<TEntity>>();
 
-    [GraphQLNotNull]
-    [Description("Total count of items in the collection")]
-    public int TotalCount { get; set; }
+    private int totalCount;
 
-    [GraphQLNotNull]
+    [Description("Total count of items in the collection")]
+    public int TotalCount
+    {
+        get => totalCount;
+        set
+        {
+            totalCount = value;
+            // Store in arguments for cursor/skip calculations when using 'last' argument
+            arguments.TotalCount = value;
+        }
+    }
+
+    // Lazy PageInfo - only create when accessed/needed
+    private ConnectionPageInfo? pageInfo;
+
     [Description("Information about this page of data")]
-    public ConnectionPageInfo PageInfo { get; set; }
+    public ConnectionPageInfo PageInfo
+    {
+        get => pageInfo ??= new ConnectionPageInfo(TotalCount, arguments);
+        set => pageInfo = value;
+    }
 }

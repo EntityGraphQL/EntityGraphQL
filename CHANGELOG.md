@@ -14,6 +14,7 @@
 - Replaced the previous 3rd party GraphQL document parser.
 - Add `net10.0` as a target
 - When using Offset Paging the total items expression is now only executed if the query requests `hasNextPage` or `totalItems` fields
+- When using Connection Paging the total count expression is now only executed if the query requests `totalCount` or `pageInfo` fields or the 'last' argument is used
 
 ## Fixes
 

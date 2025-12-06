@@ -14,7 +14,6 @@ public class ConnectionPageInfo
         this.arguments = arguments;
     }
 
-    [GraphQLNotNull]
     [Description("Last cursor in the page. Use this as the next from argument")]
     public string EndCursor
     {
@@ -32,13 +31,12 @@ public class ConnectionPageInfo
         }
     }
 
-    [GraphQLNotNull]
     [Description("Start cursor in the page. Use this to go backwards with the before argument")]
     public string StartCursor
     {
         get
         {
-            var idx = 1;
+            int idx = 1;
             if (arguments.AfterNum != null)
                 idx = arguments.AfterNum + 1;
             else if (arguments.Last != null)

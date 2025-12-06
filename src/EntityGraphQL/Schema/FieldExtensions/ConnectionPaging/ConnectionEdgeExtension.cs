@@ -179,7 +179,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         baseExpression = Expression.Call(
             isQueryable ? typeof(Queryable) : typeof(Enumerable),
             nameof(Enumerable.Select),
-            new Type[] { listType, edgeType },
+            [listType, edgeType],
             baseExpression,
             // we have the node selection from ConnectionEdgeNodeExtension we can insert into here for a nice EF compatible query
             Expression.Lambda(Expression.MemberInit(Expression.New(edgeType), new List<MemberBinding> { Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression) }), firstSelectParam)
@@ -191,7 +191,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         baseExpression = Expression.Call(
             typeof(Enumerable),
             "Select",
-            new Type[] { edgeType, edgeType },
+            [edgeType, edgeType],
             baseExpression,
             Expression.Lambda(
                 Expression.MemberInit(
@@ -199,7 +199,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
                     new List<MemberBinding>
                     {
                         Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),
-                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), "GetCursor", null, argumentParam, idxParam, offsetParam)),
+                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetCursor), null, argumentParam, idxParam, offsetParam)),
                     }
                 ),
                 edgeParam,

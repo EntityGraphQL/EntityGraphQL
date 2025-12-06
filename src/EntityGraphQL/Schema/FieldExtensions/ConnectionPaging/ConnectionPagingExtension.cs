@@ -102,10 +102,9 @@ public class ConnectionPagingExtension : BaseFieldExtension
         // conceptually it does similar to below (using Demo context)
         // See Connection for implementation details of TotalCount and PageInfo
         // (ctx, arguments) => {
-        //      var connection = new Connection<Person>(ctx.Actors.Select(a => a.Person)
-        //              -- other extensions might do things here (e.g. filter / sort)
-        //             .Count(), arguments)
+        //      var connection = new Connection<Person>(arguments)
         //      {
+        //          TotalCount = ctx.Actors.Select(a => a.Person).Count(), // only if needed
         //          Edges = ctx.Actors.Select(a => a.Person)
         //              -- other extensions might do things here (e.g. filter / sort)
         //              .Skip(GetSkipNumber(arguments))
@@ -131,12 +130,30 @@ public class ConnectionPagingExtension : BaseFieldExtension
         //      return .... // does the select of only the Connection fields asked for
         // need to set this up here as the types are needed as we visiting the query tree
         // we build the real one below in GetExpression()
-        var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", [listType], OriginalFieldExpression!);
-        var argTypes = new List<Type> { totalCountExp.Type, field.ArgumentsParameter!.Type };
-        var paramsArgs = new List<Expression> { totalCountExp, field.ArgumentsParameter };
-        var fieldExpression = Expression.MemberInit(Expression.New(returnType.GetConstructor(argTypes.ToArray())!, paramsArgs));
-
+        var fieldExpression = BuildConnectionExpression(null, null, OriginalFieldExpression!, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
+    }
+
+    private MemberInitExpression BuildConnectionExpression(BaseGraphQLField? fieldNode, dynamic? arguments, Expression resolve, ParameterExpression argumentParam)
+    {
+        // Check if we need to compute totalCount:
+        // 1. totalCount field is selected
+        // 2. pageInfo field is selected (all pageInfo fields depend on totalCount)
+        // 3. 'last' argument is used (skip calculation needs totalCount when last is used without before)
+        var needsCount = fieldNode?.QueryFields?.Any(f => f.Field?.Name == "totalCount" || f.Field?.Name == "pageInfo") ?? true;
+
+        // Also need count if 'last' argument is provided (for skip/cursor calculations)
+        if (!needsCount && arguments?.Last != null)
+            needsCount = true;
+
+        var bindings = new List<MemberBinding>();
+        if (needsCount)
+        {
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [listType!], resolve);
+            bindings.Add(Expression.Bind(returnType!.GetProperty("TotalCount")!, totalCountExp));
+        }
+
+        return Expression.MemberInit(Expression.New(returnType!.GetConstructor([argumentParam.Type])!, argumentParam), bindings);
     }
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
@@ -163,7 +180,6 @@ public class ConnectionPagingExtension : BaseFieldExtension
             throw new ArgumentNullException(nameof(argumentParam));
 #endif
 
-        // totalCountExp gets executed once in the new Connection() {} and we can reuse it
         var edgeExpression = OriginalFieldExpression!;
 
         if (ExtensionsBeforePaging.Count > 0)
@@ -175,9 +191,8 @@ public class ConnectionPagingExtension : BaseFieldExtension
                 (edgeExpression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
             }
         }
-        var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [listType!], edgeExpression!);
-        expression = Expression.MemberInit(Expression.New(returnType!.GetConstructor([totalCountExp.Type, argumentParam.Type])!, totalCountExp, argumentParam));
 
+        expression = BuildConnectionExpression(fieldNode, arguments, edgeExpression, argumentParam);
         return (expression, originalArgParam, argumentParam, arguments);
     }
 }
