@@ -35,17 +35,17 @@ public class OffsetPagingExtension : BaseFieldExtension
     public override void Configure(ISchemaProvider schema, IField field)
     {
         if (field.ResolveExpression == null)
-            throw new EntityGraphQLSchemaException($"OffsetPagingExtension requires a Resolve function set on the field");
+            throw new EntityGraphQLSchemaException($"{nameof(OffsetPagingExtension)} requires a Resolve function set on the field");
 
         if (!field.ResolveExpression.Type.IsEnumerableOrArray())
-            throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
+            throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use {nameof(OffsetPagingExtension)}. Found type {field.ReturnType.TypeDotnet}");
 
         if (field.FieldType == GraphQLQueryFieldType.Mutation)
-            throw new EntityGraphQLSchemaException($"OffsetPagingExtension cannot be used on a mutation field {field.Name}");
+            throw new EntityGraphQLSchemaException($"{nameof(OffsetPagingExtension)} cannot be used on a mutation field {field.Name}");
 
         listType =
             field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()
-            ?? throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use OffsetPagingExtension. Found type {field.ReturnType.TypeDotnet}");
+            ?? throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use {nameof(OffsetPagingExtension)}. Found type {field.ReturnType.TypeDotnet}");
 
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
@@ -82,21 +82,19 @@ public class OffsetPagingExtension : BaseFieldExtension
             itemsField.AddExtension(new OffsetPagingItemsExtension(isQueryable, listType!));
 
         // set up the field's expression so the types are all good
-        var fieldExpression = BuildTotalCountExpression(returnType, field.ResolveExpression, field.ArgumentsParameter!);
+        var fieldExpression = BuildTotalCountExpression(null, returnType, field.ResolveExpression, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
     }
 
-    private MemberInitExpression BuildTotalCountExpression(Type returnType, Expression resolve, ParameterExpression argumentParam)
+    private MemberInitExpression BuildTotalCountExpression(BaseGraphQLField? fieldNode, Type returnType, Expression resolve, ParameterExpression argumentParam)
     {
-        var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Count", [listType!], resolve);
+        var needsCount = fieldNode?.QueryFields?.Any(f => f.Field?.Name == "totalItems" || f.Field?.Name == "hasNextPage") ?? true;
+
+        var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [listType!], resolve);
 
         var expression = Expression.MemberInit(
-            Expression.New(
-                returnType.GetConstructor([typeof(int), typeof(int?), typeof(int?)])!,
-                totalCountExp,
-                Expression.PropertyOrField(argumentParam!, "skip"),
-                Expression.PropertyOrField(argumentParam!, "take")
-            )
+            Expression.New(returnType.GetConstructor([typeof(int?), typeof(int?)])!, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take")),
+            needsCount ? [Expression.Bind(returnType.GetProperty("TotalItems")!, totalCountExp)] : []
         );
         return expression;
     }
@@ -118,7 +116,7 @@ public class OffsetPagingExtension : BaseFieldExtension
             return (expression, originalArgParam, argumentParam, arguments);
 
         if (argumentParam == null)
-            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"OffsetPagingExtension requires argumentParams to be set");
+            throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"{nameof(OffsetPagingExtension)} requires argumentParams to be set");
 
         if (maxPageSize != null && arguments?.Take > maxPageSize.Value)
             throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{fieldNode.Name}' - Argument take can not be greater than {maxPageSize}.");
@@ -133,7 +131,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         }
 
         // Build our field expression and hold it for use in the next step
-        var fieldExpression = BuildTotalCountExpression(returnType!, newItemsExp, argumentParam);
+        Expression fieldExpression = BuildTotalCountExpression(fieldNode, returnType!, newItemsExp, argumentParam);
         return (fieldExpression, originalArgParam, argumentParam, arguments);
     }
 }

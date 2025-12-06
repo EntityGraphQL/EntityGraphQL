@@ -62,7 +62,7 @@ public class RuntimeTypeJsonConverterTests
     [Fact]
     public void SerializeOffsetPage()
     {
-        var item = new OffsetPage<SubClass>(0, 0, 10) { Items = [] };
+        var item = new OffsetPage<SubClass>(0, 10) { Items = [] };
 
         var graphqlResponseSerializer = new DefaultGraphQLResponseSerializer();
         var memoryStream = new MemoryStream();

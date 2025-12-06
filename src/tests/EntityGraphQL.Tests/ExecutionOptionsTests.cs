@@ -104,7 +104,7 @@ public class ExecutionOptionsTests
         );
 
     [Fact]
-    public void TestBeforeExpressionBuildOffsetPaging() =>
+    public void TestBeforeExpressionBuildOffsetPagingNoTotal() =>
         TestBeforeExpressionBuildExpression(
             "query MyOp { projectItems { items { name } } }",
             AssertExpression.Conditional(
@@ -112,6 +112,36 @@ public class ExecutionOptionsTests
                 AssertExpression.Any(),
                 AssertExpression.MemberInit(
                     [
+                        AssertExpression.MemberBinding(
+                            "items",
+                            AssertExpression.Call(
+                                null,
+                                nameof(Enumerable.ToList),
+                                AssertExpression.Call(
+                                    null,
+                                    "Select",
+                                    AssertExpression.Call(null, "TagWith", AssertExpression.Any(), AssertExpression.AnyOfType(typeof(Action))),
+                                    AssertExpression.Any()
+                                )
+                            )
+                        ),
+                    ]
+                )
+            ),
+            "projectItems",
+            "MyOp"
+        );
+
+    [Fact]
+    public void TestBeforeExpressionBuildOffsetPagingWithTotal() =>
+        TestBeforeExpressionBuildExpression(
+            "query MyOp { projectItems { totalItems items { name } } }",
+            AssertExpression.Conditional(
+                AssertExpression.Any(),
+                AssertExpression.Any(),
+                AssertExpression.MemberInit(
+                    [
+                        AssertExpression.MemberBinding("totalItems", AssertExpression.Any()),
                         AssertExpression.MemberBinding(
                             "items",
                             AssertExpression.Call(

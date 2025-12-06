@@ -13,6 +13,7 @@
 - #474 - Add support for `TimeSpan` as a scalar in the default schema
 - Replaced the previous 3rd party GraphQL document parser.
 - Add `net10.0` as a target
+- When using Offset Paging the total items expression is now only executed if the query requests `hasNextPage` or `totalItems` fields
 
 ## Fixes
 

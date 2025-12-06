@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
-public class OffsetPage<T>(int totalItems, int? skip, int? take)
+public class OffsetPage<T>(int? skip, int? take)
 {
     private readonly int? skip = skip;
     private readonly int? take = take;
@@ -18,5 +18,5 @@ public class OffsetPage<T>(int totalItems, int? skip, int? take)
     public bool HasNextPage => take != null && ((skip ?? 0) + (take ?? 0)) < TotalItems;
 
     [Description("Count of the total items in the collection")]
-    public int TotalItems { get; set; } = totalItems;
+    public int TotalItems { get; set; }
 }
