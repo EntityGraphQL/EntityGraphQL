@@ -159,6 +159,91 @@ public class AsyncTests
         Assert.Single(jobs); // one job added so should have one result
     }
 
+    [Fact]
+    public void TestAsyncGraphQLFieldReturnsCorrectSchemaType_IQueryable_Issue488()
+    {
+        // Test for https://github.com/EntityGraphQL/EntityGraphQL/issues/488
+        // Test async method returning IQueryable<T> - verify schema type is correct
+        var schema = SchemaBuilder.FromObject<JobContext>();
+        var sdl = schema.ToGraphQLSchemaString();
+
+        // Verify it's defined as an array type (the async Task wrapper should be unwrapped)
+        Assert.Contains("jobsQueryable(search: String!): [Job!]!", sdl);
+
+        // make sure it executes
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    jobsQueryable(search: ""Dev"") {
+                        id
+                        name
+                    }
+                }",
+        };
+        var context = new JobContext();
+        context.AllJobs.Add(new Job { Id = 1, Name = "DevOps Engineer" });
+        context.AllJobs.Add(new Job { Id = 2, Name = "Marketing Manager" });
+        var result = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        var jobs = (IEnumerable<dynamic>)result.Data!["jobsQueryable"]!;
+        Assert.Single(jobs); // one job added so should have one result
+    }
+
+    [Fact]
+    public void TestAsyncGraphQLFieldReturnsCorrectSchemaType_Object_Issue488()
+    {
+        // Test for https://github.com/EntityGraphQL/EntityGraphQL/issues/488
+        // Test async method returning an object
+        var schema = SchemaBuilder.FromObject<JobContext>();
+        var sdl = schema.ToGraphQLSchemaString();
+
+        // Verify it's defined as Job type (not wrapped in array)
+        Assert.Contains("jobById(id: Int!): Job", sdl);
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    jobById(id: 1) {
+                        id
+                        name
+                    }
+                }",
+        };
+        var context = new JobContext();
+        context.AllJobs.Add(new Job { Id = 1, Name = "DevOps Engineer" });
+        context.AllJobs.Add(new Job { Id = 2, Name = "Marketing Manager" });
+        var result = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        dynamic job = result.Data!["jobById"]!;
+        Assert.Equal(1, job.id);
+        Assert.Equal("DevOps Engineer", job.name);
+    }
+
+    [Fact]
+    public void TestAsyncGraphQLFieldReturnsCorrectSchemaType_Scalar_Issue488()
+    {
+        // Test for https://github.com/EntityGraphQL/EntityGraphQL/issues/488
+        // Test async method returning a scalar
+        var schema = SchemaBuilder.FromObject<JobContext>();
+        var sdl = schema.ToGraphQLSchemaString();
+
+        // Verify it's defined as Int type
+        Assert.Contains("jobCount: Int!", sdl);
+
+        var gql = new QueryRequest { Query = @"{ jobCount }" };
+        var context = new JobContext();
+        context.AllJobs.Add(new Job { Id = 1, Name = "DevOps Engineer" });
+        context.AllJobs.Add(new Job { Id = 2, Name = "Marketing Manager" });
+        var result = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        Assert.Equal(2, result.Data!["jobCount"]);
+    }
+
     private class JobContext
     {
         [GraphQLIgnore]
@@ -170,6 +255,30 @@ public class AsyncTests
             // Simulate async operation
             await System.Threading.Tasks.Task.Delay(1);
             return AllJobs.Where(j => j.Name.Contains(search));
+        }
+
+        [GraphQLField("jobsQueryable", "Search for jobs returning IQueryable")]
+        public async Task<IQueryable<Job>> JobSearchQueryable(string search)
+        {
+            // Simulate async operation
+            await System.Threading.Tasks.Task.Delay(1);
+            return AllJobs.Where(j => j.Name.Contains(search)).AsQueryable();
+        }
+
+        [GraphQLField("jobById", "Get a job by ID")]
+        public async Task<Job?> GetJobById(int id)
+        {
+            // Simulate async operation
+            await System.Threading.Tasks.Task.Delay(1);
+            return AllJobs.FirstOrDefault(j => j.Id == id);
+        }
+
+        [GraphQLField("jobCount", "Get total job count")]
+        public async Task<int> GetJobCount()
+        {
+            // Simulate async operation
+            await System.Threading.Tasks.Task.Delay(1);
+            return AllJobs.Count;
         }
     }
 

@@ -236,7 +236,7 @@ public static class ExpressionUtil
             if (toType.IsArray)
             {
                 // if toType is array [] we can't use a List<>
-                var result = Expression.Lambda(Expression.Call(typeof(Enumerable), "ToArray", new[] { eleType }, Expression.Constant(list))).Compile().DynamicInvoke();
+                var result = Expression.Lambda(Expression.Call(typeof(Enumerable), "ToArray", [eleType], Expression.Constant(list))).Compile().DynamicInvoke();
                 return result;
             }
             return list;
@@ -262,10 +262,10 @@ public static class ExpressionUtil
         }
         if (argumentNonNullType != valueNonNullType)
         {
-            var implicitCastOperator = argumentNonNullType.GetMethod("op_Implicit", new[] { valueNonNullType });
+            var implicitCastOperator = argumentNonNullType.GetMethod("op_Implicit", [valueNonNullType]);
             if (implicitCastOperator != null)
             {
-                return implicitCastOperator.Invoke(null, new[] { value });
+                return implicitCastOperator.Invoke(null, [value]);
             }
 
             var newVal = Convert.ChangeType(value, argumentNonNullType, CultureInfo.InvariantCulture);
@@ -573,13 +573,13 @@ public static class ExpressionUtil
             if (memberInit == null || dynamicType == null) // nothing to select
                 return (baseExp, null);
             var selector = Expression.Lambda(memberInit, currentContextParam);
-            var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
+            var isQueryable = typeof(IQueryable).IsAssignableFrom(SchemaBuilder.GetReturnType(baseExp.Type, out bool _));
             Expression call;
             if (nullCheck || isAsync)
                 call = Expression.Call(
                     isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
                     isQueryable ? nameof(QueryableExtensions.SelectWithNullCheck) : nameof(EnumerableExtensions.SelectWithNullCheck),
-                    new Type[] { currentContextParam.Type, dynamicType },
+                    [currentContextParam.Type, dynamicType],
                     baseExp,
                     selector
                 );
