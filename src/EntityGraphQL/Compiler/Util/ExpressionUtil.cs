@@ -555,11 +555,14 @@ public static class ExpressionUtil
             );
 
             var selector = Expression.Lambda(previous!, currentContextParam);
-            var isQueryable = typeof(IQueryable).IsAssignableFrom(baseExp.Type);
+            var isQueryable = baseExp.Type.IsGenericTypeQueryable();
 
             Expression call;
             if (nullCheck || isAsync)
-                call = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.SelectWithNullCheck), [currentContextParam.Type, baseDynamicType], baseExp, selector);
+                call = Expression.Call(
+                    isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
+                    isQueryable ? nameof(QueryableExtensions.SelectWithNullCheck) : nameof(EnumerableExtensions.SelectWithNullCheck),
+                    [currentContextParam.Type, baseDynamicType], baseExp, selector);
             else
                 call = isQueryable
                     ? MakeCallOnQueryable(nameof(Enumerable.Select), [currentContextParam.Type, baseDynamicType], baseExp, selector)
@@ -573,7 +576,7 @@ public static class ExpressionUtil
             if (memberInit == null || dynamicType == null) // nothing to select
                 return (baseExp, null);
             var selector = Expression.Lambda(memberInit, currentContextParam);
-            var isQueryable = typeof(IQueryable).IsAssignableFrom(SchemaBuilder.GetReturnType(baseExp.Type, out bool _));
+            var isQueryable = baseExp.Type.IsGenericTypeQueryable();
             Expression call;
             if (nullCheck || isAsync)
                 call = Expression.Call(
