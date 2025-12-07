@@ -1,5 +1,6 @@
 using System;
 using EntityGraphQL.Schema;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EntityGraphQL.AspNet;
 
@@ -10,6 +11,13 @@ namespace EntityGraphQL.AspNet;
 /// <typeparam name="TSchemaContext">The type of the schema context</typeparam>
 public class AddGraphQLOptions<TSchemaContext>
 {
+    public AddGraphQLOptions(IAuthorizationService? authService)
+    {
+        // Default for asp.net if IAuthorizationService available
+        if (authService != null)
+            Schema.AuthorizationService = new PolicyOrRoleBasedAuthorization(authService);
+    }
+
     /// <summary>
     /// Options that control how SchemaBuilder reflects the object graph to auto-create schema types and fields.
     /// </summary>

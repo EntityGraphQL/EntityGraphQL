@@ -45,17 +45,11 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
         var authService = serviceProvider.GetService<IAuthorizationService>();
         var webHostEnvironment = serviceProvider.GetService<IWebHostEnvironment>();
 
-        var options = new AddGraphQLOptions<TSchemaContext>();
+        var options = new AddGraphQLOptions<TSchemaContext>(authService);
         configure(options);
 
         // Apply environment-based defaults if not explicitly set
         var schemaOptions = options.Schema;
-
-        // If user hasn't configured authorization, use the ASP.NET policy-based authorization
-        if (schemaOptions.AuthorizationService is RoleBasedAuthorization)
-        {
-            schemaOptions.AuthorizationService = new PolicyOrRoleBasedAuthorization(authService);
-        }
 
         // If user hasn't explicitly set IsDevelopment, detect from environment
         // We check if it's still the default value (true) and the environment is not Development

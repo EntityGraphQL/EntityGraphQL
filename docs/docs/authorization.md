@@ -6,6 +6,35 @@ sidebar_position: 5
 
 You should secure the route where you app/client posts request to in any ASP.NET supports. Given GraphQL works with a schema you likely want to provide authorization within the schema. EntityGraphQL provides support for checking claims on a `ClaimsPrincipal` object.
 
+## Authorization Services
+
+EntityGraphQL supports different authorization service implementations:
+
+- **`RoleBasedAuthorization`** - The default. Checks roles on the `ClaimsPrincipal`. Use when you only need role-based authorization.
+- **`PolicyOrRoleBasedAuthorization`** - Supports both ASP.NET Core policies and roles. This is the default when calling `AddGraphQLSchema()` in `EntityGraphQL.AspNet` if `IAuthorizationService` is available.
+
+### Configuring Authorization Service
+
+When using `AddGraphQLSchema()` in ASP.NET, `PolicyOrRoleBasedAuthorization` is used by default. To use a different authorization service:
+
+```cs
+services.AddGraphQLSchema<DemoContext>(options => {
+    // Use role-based authorization only
+    options.Schema.AuthorizationService = new RoleBasedAuthorization();
+
+    // Or use a custom authorization service
+    options.Schema.AuthorizationService = new MyCustomAuthService();
+});
+```
+
+When creating a schema manually outside of ASP.NET:
+
+```cs
+var schema = new SchemaProvider<DemoContext>(
+    authorizationService: new RoleBasedAuthorization()
+);
+```
+
 ## Passing in the User
 
 First pass in the `ClaimsPrincipal` to the query call
