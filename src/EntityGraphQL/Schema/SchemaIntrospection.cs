@@ -28,9 +28,9 @@ public static class SchemaIntrospection
         types.AddRange(BuildScalarTypes(schema));
 
         var schemaDescription = new Models.Schema(
-            new TypeElement(null, schema.QueryContextName),
-            schema.HasType(schema.Mutation().SchemaType.TypeDotnet) ? new TypeElement(null, schema.Mutation().SchemaType.Name) : null,
-            schema.HasType(schema.Subscription().SchemaType.TypeDotnet) ? new TypeElement(null, schema.Subscription().SchemaType.Name) : null,
+            new TypeElement("OBJECT", schema.QueryContextName),
+            schema.HasType(schema.Mutation().SchemaType.TypeDotnet) ? new TypeElement("OBJECT", schema.Mutation().SchemaType.Name) : null,
+            schema.HasType(schema.Subscription().SchemaType.TypeDotnet) ? new TypeElement("OBJECT", schema.Subscription().SchemaType.Name) : null,
             types.OrderBy(x => x.Name).ToList(),
             BuildDirectives(schema)
         );
@@ -203,44 +203,61 @@ public static class SchemaIntrospection
     }
 
     /// <summary>
-    /// This is used in a lazy evaluated field as a graph can have circular dependencies
+    /// This is used in a lazy evaluated field as a graph can have circular dependencies.
+    /// Per GraphQL spec, fields should only be returned for OBJECT and INTERFACE types.
+    /// Returns null for INPUT_OBJECT, ENUM, SCALAR, and UNION types.
     /// </summary>
     /// <param name="schema"></param>
     /// <param name="typeName"></param>
+    /// <param name="typeKind">The GraphQL type kind (OBJECT, INTERFACE, INPUT_OBJECT, etc.)</param>
+    /// <param name="includeDeprecated">Whether to include deprecated fields</param>
     /// <returns></returns>
-    public static Models.Field[] BuildFieldsForType(ISchemaProvider schema, string typeName)
+    public static IEnumerable<Models.Field>? BuildFieldsForType(ISchemaProvider schema, string typeName, string? typeKind, bool includeDeprecated)
     {
+        // Per GraphQL spec, fields should only be returned for OBJECT and INTERFACE types
+        if (typeKind != "OBJECT" && typeKind != "INTERFACE")
+        {
+            return null;
+        }
+
+        Models.Field[] fields;
         if (typeName == schema.QueryContextName)
         {
-            return BuildRootQueryFields(schema);
+            fields = BuildRootQueryFields(schema);
         }
-        if (typeName == schema.Mutation().SchemaType.Name)
+        else if (typeName == schema.Mutation().SchemaType.Name)
         {
-            return BuildMutationFields(schema);
+            fields = BuildMutationFields(schema);
         }
-
-        var fieldDescs = new List<Models.Field>();
-        if (!schema.HasType(typeName))
+        else
         {
-            return fieldDescs.ToArray();
-        }
-        var type = schema.Type(typeName);
-        foreach (var field in type.GetFields())
-        {
-            if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
-                continue;
-
-            var f = new Models.Field(schema.SchemaFieldNamer(field.Name), BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
+            var fieldDescs = new List<Models.Field>();
+            if (!schema.HasType(typeName))
             {
-                Args = BuildArgs(schema, field).ToArray(),
-                Description = field.Description,
-            };
+                return fieldDescs;
+            }
+            var type = schema.Type(typeName);
+            foreach (var field in type.GetFields())
+            {
+                if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
+                    continue;
 
-            field.DirectivesReadOnly.ProcessField(f);
+                var f = new Models.Field(schema.SchemaFieldNamer(field.Name), BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
+                {
+                    Args = BuildArgs(schema, field).ToArray(),
+                    Description = field.Description,
+                };
 
-            fieldDescs.Add(f);
+                field.DirectivesReadOnly.ProcessField(f);
+
+                fieldDescs.Add(f);
+            }
+            fields = fieldDescs.ToArray();
         }
-        return fieldDescs.ToArray();
+
+        if (includeDeprecated)
+            return fields;
+        return fields.Where(f => !f.IsDeprecated);
     }
 
     private static Models.Field[] BuildRootQueryFields(ISchemaProvider schema)

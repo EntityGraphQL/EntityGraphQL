@@ -12,7 +12,7 @@ public class GraphQLFragmentStatement : IGraphQLNode
     public ParameterExpression? RootParameter { get; }
 
     public IField? Field { get; }
-    public bool HasServices => Field?.Services.Count > 0;
+    public bool HasServices => Field?.Services.Count > 0 || Field?.ExecuteAsService == true;
 
     public IReadOnlyDictionary<string, object?> Arguments { get; }
 

@@ -43,7 +43,7 @@ public partial class TypeElement
 
     // Fields is added dynamically so it is lazily loaded
 
-    public InputValue[] InputFields { get; set; } = [];
+    public InputValue[]? InputFields { get; set; } = [];
 
     public TypeElement[] Interfaces { get; set; } = [];
 

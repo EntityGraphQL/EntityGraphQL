@@ -1049,14 +1049,14 @@ public class ServiceFieldTests
         {
             Query =
                 @"query {
-            task(id: 1) { # context collection to single
-                project {
-                    config { # service
-                        type
+                    task(id: 1) { # context collection to single
+                        project {
+                            config { # service
+                                type
+                            }
+                        }
                     }
-                }
-            }
-        }",
+                }",
         };
 
         var context = new TestDataContext
@@ -1074,7 +1074,7 @@ public class ServiceFieldTests
         var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
         Assert.Equal(1, configSrv.CallCount);
-        dynamic project = (dynamic)res.Data!["task"]!;
+        dynamic project = res.Data!["task"]!;
     }
 
     [Fact]

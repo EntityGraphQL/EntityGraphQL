@@ -378,16 +378,14 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
         // evaluate Fields lazily so we don't end up in endless loop
         Type<Models.TypeElement>("__Type")
-            .ReplaceField(
-                "fields",
-                new { includeDeprecated = false },
-                (t, p) => SchemaIntrospection.BuildFieldsForType(this, t.Name!).Where(f => p.includeDeprecated ? f.IsDeprecated || !f.IsDeprecated : !f.IsDeprecated).ToList(),
-                "Fields available on type"
-            );
+            .ReplaceField("fields", new { includeDeprecated = false }, "Fields available on type")
+            .Resolve((t, p) => SchemaIntrospection.BuildFieldsForType(this, t.Name!, t.Kind, p.includeDeprecated))
+            .AsService();
 
-        Query().ReplaceField("__schema", db => SchemaIntrospection.Make(this), "Introspection of the schema").Returns("__Schema");
+        Query().ReplaceField("__schema", db => SchemaIntrospection.Make(this), "Introspection of the schema").Returns("__Schema").AsService();
         Query()
             .ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this).Types.Where(s => s.Name == p.name).First(), "Query a type by name")
+            .AsService()
             .Returns("__Type");
     }
 

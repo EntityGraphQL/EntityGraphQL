@@ -68,7 +68,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// <summary>
     /// True if this field directly has services
     /// </summary>
-    public bool HasServices => Field?.Services.Count > 0;
+    public bool HasServices => Field?.Services.Count > 0 || Field?.ExecuteAsService == true;
 
     public BaseGraphQLField(
         ISchemaProvider schema,
@@ -112,7 +112,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// <value></value>
     public virtual bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
-        return Field?.Services.Count > 0 || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments));
+        return Field?.Services.Count > 0 || Field?.ExecuteAsService == true || QueryFields.Any(f => f.HasServicesAtOrBelow(fragments));
     }
 
     /// <summary>

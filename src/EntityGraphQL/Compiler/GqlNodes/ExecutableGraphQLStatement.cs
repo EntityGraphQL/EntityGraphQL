@@ -36,7 +36,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     public ParameterExpression? OpVariableParameter { get; }
 
     public IField? Field { get; }
-    public bool HasServices => Field?.Services.Count > 0;
+    public bool HasServices => Field?.Services.Count > 0 || Field?.ExecuteAsService == true;
 
     public IReadOnlyDictionary<string, object?> Arguments { get; }
 
@@ -303,7 +303,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             var contextParam = node.RootParameter;
             bool isSecondExec = false;
 
-            if (node.HasServicesAtOrBelow(fragments) && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
+            bool hasServicesAtOrBelow = node.HasServicesAtOrBelow(fragments);
+            if (hasServicesAtOrBelow && compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately)
             {
                 // build this first as NodeExpression may modify ConstantParameters
                 // this is without fields that require services
@@ -360,7 +361,6 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 #pragma warning disable IDE0074 // Use compound assignment
             if (expression == null)
             {
-                // just do things normally
                 expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, null, contextChanged: false, replacer);
             }
 #pragma warning restore IDE0074 // Use compound assignment

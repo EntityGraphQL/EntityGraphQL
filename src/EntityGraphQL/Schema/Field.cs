@@ -1,7 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -271,5 +271,11 @@ public class Field : BaseField
             throw new EntityGraphQLSchemaException("Field is synchronous but returns an async type. Use ResolveAsync() or resolve the field expression with .GetAwaiter().GetResult()");
 
         ReturnType = SchemaBuilder.MakeGraphQlType(Schema, false, returnType, null, Name, FromType);
+    }
+
+    public new Field AsService()
+    {
+        base.AsService();
+        return this;
     }
 }

@@ -20,7 +20,7 @@ public class InputTypeTests
                 @"query {
                         __type(name: ""PeopleArgs"") {
                             name
-                            fields {
+                            inputFields {
                                 name
                             }
                         }
@@ -28,9 +28,9 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "name");
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class InputTypeTests
                 @"query {
                         __type(name: ""PeopleArgs"") {
                             name
-                            fields {
+                            inputFields {
                                 name
                             }
                         }
@@ -53,9 +53,9 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "name");
     }
 
     [Fact]
@@ -79,7 +79,11 @@ public class InputTypeTests
                 @"query {
                         __type(name: ""PeopleArgs"") {
                             name
+                            kind
                             fields {
+                                name
+                            }
+                            inputFields {
                                 name
                             }
                         }
@@ -87,9 +91,13 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
+        // Per GraphQL spec, fields should be null for INPUT_OBJECT types
+        Assert.Equal("INPUT_OBJECT", ((dynamic)result.Data!["__type"]!).kind);
+        Assert.Null(((dynamic)result.Data!["__type"]!).fields);
+        // inputFields should have the fields
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "name");
     }
 
     [Fact]
@@ -113,7 +121,11 @@ public class InputTypeTests
                 @"query {
                         __type(name: ""PeopleArgs"") {
                             name
+                            kind
                             fields {
+                                name
+                            }
+                            inputFields {
                                 name
                             }
                         }
@@ -121,9 +133,13 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "unit");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "dayOfWeek");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "name");
+        // Per GraphQL spec, fields should be null for INPUT_OBJECT types
+        Assert.Equal("INPUT_OBJECT", ((dynamic)result.Data!["__type"]!).kind);
+        Assert.Null(((dynamic)result.Data!["__type"]!).fields);
+        // inputFields should have the fields
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "unit");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "dayOfWeek");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "name");
     }
 
     class TaskInput : Task { }
@@ -216,7 +232,11 @@ public class InputTypeTests
                 @"query {
                         __type(name: ""UserInput"") {
                             name
+                            kind
                             fields {
+                                name
+                            }
+                            inputFields {
                                 name
                                 type { name ofType { kind name } }
                             }
@@ -225,9 +245,13 @@ public class InputTypeTests
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.Null(result.Errors);
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "id");
-        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).fields, f => f.name == "tasks");
-        Assert.Equal("TaskInput", ((dynamic)result.Data!["__type"]!).fields[1].type.ofType.name);
+        // Per GraphQL spec, fields should be null for INPUT_OBJECT types
+        Assert.Equal("INPUT_OBJECT", ((dynamic)result.Data!["__type"]!).kind);
+        Assert.Null(((dynamic)result.Data!["__type"]!).fields);
+        // inputFields should have the fields
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "id");
+        Assert.Contains((IEnumerable<dynamic>)((dynamic)result.Data!["__type"]!).inputFields, f => f.name == "tasks");
+        Assert.Equal("TaskInput", ((dynamic)result.Data!["__type"]!).inputFields[1].type.ofType.name);
     }
 
     [Fact]

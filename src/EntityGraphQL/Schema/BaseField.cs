@@ -48,6 +48,7 @@ public abstract class BaseField : IField
     /// Expressions used to resolve the field in a bulk fashion. This is used for optimising the number of calls to the underlying data source.
     /// </summary>
     public IBulkFieldResolver? BulkResolver { get; protected set; }
+    public bool ExecuteAsService { get; private set; }
 
     protected BaseField(ISchemaProvider schema, ISchemaType fromType, string name, string? description, GqlTypeInfo returnType)
     {
@@ -246,6 +247,12 @@ public abstract class BaseField : IField
     {
         ReturnType.TypeNotNullable = !nullable;
 
+        return this;
+    }
+
+    public IField AsService()
+    {
+        ExecuteAsService = true;
         return this;
     }
 }

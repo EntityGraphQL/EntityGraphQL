@@ -304,4 +304,93 @@ public class IntrospectionTests
         var type = (dynamic)res.Data!["__type"]!;
         Assert.Equal("Date with time scalar", type.description);
     }
+
+    [Fact]
+    public void TestInputTypeShouldNotHaveFields_OnlyInputFields()
+    {
+        // According to GraphQL spec, INPUT_OBJECT types should have inputFields, not fields
+        // fields should return null for input types
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddInputType<TestInputType>("TestInputType", "A test input type").AddAllFields();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                    __type(name: ""TestInputType"") {
+                        name
+                        kind
+                        fields {
+                            name
+                        }
+                        inputFields {
+                            name
+                        }
+                    }
+                }",
+        };
+
+        var context = new TestDataContext();
+        var res = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(res.Errors);
+
+        var type = (dynamic)res.Data!["__type"]!;
+        Assert.Equal("TestInputType", type.name);
+        Assert.Equal("INPUT_OBJECT", type.kind);
+
+        // fields should be null for INPUT_OBJECT types
+        Assert.Null(type.fields);
+
+        // inputFields should have the fields
+        var inputFields = (IEnumerable<dynamic>)type.inputFields;
+        Assert.NotEmpty(inputFields);
+        Assert.Contains(inputFields, f => f.name == "name");
+        Assert.Contains(inputFields, f => f.name == "value");
+    }
+
+    [Fact]
+    public void TestObjectTypeShouldHaveFields_NotInputFields()
+    {
+        // According to GraphQL spec, OBJECT types should have fields, not inputFields
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                    __type(name: ""Person"") {
+                        name
+                        kind
+                        fields {
+                            name
+                        }
+                        inputFields {
+                            name
+                        }
+                    }
+                }",
+        };
+
+        var context = new TestDataContext();
+        var res = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(res.Errors);
+
+        var type = (dynamic)res.Data!["__type"]!;
+        Assert.Equal("Person", type.name);
+        Assert.Equal("OBJECT", type.kind);
+
+        // fields should have the fields for OBJECT types
+        var fields = (IEnumerable<dynamic>)type.fields;
+        Assert.NotEmpty(fields);
+
+        // inputFields should be null/empty for OBJECT types
+        var inputFields = type.inputFields as IEnumerable<dynamic>;
+        Assert.True(inputFields == null || !inputFields.Any());
+    }
+
+    private class TestInputType
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Value { get; set; }
+    }
 }

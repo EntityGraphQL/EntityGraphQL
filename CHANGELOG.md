@@ -15,12 +15,14 @@
 - Add `net10.0` as a target
 - When using Offset Paging the total items expression is now only executed if the query requests `hasNextPage` or `totalItems` fields
 - When using Connection Paging the total count expression is now only executed if the query requests `totalCount` or `pageInfo` fields or the 'last' argument is used
+- Added `IField.AsService()` to signal that a field should (or can) be treated as a service field. This means null-checks are differently and they are executed after EF related calls (if `ExecutionOptions.ExecuteServiceFieldsSeparately = true`). Useful for fields that operate with data fully in-memory and do not need a registered service to fetch data or work
 
 ## Fixes
 
 - #481 - handle `ResolveAsync` on a top level field
 - #488 - Support async fields with `[GraphQLField]`
 - #487 - Fix `ResolveAsync` with arguments
+- As per spec - `_Type.fields` should be `null` for `INPUT_OBJECT`. Previously the `inputFields` were repeated.
 
 # 6.0.0-beta2
 

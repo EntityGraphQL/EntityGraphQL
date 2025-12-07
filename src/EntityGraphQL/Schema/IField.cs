@@ -142,4 +142,7 @@ public interface IField
     IField RequiresAnyPolicy(params string[] policies);
 
     IField IsNullable(bool nullable);
+
+    IField AsService();
+    bool ExecuteAsService { get; }
 }

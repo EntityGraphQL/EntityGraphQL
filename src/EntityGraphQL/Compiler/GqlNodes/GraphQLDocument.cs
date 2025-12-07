@@ -55,7 +55,7 @@ public class GraphQLDocument : IGraphQLNode
     public string Name => "Query Request Root";
 
     public IField? Field { get; }
-    public bool HasServices => Field?.Services.Count > 0;
+    public bool HasServices => Field?.Services.Count > 0 || Field?.ExecuteAsService == true;
 
     public IReadOnlyDictionary<string, object?> Arguments { get; }
 
