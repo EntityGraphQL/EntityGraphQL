@@ -29,12 +29,6 @@ public class AddGraphQLOptions<TSchemaContext>
     public bool AutoBuildSchemaFromContext { get; set; } = true;
 
     /// <summary>
-    /// Called after the schema object is created but before the context is reflected into it (SchemaBuilder).
-    /// Use for set up of type mappings or anything that may be needed for the schema to be built correctly.
-    /// </summary>
-    public Action<SchemaProvider<TSchemaContext>>? PreBuildSchemaFromContext { get; set; }
-
-    /// <summary>
     /// Called after the context has been reflected into a schema to allow further customisation.
     /// Or use this to configure the whole schema if AutoBuildSchemaFromContext is false.
     /// </summary>

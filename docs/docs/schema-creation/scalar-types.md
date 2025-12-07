@@ -40,7 +40,7 @@ It is best to have scalar types added to the schema before adding other fields t
 
 ```cs
 services.AddGraphQLSchema<TContext>(options => {
-  options.Schema.PreBuildSchemaFromContext = schema =>
+  options.Builder.PreBuildSchemaFromContext = schema =>
   {
       // remove and/or add scalar types or mappings here. e.g.
       schema.RemoveType<DateTime>();
@@ -73,10 +73,12 @@ byte[]  ->  String
 ## Custom Type Converters
 
 EntityGraphQL provides a type converter system that enables runtime conversion between types. This is useful for:
+
 - Converting query variables and mutation arguments
 - Using custom types in filter expressions (with `isAny`, binary comparisons, etc.)
 - Handling JSON library types (see [Newtonsoft JSON](../serialization-naming/newtonsoft-json))
 
 For examples and detailed usage, see:
+
 - [Custom Type Converters for Filters](../field-extensions/filtering#custom-type-converters-for-filters) - Using converters with custom types like `Version`, `Uri`, etc. in filters
 - [Newtonsoft JSON](../serialization-naming/newtonsoft-json) - Converting JObject/JToken types from JSON deserialization

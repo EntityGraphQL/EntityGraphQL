@@ -15,9 +15,9 @@ public class PoliciesTests
         serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
         var services = serviceCollection.BuildServiceProvider();
         var schema = SchemaBuilder.FromObject<PolicyDataContext>(
-            new SchemaProviderOptions
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) },
+            new SchemaBuilderOptions
             {
-                AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!),
                 PreBuildSchemaFromContext = (context) =>
                 {
                     context.AddAttributeHandler(new AuthorizeAttributeHandler());

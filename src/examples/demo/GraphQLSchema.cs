@@ -6,6 +6,14 @@ using EntityGraphQL.Schema.FieldExtensions;
 
 namespace demo;
 
+/// <summary>
+/// Configures the GraphQL schema showcasing EntityGraphQL features:
+/// - Custom fields and computed properties
+/// - Service field resolution
+/// - Filtering, sorting, and pagination
+/// - Mutations with validation
+/// - Type relationships and field replacements
+/// </summary>
 public class GraphQLSchema
 {
     public static void ConfigureSchema(SchemaProvider<DemoContext> demoSchema)

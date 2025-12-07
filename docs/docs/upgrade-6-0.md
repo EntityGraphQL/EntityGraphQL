@@ -67,6 +67,9 @@ services.AddGraphQLSchema<DemoContext>(options => {
     options.Builder.AutoCreateFieldWithIdArguments = true;
     options.Builder.AutoCreateEnumTypes = true;
     options.Builder.IgnoreProps.Add("MyProp");
+    options.Builder.PreBuildSchemaFromContext = schema => {
+        // Set up type mappings before reflection
+    };
 
     // Schema options control schema provider configuration
     options.Schema.FieldNamer = name => name;

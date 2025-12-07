@@ -163,7 +163,7 @@ var schema = SchemaBuilder.FromObject<DemoContext>(new SchemaProviderOptions
 // with the ASP.NET extensions
 builder.Services.AddGraphQLSchema<DemoContext>(options =>
 {
-    options.Schema.PreBuildSchemaFromContext = (context) =>
+    options.Builder.PreBuildSchemaFromContext = (context) =>
     {
         context.AddAttributeHandler(new AuthorizeAttributeHandler());
     }

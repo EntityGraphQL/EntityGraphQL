@@ -78,7 +78,7 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
                 schema.AllowedExceptions.Add(allowedException);
         }
 
-        options.PreBuildSchemaFromContext?.Invoke(schema);
+        options.Builder.PreBuildSchemaFromContext?.Invoke(schema);
         if (options.AutoBuildSchemaFromContext)
             schema.PopulateFromContext(options.Builder);
         options.ConfigureSchema?.Invoke(schema);

@@ -11,6 +11,7 @@
   - Now exposes `Builder` property for `SchemaBuilderOptions` (controls building/reflection behavior)
   - Now exposes `Schema` property for `SchemaProviderOptions` (controls schema provider configuration like authorization, introspection, error handling, field naming)
   - Removed `FieldNamer` property - now accessed via `options.Schema.FieldNamer`
+  - **`PreBuildSchemaFromContext` moved from `SchemaProviderOptions` to `SchemaBuilderOptions`** - now accessed via `options.Builder.PreBuildSchemaFromContext` (it's called during the schema building phase, not runtime)
 - Removed `introspectionEnabled` parameter from `AddGraphQLSchema` extension method - configure via `options.Schema.IntrospectionEnabled` instead
 
 ## Changes

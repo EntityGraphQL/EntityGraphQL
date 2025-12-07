@@ -1,43 +1,201 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
   <meta content="utf-8" http-equiv="encoding">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EntityGraphQL Demo - Movie Database API</title>
   <style>
     body {
       height: 100%;
       margin: 0;
       width: 100%;
       overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
     }
 
     #graphiql {
       height: 100vh;
     }
+
+    .graphiql-container {
+      --color-primary: 40, 167, 69;
+    }
   </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.production.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 
-  <link href="https://unpkg.com/graphiql/graphiql.min.css" rel="stylesheet" />
-  <script crossorigin src="https://unpkg.com/graphiql/graphiql.min.js"></script>
+  <link href="https://unpkg.com/graphiql@3/graphiql.min.css" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/graphiql@3/graphiql.min.js"></script>
 </head>
 
 <body>
-  <div id="graphiql">Loading...</div>
+  <div id="graphiql">Loading GraphiQL...</div>
   <script>
-    const graphQLFetcher = graphQLParams =>
-      fetch('/graphql', {
-        method: 'post',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(graphQLParams),
+    const root = ReactDOM.createRoot(document.getElementById('graphiql'));
+    const fetcher = GraphiQL.createFetcher({ url: '/graphql' });
+
+    // Sample queries showcasing EntityGraphQL features
+    const defaultQuery = `# Welcome to the EntityGraphQL Demo - Movie Database API!
+# 
+# This GraphQL API showcases EntityGraphQL features:
+# ✓ Auto-generated schema from EF Core DbContext
+# ✓ Filtering with expression syntax
+# ✓ Sorting (single and multi-field)
+# ✓ Connection-based and offset-based pagination
+# ✓ Computed fields and service resolution
+# ✓ Mutations with validation
+# ✓ Custom scalar types
+#
+# Explore the schema using the Docs panel (Ctrl+Space for autocomplete) →
+
+# Example 1: Basic query with computed fields
+{
+  movies {
+    name
+    rating
+    released
+    genre
+    director {
+      name
+      age
+    }
+    actors {
+      name
+      age
+    }
+    directorAgeAtRelease
+  }
+}
+
+# Example 2: Filtering movies by rating and genre
+# {
+#   movies(filter: "rating > 9 && genre == \\"Drama\\"") {
+#     name
+#     rating
+#     genre
+#     director { name }
+#   }
+# }
+
+# Example 3: Connection paging with filtering and sorting
+# {
+#   people(
+#     first: 5
+#     filter: "age > 40"
+#     orderBy: { lastName: ASC }
+#   ) {
+#     totalCount
+#     pageInfo {
+#       hasNextPage
+#       hasPreviousPage
+#       startCursor
+#       endCursor
+#     }
+#     edges {
+#       cursor
+#       node {
+#         name
+#         age
+#         dob
+#         actorIn { name rating }
+#         directorOf { name rating }
+#       }
+#     }
+#   }
+# }
+
+# Example 4: Offset paging
+# {
+#   actorsOffset(take: 5, skip: 0) {
+#     items {
+#       name
+#       age
+#       actorIn { 
+#         name 
+#         rating
+#         released
+#       }
+#     }
+#     totalItems
+#     hasNextPage
+#     hasPreviousPage
+#   }
+# }
+
+# Example 5: Query writers and directors
+# {
+#   writers {
+#     name
+#     age
+#     writerOf {
+#       name
+#       rating
+#       released
+#     }
+#   }
+#   directors(orderBy: { lastName: ASC }) {
+#     name
+#     age
+#     directorOf {
+#       name
+#       rating
+#     }
+#   }
+# }
+
+# Example 6: Service field resolution (users from external service)
+# {
+#   users {
+#     id
+#     name
+#     email
+#     moviesContributed {
+#       name
+#       rating
+#       genre
+#     }
+#   }
+# }
+
+# Example 7: Mutations with validation
+# mutation AddMovie {
+#   addMovie(
+#     name: "The Matrix"
+#     genre: Scifi
+#     released: "1999-03-31"
+#     rating: 8.7
+#     directorId: 1
+#   ) {
+#     id
+#     name
+#     rating
+#     director { name }
+#   }
+# }
+
+# Example 8: Using GraphQL variables in filters
+# query FilterByVariable($minRating: Float!) {
+#   movies(filter: "rating > $minRating") {
+#     name
+#     rating
+#   }
+# }
+# Variables: { "minRating": 9.0 }
+`;
+
+    root.render(
+      React.createElement(GraphiQL, {
+        fetcher,
+        defaultQuery,
+        defaultEditorToolsVisibility: true,
+        headerEditorEnabled: true,
+        shouldPersistHeaders: true,
       })
-        .then(response => response.json())
-        .catch(() => response.text());
-    ReactDOM.render(
-      React.createElement(GraphiQL, { fetcher: graphQLFetcher }),
-      document.getElementById('graphiql'),
     );
   </script>
 </body>

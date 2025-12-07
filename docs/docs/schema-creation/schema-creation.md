@@ -20,11 +20,11 @@ services.AddGraphQLSchema<DemoContext>(options => {
     // Configure how the schema builder reflects the object graph
     options.Builder.AutoCreateFieldWithIdArguments = true;
     options.Builder.AutoCreateEnumTypes = true;
-    
+
     // Configure the schema provider settings
     options.Schema.FieldNamer = name => name; // Override default camelCase naming
     options.Schema.IntrospectionEnabled = true;
-    
+
     options.ConfigureSchema = (schema) => {
         // configure schema here
     };
@@ -131,7 +131,6 @@ Optional arguments for the schema builder:
    - `.FieldNamer` - A `Func<string, string>` lambda used to generate field names. The default `fieldNamer` adopts the GraphQL standard of naming fields `lowerCamelCase`
    - `.IntrospectionEnabled` - Weather or not GraphQL query introspection is enabled or not for the schema. Default is `true`
    - `.AuthorizationService` - An `IGqlAuthorizationService` to control how auth is handled. Default is `RoleBasedAuthorization` (or `PolicyOrRoleBasedAuthorization` when using `AddGraphQLSchema` in ASP.NET)
-   - `.PreBuildSchemaFromContext` - Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or anything that may be needed for the schema to be built correctly.
    - `.IsDevelopment` - If `true` (default), all exceptions will have their messages rendered in the 'errors' object. If `false`, exceptions not included in `AllowedExceptions` will have their message replaced with 'Error occurred'. When using `AddGraphQLSchema` in ASP.NET this is automatically set to `false` in non-Development environments.
    - `.AllowedExceptions` - List of allowed exceptions that will be rendered in the 'errors' object when `IsDevelopment` is `false`. You can also mark your exceptions with `AllowedExceptionAttribute`. These exceptions are included by default.
 
@@ -189,6 +188,7 @@ public List<AllowedException> AllowedExceptions { get; set; } = [
    ```
 
    - `.IgnoreAttributes` - A list of Attribute types which will cause the builder to ignore the field/property when building the schema. These are additional to GraphQLIgnoreAttribute
+   - `.PreBuildSchemaFromContext` - Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or anything that may be needed for the schema to be built correctly.
 
 ### Adding all fields on a type
 

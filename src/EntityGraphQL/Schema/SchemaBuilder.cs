@@ -65,23 +65,23 @@ public static class SchemaBuilder
     /// Given the type TContextType recursively create a query schema based on the public properties of the object.
     /// </summary>
     /// <param name="schemaOptions">Options to create the SchemaProvider.</param>
-    /// <param name="reflectionOptions">SchemaBuilderOptions to configure the rules for auto creating the schema types and fields</param>
+    /// <param name="builderOptions">SchemaBuilderOptions to configure the rules for auto creating the schema types and fields</param>
     /// <param name="logger">A logger to use in the schema</param>
     /// <typeparam name="TContextType"></typeparam>
     /// <returns></returns>
     public static SchemaProvider<TContextType> FromObject<TContextType>(
         SchemaProviderOptions? schemaOptions,
-        SchemaBuilderOptions? reflectionOptions = null,
+        SchemaBuilderOptions? builderOptions = null,
         ILogger<SchemaProvider<TContextType>>? logger = null
     )
     {
-        reflectionOptions ??= new SchemaBuilderOptions();
+        builderOptions ??= new SchemaBuilderOptions();
         schemaOptions ??= new SchemaProviderOptions();
 
         var schema = new SchemaProvider<TContextType>(schemaOptions.AuthorizationService, schemaOptions.FieldNamer, logger, schemaOptions.IntrospectionEnabled, schemaOptions.IsDevelopment);
-        schemaOptions.PreBuildSchemaFromContext?.Invoke(schema);
+        builderOptions.PreBuildSchemaFromContext?.Invoke(schema);
         schema = ApplyOptions(schema, schemaOptions);
-        return FromObject(schema, reflectionOptions);
+        return FromObject(schema, builderOptions);
     }
 
     /// <summary>

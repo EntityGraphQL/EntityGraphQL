@@ -25,6 +25,8 @@ scalar String
 scalar StringKeyValuePair
 """Time value only scalar"""
 scalar TimeOnly
+"""TimeSpan scalar"""
+scalar TimeSpan
 
 """Directs the executor to include this field or fragment only when the `if` argument is true."""
 directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
@@ -154,7 +156,6 @@ type Person {
 	filteredDirectorOf(filter: String): [Movie!]
 	firstName: String!
 	id: Int!
-	isDeleted: Boolean!
 	lastName: String!
 	"""Person's name"""
 	name: String

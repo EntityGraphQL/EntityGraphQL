@@ -73,6 +73,12 @@ public class SchemaBuilderOptions
     /// Callback invoked when a field is created during schema reflection
     /// </summary>
     public OnFieldCreated? OnFieldCreated { get; set; }
+
+    /// <summary>
+    /// Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or
+    /// anything that may be needed for the schema to be built correctly.
+    /// </summary>
+    public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; }
 }
 
 /// <summary>
@@ -99,12 +105,6 @@ public class SchemaProviderOptions
     /// Authorization service implementation for the schema
     /// </summary>
     public IGqlAuthorizationService AuthorizationService { get; set; } = new RoleBasedAuthorization();
-
-    /// <summary>
-    /// Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or
-    /// anything that may be needed for the schema to be built correctly.
-    /// </summary>
-    public Action<ISchemaProvider>? PreBuildSchemaFromContext { get; set; }
 
     /// <summary>
     /// If true (default), exceptions will have their messages rendered in the 'errors' object

@@ -21,7 +21,7 @@ public class Startup : FunctionsStartup
         builder
             .Services.AddGraphQLSchema<DemoContext>(options =>
             {
-                options.PreBuildSchemaFromContext = schema =>
+                options.Builder.PreBuildSchemaFromContext = schema =>
                 {
                     // add in needed mappings for our context
                     schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
