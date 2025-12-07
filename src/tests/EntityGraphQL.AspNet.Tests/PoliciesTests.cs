@@ -15,7 +15,7 @@ public class PoliciesTests
         serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
         var services = serviceCollection.BuildServiceProvider();
         var schema = SchemaBuilder.FromObject<PolicyDataContext>(
-            new SchemaBuilderSchemaOptions
+            new SchemaProviderOptions
             {
                 AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!),
                 PreBuildSchemaFromContext = (context) =>
@@ -54,7 +54,7 @@ public class PoliciesTests
         var services = serviceCollection.BuildServiceProvider();
 
         var schema = SchemaBuilder.FromObject<PolicyDataContext>(
-            new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
         );
 
         Assert.Empty(schema.Type<Task>().RequiredAuthorization!.Policies);
@@ -73,7 +73,7 @@ public class PoliciesTests
         var services = serviceCollection.BuildServiceProvider();
 
         var schema = SchemaBuilder.FromObject<PolicyDataContext>(
-            new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
         );
 
         Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies);
@@ -135,7 +135,7 @@ public class PoliciesTests
         var services = serviceCollection.BuildServiceProvider();
 
         var schema = SchemaBuilder.FromObject<PolicyDataContext>(
-            new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
         );
 
         var claims = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
@@ -167,7 +167,7 @@ public class PoliciesTests
         var services = serviceCollection.BuildServiceProvider();
 
         var schema = SchemaBuilder.FromObject<PolicyDataContext>(
-            new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
         );
 
         var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");
@@ -198,7 +198,7 @@ public class PoliciesTests
         var services = serviceCollection.BuildServiceProvider();
 
         var schema = SchemaBuilder.FromObject<PolicyDataContext>(
-            new SchemaBuilderSchemaOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
         );
 
         var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "not-admin") }, "authed");

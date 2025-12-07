@@ -40,7 +40,7 @@ It is best to have scalar types added to the schema before adding other fields t
 
 ```cs
 services.AddGraphQLSchema<TContext>(options => {
-  options.PreBuildSchemaFromContext = schema =>
+  options.Schema.PreBuildSchemaFromContext = schema =>
   {
       // remove and/or add scalar types or mappings here. e.g.
       schema.RemoveType<DateTime>();

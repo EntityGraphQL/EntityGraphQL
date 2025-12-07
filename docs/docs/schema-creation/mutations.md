@@ -78,8 +78,6 @@ When `AutoCreateInputTypes` is true, to inject a service, pass it to the constru
 **SchemaBuilderOptions.AddNonAttributedMethodsInControllers**
 If true (default = false), EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
 
-`SchemaBuilderOptions` inherits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
-
 **SchemaBuilderOptions.AutoCreateNewComplexTypes**
 If true (default = true) any complex class types that a mutation returns is added to the schema as a query type if it is not already there.
 

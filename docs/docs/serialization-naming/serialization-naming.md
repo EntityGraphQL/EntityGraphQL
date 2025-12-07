@@ -29,7 +29,7 @@ To override the default behavior you can pass in your own `fieldNamer` function 
 
 ```cs
 services.AddGraphQLSchema<DemoContext>(options => {
-    options.FieldNamer = name => name; // use the dotnet name as is
+    options.Schema.FieldNamer = name => name; // use the dotnet name as is
 });
 ```
 
@@ -37,7 +37,7 @@ Then make sure you follow your naming policy when adding fields to the schema.
 
 ```cs
 services.AddGraphQLSchema<DemoContext>(options => {
-    options.FieldNamer = name => name; // use the dotnet name as is
+    options.Schema.FieldNamer = name => name; // use the dotnet name as is
     options.ConfigureSchema = schema => {
         schema.Query().AddField("SomeField", ...)
     };
@@ -156,7 +156,7 @@ services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSeri
 
 services.AddGraphQLSchema<DemoContext>(options =>
 {
-    options.FieldNamer = name => name;
+    options.Schema.FieldNamer = name => name;
 });
 ```
 

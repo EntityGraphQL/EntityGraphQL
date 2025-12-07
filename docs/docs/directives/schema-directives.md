@@ -152,7 +152,7 @@ Handlers need to be added to the schema before any reflection happens to build t
 
 ```cs
 // If building yourself
-var schema = SchemaBuilder.FromObject<DemoContext>(new SchemaBuilderSchemaOptions
+var schema = SchemaBuilder.FromObject<DemoContext>(new SchemaProviderOptions
 {
     PreBuildSchemaFromContext = (context) =>
     {
@@ -163,7 +163,7 @@ var schema = SchemaBuilder.FromObject<DemoContext>(new SchemaBuilderSchemaOption
 // with the ASP.NET extensions
 builder.Services.AddGraphQLSchema<DemoContext>(options =>
 {
-    PreBuildSchemaFromContext = (context) =>
+    options.Schema.PreBuildSchemaFromContext = (context) =>
     {
         context.AddAttributeHandler(new AuthorizeAttributeHandler());
     }

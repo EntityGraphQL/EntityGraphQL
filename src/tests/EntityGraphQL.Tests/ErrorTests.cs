@@ -102,7 +102,7 @@ public class ErrorTests
     [Fact]
     public void MutationReportsError_UnexposedException()
     {
-        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false });
         schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions() { AutoCreateInputTypes = true });
         // Add a argument field with a require parameter
         var gql = new QueryRequest
@@ -152,7 +152,7 @@ public class ErrorTests
     [Fact]
     public void QueryReportsError_UnexposedException()
     {
-        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false });
         // Add a argument field with a require parameter
         var gql = new QueryRequest
         {
@@ -190,7 +190,7 @@ public class ErrorTests
     [Fact]
     public void QueryReportsError_UnexposedException_WithWhitelist()
     {
-        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false });
         schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(Exception)));
         // Add a argument field with a require parameter
         var gql = new QueryRequest
@@ -230,7 +230,7 @@ public class ErrorTests
     [Fact]
     public void QueryReportsError_UnexposedException_Exact_WithWhitelist()
     {
-        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false });
         schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(ArgumentException), true));
         // Add a argument field with a require parameter
         var gql = new QueryRequest
@@ -270,7 +270,7 @@ public class ErrorTests
     [Fact]
     public void QueryReportsError_UnexposedException_Exact_Mismatch_WithWhitelist()
     {
-        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false });
         schemaProvider.AllowedExceptions.Add(new AllowedException(typeof(Exception), true));
         // Add a argument field with a require parameter
         var gql = new QueryRequest
@@ -310,7 +310,7 @@ public class ErrorTests
     [Fact]
     public void QueryReportsError_DistinctErrors()
     {
-        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false });
         var gql = new QueryRequest
         {
             Query =
@@ -330,7 +330,7 @@ public class ErrorTests
     [Fact]
     public void QueryReportsError_AllowedExceptionAttribute()
     {
-        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderSchemaOptions { IsDevelopment = false });
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false });
         // Add a argument field with a require parameter
         var gql = new QueryRequest
         {

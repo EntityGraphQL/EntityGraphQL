@@ -248,8 +248,8 @@ public class ValidationException : Exception
 // Configure at schema creation
 services.AddGraphQLSchema<MyContext>(options =>
 {
-    options.AllowedExceptions.Add(typeof(ArgumentException));
-    options.AllowedExceptions.Add(typeof(InvalidOperationException));
+    options.Schema.AllowedExceptions.Add(new AllowedException(typeof(ArgumentException)));
+    options.Schema.AllowedExceptions.Add(new AllowedException(typeof(InvalidOperationException)));
 });
 ```
 

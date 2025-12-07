@@ -6,7 +6,7 @@ namespace EntityGraphQL.Schema;
 public delegate void OnFieldCreated(IField field);
 
 /// <summary>
-/// Options used by SchemaBuilder when reflection the object graph to auto create schema types & fields
+/// Options that control how SchemaBuilder reflects the object graph to auto-create schema types and fields.
 /// </summary>
 public class SchemaBuilderOptions
 {
@@ -23,7 +23,7 @@ public class SchemaBuilderOptions
     /// <summary>
     /// If true when SchemaBuilder encounters a field that returns a list of entities and the entity has a property
     /// or field named Id SchemaBuilder will also create a schema field with a singular name and an argument of id for that entity.
-    /// e.g. if it sees IEnumerable<Person> People; It will create the schema fields
+    /// e.g. if it sees IEnumerable&lt;Person&gt; People; It will create the schema fields
     /// {
     ///   people: [Person]
     ///   person(id: ID!): Person
@@ -40,7 +40,7 @@ public class SchemaBuilderOptions
     /// <summary>
     /// If true (default) and an object type is encountered during reflection of the query object graph it will be added to the schema
     /// as a Type including it's fields. If that type is an interface it will be added as an interface. This includes return
-    /// types form mutations
+    /// types from mutations
     /// </summary>
     public bool AutoCreateNewComplexTypes { get; set; } = true;
 
@@ -69,13 +69,16 @@ public class SchemaBuilderOptions
     /// </summary>
     public HashSet<Type> IgnoreAttributes { get; set; } = [];
 
+    /// <summary>
+    /// Callback invoked when a field is created during schema reflection
+    /// </summary>
     public OnFieldCreated? OnFieldCreated { get; set; }
 }
 
 /// <summary>
-/// Options used by the SchemaBuilder factory with creating the SchemaProvider
+/// Options for configuring a SchemaProvider instance.
 /// </summary>
-public class SchemaBuilderSchemaOptions
+public class SchemaProviderOptions
 {
     public static readonly Func<string, string> DefaultFieldNamer = name =>
     {
@@ -93,7 +96,7 @@ public class SchemaBuilderSchemaOptions
     public bool IntrospectionEnabled { get; set; } = true;
 
     /// <summary>
-    ///
+    /// Authorization service implementation for the schema
     /// </summary>
     public IGqlAuthorizationService AuthorizationService { get; set; } = new RoleBasedAuthorization();
 

@@ -6,6 +6,12 @@
 - #476 - Introduce generic custom type converters (from-to, to-only, from-only) for flexible runtime value conversion.
   - Expand `isAny` to support additional types through the method provider
   - Removes `ICustomTypeConverter`. See updated docs and the more flexible converting methods available
+- Renamed `SchemaBuilderSchemaOptions` to `SchemaProviderOptions` for better clarity between schema builder reflection options and schema provider configuration options
+- `AddGraphQLOptions<TSchemaContext>` refactored from inheritance to composition:
+  - Now exposes `Builder` property for `SchemaBuilderOptions` (controls building/reflection behavior)
+  - Now exposes `Schema` property for `SchemaProviderOptions` (controls schema provider configuration like authorization, introspection, error handling, field naming)
+  - Removed `FieldNamer` property - now accessed via `options.Schema.FieldNamer`
+- Removed `introspectionEnabled` parameter from `AddGraphQLSchema` extension method - configure via `options.Schema.IntrospectionEnabled` instead
 
 ## Changes
 
@@ -16,6 +22,9 @@
 - When using Offset Paging the total items expression is now only executed if the query requests `hasNextPage` or `totalItems` fields
 - When using Connection Paging the total count expression is now only executed if the query requests `totalCount` or `pageInfo` fields or the 'last' argument is used
 - Added `IField.AsService()` to signal that a field should (or can) be treated as a service field. This means null-checks are differently and they are executed after EF related calls (if `ExecutionOptions.ExecuteServiceFieldsSeparately = true`). Useful for fields that operate with data fully in-memory and do not need a registered service to fetch data or work
+- `AddGraphQLSchema` in ASP.NET now automatically detects and applies environment-based defaults:
+  - Uses `PolicyOrRoleBasedAuthorization` by default (instead of requiring explicit configuration)
+  - Automatically sets `IsDevelopment = false` in non-Development environments
 
 ## Fixes
 

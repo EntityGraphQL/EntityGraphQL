@@ -11,37 +11,30 @@ namespace EntityGraphQL.AspNet;
 public static class EntityGraphQLAspNetServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds a SchemaProvider<TSchemaContext> as a singleton to the service collection.
+    /// Adds a SchemaProvider&lt;TSchemaContext&gt; as a singleton to the service collection.
     /// </summary>
     /// <param name="serviceCollection"></param>
     /// <param name="configure">Function to further configure your schema</param>
     /// <typeparam name="TSchemaContext"></typeparam>
     /// <returns></returns>
-    public static IServiceCollection AddGraphQLSchema<TSchemaContext>(
-        this IServiceCollection serviceCollection,
-        Action<SchemaProvider<TSchemaContext>>? configure = null,
-        bool introspectionEnabled = true
-    )
+    public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<SchemaProvider<TSchemaContext>>? configure = null)
     {
-        serviceCollection.AddGraphQLSchema<TSchemaContext>(
-            options =>
-            {
-                options.ConfigureSchema = configure;
-            },
-            introspectionEnabled
-        );
+        serviceCollection.AddGraphQLSchema<TSchemaContext>(options =>
+        {
+            options.ConfigureSchema = configure;
+        });
 
         return serviceCollection;
     }
 
     /// <summary>
-    /// Adds a SchemaProvider<TSchemaContext> as a singleton to the service collection.
+    /// Adds a SchemaProvider&lt;TSchemaContext&gt; as a singleton to the service collection.
     /// </summary>
     /// <typeparam name="TSchemaContext">Context type to build the schema on</typeparam>
     /// <param name="serviceCollection"></param>
     /// <param name="configure">Callback to configure the AddGraphQLOptions</param>
     /// <returns></returns>
-    public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<AddGraphQLOptions<TSchemaContext>> configure, bool introspectionEnabled = true)
+    public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<AddGraphQLOptions<TSchemaContext>> configure)
     {
         // We don't want the DI of JsonSerializerOptions as they may not be set up correctly for the dynamic types
         // They used IGraphQLRequestDeserializer/IGraphQLResponseSerializer to override the default JSON serialization
@@ -55,15 +48,39 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
         var options = new AddGraphQLOptions<TSchemaContext>();
         configure(options);
 
+        // Apply environment-based defaults if not explicitly set
+        var schemaOptions = options.Schema;
+
+        // If user hasn't configured authorization, use the ASP.NET policy-based authorization
+        if (schemaOptions.AuthorizationService is RoleBasedAuthorization)
+        {
+            schemaOptions.AuthorizationService = new PolicyOrRoleBasedAuthorization(authService);
+        }
+
+        // If user hasn't explicitly set IsDevelopment, detect from environment
+        // We check if it's still the default value (true) and the environment is not Development
+        if (webHostEnvironment != null && !webHostEnvironment.IsEnvironment("Development"))
+        {
+            schemaOptions.IsDevelopment = false;
+        }
+
         var schema = new SchemaProvider<TSchemaContext>(
-            new PolicyOrRoleBasedAuthorization(authService),
-            options.FieldNamer,
-            introspectionEnabled: introspectionEnabled,
-            isDevelopment: webHostEnvironment?.IsEnvironment("Development") ?? true
+            schemaOptions.AuthorizationService,
+            schemaOptions.FieldNamer,
+            introspectionEnabled: schemaOptions.IntrospectionEnabled,
+            isDevelopment: schemaOptions.IsDevelopment
         );
+
+        // Apply allowed exceptions
+        foreach (var allowedException in schemaOptions.AllowedExceptions)
+        {
+            if (!schema.AllowedExceptions.Contains(allowedException))
+                schema.AllowedExceptions.Add(allowedException);
+        }
+
         options.PreBuildSchemaFromContext?.Invoke(schema);
         if (options.AutoBuildSchemaFromContext)
-            schema.PopulateFromContext(options);
+            schema.PopulateFromContext(options.Builder);
         options.ConfigureSchema?.Invoke(schema);
         serviceCollection.AddSingleton(schema);
 
@@ -71,7 +88,7 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers the default IGraphQLValidator implementation to use as a service in your method fields to report a colletion of errors
+    /// Registers the default IGraphQLValidator implementation to use as a service in your method fields to report a collection of errors
     /// </summary>
     /// <param name="serviceCollection"></param>
     /// <returns></returns>

@@ -17,6 +17,14 @@ To create a new schema we need to supply a base context type. This base type is 
 ```cs
 // Using EntityGraphQL.AspNet extension method to add the schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behavior.
 services.AddGraphQLSchema<DemoContext>(options => {
+    // Configure how the schema builder reflects the object graph
+    options.Builder.AutoCreateFieldWithIdArguments = true;
+    options.Builder.AutoCreateEnumTypes = true;
+    
+    // Configure the schema provider settings
+    options.Schema.FieldNamer = name => name; // Override default camelCase naming
+    options.Schema.IntrospectionEnabled = true;
+    
     options.ConfigureSchema = (schema) => {
         // configure schema here
     };
@@ -119,12 +127,12 @@ var schema = SchemaBuilder.FromObject<DemoContext>();
 
 Optional arguments for the schema builder:
 
-1. `SchemaBuilderSchemaOptions` - options that get passed to the created schema
+1. `SchemaProviderOptions` - options that get passed to the created schema
    - `.FieldNamer` - A `Func<string, string>` lambda used to generate field names. The default `fieldNamer` adopts the GraphQL standard of naming fields `lowerCamelCase`
    - `.IntrospectionEnabled` - Weather or not GraphQL query introspection is enabled or not for the schema. Default is `true`
-   - `.AuthorizationService` - An `IGqlAuthorizationService` to control how auth is handled. Default is `RoleBasedAuthorization`
+   - `.AuthorizationService` - An `IGqlAuthorizationService` to control how auth is handled. Default is `RoleBasedAuthorization` (or `PolicyOrRoleBasedAuthorization` when using `AddGraphQLSchema` in ASP.NET)
    - `.PreBuildSchemaFromContext` - Called after the schema object is created but before the context is reflected into it. Use for set up of type mappings or anything that may be needed for the schema to be built correctly.
-   - `.IsDevelopment` - If `true` (default), all exceptions will have their messages rendered in the 'errors' object. If `false`, exceptions not included in `AllowedExceptions` will have their message replaced with 'Error occurred'
+   - `.IsDevelopment` - If `true` (default), all exceptions will have their messages rendered in the 'errors' object. If `false`, exceptions not included in `AllowedExceptions` will have their message replaced with 'Error occurred'. When using `AddGraphQLSchema` in ASP.NET this is automatically set to `false` in non-Development environments.
    - `.AllowedExceptions` - List of allowed exceptions that will be rendered in the 'errors' object when `IsDevelopment` is `false`. You can also mark your exceptions with `AllowedExceptionAttribute`. These exceptions are included by default.
 
 ```cs
@@ -134,7 +142,7 @@ public List<AllowedException> AllowedExceptions { get; set; } = [
     new(typeof(EntityGraphQLSchemaException))];
 ```
 
-2. `SchemaBuilderOptions` - options used to control how the schema builder builds the schema
+2. `SchemaBuilderOptions` - options used to control how the schema builder reflects the object graph to auto-create schema types and fields
 
    - `.AutoCreateFieldWithIdArguments` - for any fields that return a list of an Object Type that has a field called `Id`, it will create a singular field in the schema with an `id` argument. For example the `DemoContext` used in Getting Started the `DemoContext.People` will create the following GraphQL schema. Default is `true`
 

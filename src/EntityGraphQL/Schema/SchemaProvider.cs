@@ -71,7 +71,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     )
     {
         AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
-        SchemaFieldNamer = fieldNamer ?? SchemaBuilderSchemaOptions.DefaultFieldNamer;
+        SchemaFieldNamer = fieldNamer ?? SchemaProviderOptions.DefaultFieldNamer;
         MethodProvider = new EqlMethodProvider();
         this.logger = logger;
         this.introspectionEnabled = introspectionEnabled;
