@@ -32,7 +32,7 @@ public class FilterExpressionExtension : BaseFieldExtension
         var args = Activator.CreateInstance<FilterArgs>()!;
         field.AddArguments(args);
 
-        isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
+        isQueryable = field.ResolveExpression.Type.IsGenericTypeQueryable();
     }
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(

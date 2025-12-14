@@ -151,7 +151,7 @@ internal static class DefaultMethodImplementations
         ExpectArgsCount(1, args, methodName);
         var array = args[0];
         var arrayType = array.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "Could not get element type from enumerable/array");
-        var isQueryable = typeof(IQueryable).IsAssignableFrom(array.Type);
+        var isQueryable = array.Type.IsGenericTypeQueryable();
 
         if (context.Type.IsNullableType())
         {

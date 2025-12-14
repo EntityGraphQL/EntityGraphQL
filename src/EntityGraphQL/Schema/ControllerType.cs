@@ -86,7 +86,7 @@ public abstract class ControllerType
     private BaseField AddMethodAsField(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, SchemaBuilderOptions? options)
     {
         options ??= new SchemaBuilderOptions();
-        var isAsync = method.GetCustomAttribute<AsyncStateMachineAttribute>() != null || (method.ReturnType.IsGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>));
+        var isAsync = method.GetCustomAttribute<AsyncStateMachineAttribute>() != null || (method.ReturnType.IsGenericType && method.ReturnType.IsAsyncGenericType());
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
         var requiredClaims = methodAuth;
         if (classLevelRequiredAuth != null)

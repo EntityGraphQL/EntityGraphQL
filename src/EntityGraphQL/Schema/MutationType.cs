@@ -1,7 +1,7 @@
 using System;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading.Tasks;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema;
 
@@ -15,7 +15,7 @@ public class MutationType : ControllerType
 
     protected override Type GetTypeFromMethodReturn(Type type, bool isAsync)
     {
-        if (isAsync || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>)))
+        if (isAsync || type.IsAsyncGenericType())
         {
             type = type.GetGenericArguments()[0];
         }

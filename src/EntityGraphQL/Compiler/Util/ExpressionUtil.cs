@@ -45,7 +45,7 @@ public static partial class ExpressionUtil
 
     public static Expression MakeCallOnQueryable(string methodName, Type[] genericTypes, params Expression[] parameters)
     {
-        var type = typeof(IQueryable).IsAssignableFrom(parameters.First().Type) ? typeof(Queryable) : typeof(Enumerable);
+        var type = parameters.First().Type.IsGenericTypeQueryable() ? typeof(Queryable) : typeof(Enumerable);
         try
         {
             return Expression.Call(type, methodName, genericTypes, parameters);
@@ -395,7 +395,7 @@ public static partial class ExpressionUtil
                     // this is a ctx.Something.First(f => ...)
                     // move the filter to a Where call so we can use .Select() to get the fields requested
                     var filter = call.Arguments.ElementAt(1);
-                    var isQueryable = typeof(IQueryable).IsAssignableFrom(listExpression.Type);
+                    var isQueryable = listExpression.Type.IsGenericTypeQueryable();
                     listExpression = isQueryable
                         ? MakeCallOnQueryable(nameof(Queryable.Where), [combineExpression.Type], listExpression, filter)
                         : MakeCallOnEnumerable(nameof(Enumerable.Where), [combineExpression.Type], listExpression, filter);
@@ -567,7 +567,10 @@ public static partial class ExpressionUtil
                 call = Expression.Call(
                     isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
                     isQueryable ? nameof(QueryableExtensions.SelectWithNullCheck) : nameof(EnumerableExtensions.SelectWithNullCheck),
-                    [currentContextParam.Type, baseDynamicType], baseExp, selector);
+                    [currentContextParam.Type, baseDynamicType],
+                    baseExp,
+                    selector
+                );
             else
                 call = isQueryable
                     ? MakeCallOnQueryable(nameof(Enumerable.Select), [currentContextParam.Type, baseDynamicType], baseExp, selector)

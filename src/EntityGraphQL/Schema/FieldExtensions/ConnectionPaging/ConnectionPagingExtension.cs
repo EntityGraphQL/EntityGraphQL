@@ -54,7 +54,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
         if (!schema.HasType(typeof(ConnectionPageInfo)))
             schema.AddType<ConnectionPageInfo>("PageInfo", "Metadata about a page of data").AddAllFields();
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
-        isQueryable = typeof(IQueryable).IsAssignableFrom(field.ReturnType.TypeDotnet);
+        isQueryable = field.ReturnType.TypeDotnet.IsGenericTypeQueryable();
 
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
         if (!schema.HasType(edgeType))

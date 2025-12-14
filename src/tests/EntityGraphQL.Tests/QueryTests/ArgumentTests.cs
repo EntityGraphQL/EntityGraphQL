@@ -109,8 +109,8 @@ public class ArgumentTests
         {
             Query =
                 @"query {
-                        user { id }
-                    }",
+                    user { id }
+                }",
         };
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);

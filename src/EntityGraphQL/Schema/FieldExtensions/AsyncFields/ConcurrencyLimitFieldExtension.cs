@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
@@ -62,12 +63,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         return (newExp, originalArgParam, argumentParam, arguments);
     }
 
-    private static bool IsAsyncExpression(Expression expression)
-    {
-        var type = expression.Type;
-        return type.IsGenericType
-            && (type.GetGenericTypeDefinition() == typeof(Task<>) || type.GetGenericTypeDefinition() == typeof(ValueTask<>) || type.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
-    }
+    private static bool IsAsyncExpression(Expression expression) => expression.Type.IsAsyncGenericType();
 
     /// <summary>
     /// Wraps an async field expression with hierarchical concurrency limiting

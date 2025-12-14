@@ -43,7 +43,7 @@ public class SortExtension : BaseFieldExtension
             schema.AddEnum<SortDirection>("SortDirectionEnum", "Sort direction enum");
         schemaReturnType = field.ReturnType.SchemaType;
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
-        methodType = typeof(IQueryable).IsAssignableFrom(field.ReturnType.TypeDotnet) ? typeof(Queryable) : typeof(Enumerable);
+        methodType = field.ReturnType.TypeDotnet.IsGenericTypeQueryable() ? typeof(Queryable) : typeof(Enumerable);
 
         fieldNamer = schema.SchemaFieldNamer;
         var sortInputName = $"{field.FromType.Name}{field.Name.FirstCharToUpper()}SortInput".FirstCharToUpper();

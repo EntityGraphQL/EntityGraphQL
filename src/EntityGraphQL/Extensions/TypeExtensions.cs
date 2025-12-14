@@ -96,6 +96,12 @@ public static class TypeExtensions
         return isEnumerable;
     }
 
+    public static bool IsAsyncGenericType(this Type source)
+    {
+        return source.IsGenericType
+            && (source.GetGenericTypeDefinition() == typeof(Task<>) || source.GetGenericTypeDefinition() == typeof(ValueTask<>) || source.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+    }
+
     public static bool IsGenericTypeQueryable(this Type source)
     {
         // Handle Task<> or other generic wrappers potentially containing IQueryable<>
@@ -103,7 +109,7 @@ public static class TypeExtensions
         {
             var genericDef = source.GetGenericTypeDefinition();
 
-            if (genericDef == typeof(Task<>))
+            if (genericDef.IsAsyncGenericType())
             {
                 var innerType = source.GetGenericArguments()[0];
                 return IsGenericTypeQueryable(innerType);

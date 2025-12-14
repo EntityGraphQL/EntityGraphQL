@@ -570,7 +570,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             return (null, false);
 #endif
         object? res = null;
-        if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.GetGenericTypeDefinition() == typeof(Task<>))
+        if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.IsAsyncGenericType())
             res = await (dynamic?)lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
         else
             res = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());

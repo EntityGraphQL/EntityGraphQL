@@ -384,8 +384,8 @@ public static class SchemaBuilder
     private static Type GetBaseReturnType(ISchemaProvider schema, Type returnType, SchemaBuilderOptions options)
     {
         // get the object type returned (ignoring list etc) so we know the context to find fields etc
-        var returnsTask = returnType.GetCustomAttribute<AsyncStateMachineAttribute>() != null || (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>));
-        if (returnsTask || (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>)))
+        var returnsTask = returnType.GetCustomAttribute<AsyncStateMachineAttribute>() != null || returnType.IsAsyncGenericType();
+        if (returnsTask || returnType.IsAsyncGenericType())
         {
             returnType = returnType.GetGenericArguments()[0];
         }

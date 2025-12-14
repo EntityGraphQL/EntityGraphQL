@@ -67,7 +67,7 @@ public class OffsetPagingExtension : BaseFieldExtension
         if (defaultPageSize.HasValue)
             field.Arguments["take"].DefaultValue = new DefaultArgValue(true, defaultPageSize.Value);
 
-        isQueryable = typeof(IQueryable).IsAssignableFrom(field.ResolveExpression.Type);
+        isQueryable = field.ResolveExpression.Type.IsGenericTypeQueryable();
 
         // We steal any previous extensions as they were expected to work on the original Resolve which we moved to Edges
         Extensions = field.Extensions.Take(field.Extensions.FindIndex(e => e is OffsetPagingExtension)).ToList();
