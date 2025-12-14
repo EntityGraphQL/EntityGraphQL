@@ -87,13 +87,12 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         AddScalarType<char>("Char", "Char scalar");
 
         // default custom scalar for DateTime
-        // TODO 6.0 - Rename Date to DateTime?
-        AddScalarType<DateTime>("Date", "Date with time scalar");
+        AddScalarType<DateTime>("DateTime", "Date with time scalar");
         AddScalarType<DateTimeOffset>("DateTimeOffset", "DateTimeOffset scalar");
 
         // default custom scalar for TimeSpan
         AddScalarType<TimeSpan>("TimeSpan", "TimeSpan scalar");
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
         AddScalarType<DateOnly>("DateOnly", "Date value only scalar");
         AddScalarType<TimeOnly>("TimeOnly", "Time value only scalar");
 #endif

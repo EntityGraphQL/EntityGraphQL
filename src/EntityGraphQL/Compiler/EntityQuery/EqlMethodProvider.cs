@@ -233,7 +233,7 @@ public class EqlMethodProvider : IMethodProvider
             typeof(DateTimeOffset?),
             typeof(TimeSpan),
             typeof(TimeSpan?)
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
             ,
             typeof(DateOnly),
             typeof(DateOnly?),

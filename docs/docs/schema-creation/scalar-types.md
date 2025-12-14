@@ -30,7 +30,7 @@ AddScalarType<string>("String", "String scalar");
 AddScalarType<Guid>("ID", "ID scalar");
 AddScalarType<char>("Char", "Char scalar");
 
-AddScalarType<DateTime>("Date", "Date with time scalar");
+AddScalarType<DateTime>("DateTime", "Date with time scalar");
 AddScalarType<DateTimeOffset>("DateTimeOffset", "DateTimeOffset scalar");
 AddScalarType<DateOnly>("DateOnly", "Date value only scalar");
 AddScalarType<TimeOnly>("TimeOnly", "Time value only scalar");

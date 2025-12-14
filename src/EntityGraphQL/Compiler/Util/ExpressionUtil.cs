@@ -172,7 +172,7 @@ public static partial class ExpressionUtil
                 return DateTimeOffset.Parse((string)value, CultureInfo.InvariantCulture);
             if (toType == typeof(TimeSpan) || toType == typeof(TimeSpan?))
                 return TimeSpan.Parse((string)value, CultureInfo.InvariantCulture);
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
             if (toType == typeof(DateOnly) || toType == typeof(DateOnly?))
                 return DateOnly.Parse((string)value, CultureInfo.InvariantCulture);
             if (toType == typeof(TimeOnly) || toType == typeof(TimeOnly?))
@@ -187,7 +187,7 @@ public static partial class ExpressionUtil
                 return new DateTimeOffset((long)value, TimeSpan.Zero);
             if (toType == typeof(TimeSpan) || toType == typeof(TimeSpan?))
                 return new TimeSpan((long)value);
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
             if (toType == typeof(DateOnly) || toType == typeof(DateOnly?))
                 return DateOnly.FromDateTime(new DateTime((long)value));
             if (toType == typeof(TimeOnly) || toType == typeof(TimeOnly?))

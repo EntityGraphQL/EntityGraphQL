@@ -64,7 +64,7 @@ public sealed class EntityQueryParser
         .Number<decimal>(NumberOptions.AllowLeadingSign | NumberOptions.Float)
         .Then<IExpression>(static d =>
         {
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
             var scale = d.Scale;
 #else
             var bits = decimal.GetBits(d);

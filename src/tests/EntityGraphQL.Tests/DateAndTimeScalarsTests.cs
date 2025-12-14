@@ -12,7 +12,7 @@ public class DateAndTimeScalarsTests
 {
     private readonly EqlCompileContext compileContext = new(new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null));
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     private class WithDateOnly
     {
         public WithDateOnly(DateOnly d, string name)
@@ -88,7 +88,7 @@ public class DateAndTimeScalarsTests
         Assert.Equal(expectedCount, res.Count);
     }
 
-#if NET6_0_OR_GREATER
+#if NET8_0_OR_GREATER
     private class MutationContext { }
 
     private class EchoTypes

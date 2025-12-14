@@ -358,12 +358,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 }
             }
 
-#pragma warning disable IDE0074 // Use compound assignment
-            if (expression == null)
-            {
-                expression = node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, null, contextChanged: false, replacer);
-            }
-#pragma warning restore IDE0074 // Use compound assignment
+            // no services, or not doing it in 2 steps, build full expression now
+            expression ??= node.GetNodeExpression(compileContext, serviceProvider, fragments, OpVariableParameter, docVariables, contextParam, false, null, null, contextChanged: false, replacer);
 
             var data = await ExecuteExpressionAsync(expression, runningContext, contextParam, serviceProvider, replacer, compileContext, node, true, fragments, isSecondExec);
             return data;

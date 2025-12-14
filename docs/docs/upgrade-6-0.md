@@ -199,6 +199,34 @@ schemaProvider.Query()
 
 The `UseFilter` extension now supports filters referencing service fields.
 
+## Date Scalar Type Renamed to DateTime
+
+The built-in scalar type for `System.DateTime` has been renamed from `"Date"` to `"DateTime"` to better reflect that it includes time information and to avoid confusion with the `DateOnly` scalar type.
+
+**Before (5.x):**
+
+```graphql
+type Person {
+  name: String!
+  birthDate: Date
+}
+```
+
+**After (6.x):**
+
+```graphql
+type Person {
+  name: String!
+  birthDate: DateTime
+}
+```
+
+**Migration Steps:**
+
+1. Update your GraphQL queries to use `DateTime` instead of `Date`
+2. If you have custom schema introspection or code generation tools, update them to recognize `DateTime`
+3. The CLR type remains `System.DateTime` - only the GraphQL scalar name has changed
+
 ## Authorization Refactoring
 
 The authorization system has been refactored to use a keyed data structure for better extensibility. This allows any package to add custom authorization requirements without modifying core classes. **Role-based authorization methods are now extension methods**, following the same pattern as policy-based authorization.

@@ -246,7 +246,6 @@ public class EntityQueryCompilerTests
     public void TestEntityQueryWorksWithDates(string dateValue)
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
-        schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
         var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, compileContext);
         var list = new List<Entry>
         {
@@ -270,7 +269,6 @@ public class EntityQueryCompilerTests
     public void TestEntityQueryFailsOnInvalidDate(string dateValue)
     {
         var schemaProvider = SchemaBuilder.FromObject<Entry>();
-        schemaProvider.AddType<DateTime>("DateTime"); //<-- Tried with and without
         var compiledResult = EntityQueryCompiler.Compile($"when >= {dateValue}", schemaProvider, compileContext);
         var list = new List<Entry> { new Entry("First") { When = new DateTime(2020, 08, 10) } };
         Assert.Single(list);

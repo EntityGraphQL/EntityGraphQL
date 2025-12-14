@@ -290,7 +290,7 @@ public class IntrospectionTests
         {
             Query =
                 @"query {
-                    __type(name: ""Date"") {
+                    __type(name: ""DateTime"") {
                         name
                         description
                     }

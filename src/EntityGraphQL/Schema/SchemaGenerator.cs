@@ -8,9 +8,10 @@ using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
 
+namespace EntityGraphQL.Schema;
+
 // can remove this when/if we drop netstandard2.1
 #pragma warning disable CA1305
-namespace EntityGraphQL.Schema;
 
 public class SchemaGenerator
 {

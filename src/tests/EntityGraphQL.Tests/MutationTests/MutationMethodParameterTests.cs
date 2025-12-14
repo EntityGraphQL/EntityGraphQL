@@ -11,7 +11,6 @@ public class MutationMethodParameterTests
     public void TestSeparateArguments_PrimitivesOnly()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.AddScalarType<DateTime>("DateTime", "");
         schemaProvider.AddScalarType<decimal>("decimal", "");
         schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = false });
         // Add a argument field with a require parameter
@@ -38,7 +37,6 @@ public class MutationMethodParameterTests
     public void TestSeparateArguments_PrimitivesOnly_WithInlineDefaults()
     {
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
-        schemaProvider.AddScalarType<DateTime>("DateTime", "");
         schemaProvider.AddScalarType<decimal>("decimal", "");
         schemaProvider.AddMutationsFrom<PeopleMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = false });
         // Add a argument field with a require parameter
@@ -198,7 +196,6 @@ public class MutationMethodParameterTests
     public void TestChildArraysDontGetArguments()
     {
         var schemaProvider = new SchemaProvider<TestDataContext>();
-        schemaProvider.AddScalarType<DateTime>("DateTime", "");
         schemaProvider.AddScalarType<decimal>("decimal", "");
         schemaProvider.AddScalarType<char>("char", "");
         schemaProvider.PopulateFromContext();
