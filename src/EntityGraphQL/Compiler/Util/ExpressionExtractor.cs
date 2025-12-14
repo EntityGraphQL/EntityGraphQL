@@ -15,9 +15,14 @@ namespace EntityGraphQL.Compiler.Util;
 ///    ctx.Field1
 ///    ctx.Child.Field2
 /// </summary>
-public class ExpressionExtractor : ExpressionVisitor
+public partial class ExpressionExtractor : ExpressionVisitor
 {
-    private readonly Regex pattern = new("[\\.\\(\\)\\!]");
+#if NETSTANDARD2_1
+    private readonly Regex replacePattern = new("[\\.\\(\\)\\!]");
+#endif
+#if NET8_0_OR_GREATER
+    private readonly Regex replacePattern = ReplacePattern();
+#endif
 
     private Expression? rootContext;
 
@@ -49,7 +54,7 @@ public class ExpressionExtractor : ExpressionVisitor
         {
             var expressionItem = currentExpression.Peek();
             // use the expression as the extracted field name as it will be unique
-            var name = "egql__" + pattern.Replace(expressionItem.ToString(), "_");
+            var name = "egql__" + replacePattern.Replace(expressionItem.ToString(), "_");
             if (extractedExpressions!.TryGetValue(name, out var existing))
             {
                 existing.Add(expressionItem);
@@ -130,9 +135,14 @@ public class ExpressionExtractor : ExpressionVisitor
         }
         for (int i = startAt; i < node.Arguments.Count; i++)
         {
-            // each arg might be extractable but we should end up back in a acll or member access again
+            // each arg might be extractable but we should end up back in a call or member access again
             ProcessPotentialLeaf(node.Arguments[i]);
         }
         return node;
     }
+
+#if NET8_0_OR_GREATER
+    [GeneratedRegex("[\\.\\(\\)\\!]")]
+    private static partial Regex ReplacePattern();
+#endif
 }

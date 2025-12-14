@@ -12,9 +12,14 @@ using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Util;
 
-public static class ExpressionUtil
+public static partial class ExpressionUtil
 {
+#if NETSTANDARD2_1
     public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
+#endif
+#if NET8_0_OR_GREATER
+    public static readonly Regex GuidRegex = GuidRegexImpl();
+#endif
 
     /// <summary>
     /// List of methods that take a list and return a single item. We need to handle these differently as we need to
@@ -714,4 +719,9 @@ public static class ExpressionUtil
         expression = Expression.Lambda(expression, contextParam);
         return expression;
     }
+
+#if NET8_0_OR_GREATER
+    [GeneratedRegex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase, "en-AU")]
+    private static partial Regex GuidRegexImpl();
+#endif
 }

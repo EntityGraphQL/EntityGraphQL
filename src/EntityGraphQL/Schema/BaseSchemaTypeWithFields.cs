@@ -6,7 +6,7 @@ using EntityGraphQL.Schema.Directives;
 
 namespace EntityGraphQL.Schema;
 
-public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
+public abstract partial class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
     where TFieldType : IField
 {
     public ISchemaProvider Schema { get; }
@@ -30,7 +30,13 @@ public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
 
     public bool RequiresSelection => GqlType != GqlTypes.Scalar && GqlType != GqlTypes.Enum;
     public RequiredAuthorization? RequiredAuthorization { get; set; }
+
+#if NET8_0_OR_GREATER
+    private readonly Regex nameRegex = GqlNameRegex();
+#endif
+#if NETSTANDARD2_1
     private readonly Regex nameRegex = new("^[_a-zA-Z0-9]+$");
+#endif
 
     public event Action<IField> OnAddField = delegate { };
     public event Action<object?> OnValidate = delegate { };
@@ -182,4 +188,9 @@ public abstract class BaseSchemaTypeWithFields<TFieldType> : ISchemaType
     public abstract ISchemaType Implements<TClrType>(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true);
     public abstract ISchemaType Implements(string typeName);
 #pragma warning restore CA1716
+
+#if NET8_0_OR_GREATER
+    [GeneratedRegex("^[_a-zA-Z0-9]+$")]
+    private static partial Regex GqlNameRegex();
+#endif
 }
