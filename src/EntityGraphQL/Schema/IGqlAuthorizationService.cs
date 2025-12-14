@@ -11,7 +11,7 @@ namespace EntityGraphQL.Schema;
 public interface IGqlAuthorizationService
 {
     RequiredAuthorization? GetRequiredAuthFromExpression(LambdaExpression fieldSelection);
-    RequiredAuthorization GetRequiredAuthFromMember(MemberInfo field);
-    RequiredAuthorization GetRequiredAuthFromType(Type type);
+    RequiredAuthorization? GetRequiredAuthFromMember(MemberInfo field);
+    RequiredAuthorization? GetRequiredAuthFromType(Type type);
     bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuthorization);
 }

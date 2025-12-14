@@ -307,50 +307,6 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
         RemoveField(Schema.SchemaFieldNamer(exp.Member.Name));
     }
 
-    /// <summary>
-    /// To access this type all roles listed here are required
-    /// </summary>
-    /// <param name="roles"></param>
-    public SchemaType<TBaseType> RequiresAllRoles(params string[] roles)
-    {
-        RequiredAuthorization ??= new RequiredAuthorization();
-        RequiredAuthorization.RequiresAllRoles(roles);
-        return this;
-    }
-
-    /// <summary>
-    /// To access this type any of the roles listed is required
-    /// </summary>
-    /// <param name="roles"></param>
-    public SchemaType<TBaseType> RequiresAnyRole(params string[] roles)
-    {
-        RequiredAuthorization ??= new RequiredAuthorization();
-        RequiredAuthorization.RequiresAnyRole(roles);
-        return this;
-    }
-
-    /// <summary>
-    /// To access this type all policies listed here are required
-    /// </summary>
-    /// <param name="policies"></param>
-    public SchemaType<TBaseType> RequiresAllPolicies(params string[] policies)
-    {
-        RequiredAuthorization ??= new RequiredAuthorization();
-        RequiredAuthorization.RequiresAllPolicies(policies);
-        return this;
-    }
-
-    /// <summary>
-    /// To access this type any of the policies listed is required
-    /// </summary>
-    /// <param name="policies"></param>
-    public SchemaType<TBaseType> RequiresAnyPolicy(params string[] policies)
-    {
-        RequiredAuthorization ??= new RequiredAuthorization();
-        RequiredAuthorization.RequiresAnyPolicy(policies);
-        return this;
-    }
-
     public override ISchemaType ImplementAllBaseTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)
     {
         if (TypeDotnet.BaseType != null)

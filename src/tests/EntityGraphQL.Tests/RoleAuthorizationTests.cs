@@ -14,8 +14,8 @@ public class RoleAuthorizationTests
     {
         var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
-        Assert.Single(schema.Type<Project>().RequiredAuthorization!.Roles);
-        Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
+        Assert.Single(schema.Type<Project>().RequiredAuthorization!.GetRoles()!);
+        Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -24,8 +24,8 @@ public class RoleAuthorizationTests
         var schema = new SchemaProvider<object>();
         schema.AddType<Project>("Project", "All about the project");
 
-        Assert.Single(schema.Type<Project>().RequiredAuthorization!.Roles);
-        Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
+        Assert.Single(schema.Type<Project>().RequiredAuthorization!.GetRoles()!);
+        Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -33,12 +33,12 @@ public class RoleAuthorizationTests
     {
         var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
-        Assert.Empty(schema.Type<Task>().RequiredAuthorization!.Roles);
+        Assert.Null(schema.Type<Task>().RequiredAuthorization);
 
         schema.Type<Task>().RequiresAnyRole("admin");
 
-        Assert.Single(schema.Type<Task>().RequiredAuthorization!.Roles);
-        Assert.Equal("admin", schema.Type<Task>().RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
+        Assert.Single(schema.Type<Task>().RequiredAuthorization!.GetRoles()!);
+        Assert.Equal("admin", schema.Type<Task>().RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -46,8 +46,8 @@ public class RoleAuthorizationTests
     {
         var schema = SchemaBuilder.FromObject<RolesDataContext>();
 
-        Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Roles);
-        Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
+        Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.GetRoles()!);
+        Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -56,8 +56,8 @@ public class RoleAuthorizationTests
         var schema = new SchemaProvider<object>();
         schema.AddType<Project>("Project", "All about the project").AddField(p => p.Type, "The type info");
 
-        Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Roles);
-        Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
+        Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.GetRoles()!);
+        Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -67,8 +67,8 @@ public class RoleAuthorizationTests
 
         schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAnyRole("admin");
 
-        Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles);
-        Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
+        Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.GetRoles()!);
+        Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -78,9 +78,9 @@ public class RoleAuthorizationTests
 
         schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAnyRole("admin", "something-else");
 
-        Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles);
-        Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles.ElementAt(0).ElementAt(0));
-        Assert.Equal("something-else", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Roles.ElementAt(0).ElementAt(1));
+        Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.GetRoles()!);
+        Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(0));
+        Assert.Equal("something-else", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.GetRoles()!.ElementAt(0).ElementAt(1));
     }
 
     [Fact]

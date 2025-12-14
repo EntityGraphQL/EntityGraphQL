@@ -36,7 +36,7 @@ public class SubscriptionType : ControllerType
         string? description,
         SchemaBuilderOptions? options,
         bool isAsync,
-        RequiredAuthorization requiredClaims,
+        RequiredAuthorization? requiredClaims,
         GqlTypeInfo returnType
     )
     {

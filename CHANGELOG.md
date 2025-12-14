@@ -13,6 +13,12 @@
   - Removed `FieldNamer` property - now accessed via `options.Schema.FieldNamer`
   - **`PreBuildSchemaFromContext` moved from `SchemaProviderOptions` to `SchemaBuilderOptions`** - now accessed via `options.Builder.PreBuildSchemaFromContext` (it's called during the schema building phase, not runtime)
 - Removed `introspectionEnabled` parameter from `AddGraphQLSchema` extension method - configure via `options.Schema.IntrospectionEnabled` instead
+- **Authorization refactoring**: `RequiredAuthorization` now uses a keyed data structure for extensibility
+  - `RequiredAuthorization` no longer has separate `Roles` backing field - roles are stored via `"egql:core:roles"` key in `KeyedData` dictionary
+  - The `Roles` property is now nullable and computed from keyed data
+  - Policy support moved entirely to `EntityGraphQL.AspNet` package using `"egql:aspnet:policies"` key
+  - `RequiredAuthorization` constructor that took roles parameter has been removed - use `RequiresAnyRole()` or `RequiresAllRoles()` methods instead
+  - Custom authorization implementations should use namespaced keys (e.g., `"myapp:custom-auth"`) to avoid conflicts
 
 ## Changes
 

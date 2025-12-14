@@ -24,18 +24,22 @@ public class RoleBasedAuthorization : IGqlAuthorizationService
         // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
         if (requiredAuthorization != null && requiredAuthorization.Any())
         {
-            // check roles
-            var allRolesValid = true;
-            foreach (var role in requiredAuthorization.Roles)
+            // check roles if any are defined
+            var roles = requiredAuthorization.GetRoles();
+            if (roles != null)
             {
-                // each role now is an OR
-                var hasValidRole = role.Any(r => user?.IsInRole(r) == true);
-                allRolesValid = allRolesValid && hasValidRole;
+                var allRolesValid = true;
+                foreach (var role in roles)
+                {
+                    // each role now is an OR
+                    var hasValidRole = role.Any(r => user?.IsInRole(r) == true);
+                    allRolesValid = allRolesValid && hasValidRole;
+                    if (!allRolesValid)
+                        break;
+                }
                 if (!allRolesValid)
-                    break;
+                    return false;
             }
-            if (!allRolesValid)
-                return false;
 
             return true;
         }
@@ -49,25 +53,48 @@ public class RoleBasedAuthorization : IGqlAuthorizationService
         {
             var attributes = ((MemberExpression)fieldSelection.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
             var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
-            requiredAuth = new RequiredAuthorization(requiredRoles!, null);
+            if (requiredRoles.Count > 0)
+            {
+                requiredAuth = new RequiredAuthorization();
+                foreach (var roles in requiredRoles)
+                {
+                    requiredAuth.RequiresAnyRole(roles!.ToArray());
+                }
+            }
         }
 
         return requiredAuth;
     }
 
-    public virtual RequiredAuthorization GetRequiredAuthFromMember(MemberInfo field)
+    public virtual RequiredAuthorization? GetRequiredAuthFromMember(MemberInfo field)
     {
         var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
         var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
-        var requiredAuth = new RequiredAuthorization(requiredRoles!, null);
-        return requiredAuth;
+        if (requiredRoles.Count > 0)
+        {
+            var auth = new RequiredAuthorization();
+            foreach (var roles in requiredRoles)
+            {
+                auth.RequiresAnyRole(roles!.ToArray());
+            }
+            return auth;
+        }
+        return null;
     }
 
-    public virtual RequiredAuthorization GetRequiredAuthFromType(Type type)
+    public virtual RequiredAuthorization? GetRequiredAuthFromType(Type type)
     {
         var attributes = type.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
         var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
-        var requiredAuth = new RequiredAuthorization(requiredRoles!, null);
-        return requiredAuth;
+        if (requiredRoles.Count > 0)
+        {
+            var auth = new RequiredAuthorization();
+            foreach (var roles in requiredRoles)
+            {
+                auth.RequiresAnyRole(roles!.ToArray());
+            }
+            return auth;
+        }
+        return null;
     }
 }

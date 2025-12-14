@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -13,6 +14,8 @@ namespace EntityGraphQL.AspNet;
 /// </summary>
 public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
 {
+    public const string PoliciesKey = "egql:aspnet:policies";
+
     private readonly IAuthorizationService? authService;
 
     public PolicyOrRoleBasedAuthorization(IAuthorizationService? authService)
@@ -31,11 +34,12 @@ public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
         // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
         if (requiredAuthorization != null && requiredAuthorization.Any())
         {
-            // check polices if principal with used
-            if (authService != null && user != null)
+            // check policies if we have any
+            var policies = requiredAuthorization.GetPolicies();
+            if (policies != null && authService != null && user != null)
             {
                 var allPoliciesValid = true;
-                foreach (var policy in requiredAuthorization.Policies)
+                foreach (var policy in policies)
                 {
                     // each policy now is an OR
                     var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);
@@ -53,21 +57,46 @@ public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
         return true;
     }
 
-    private static RequiredAuthorization GetRequiredAuth(RequiredAuthorization? requiredAuth, ICustomAttributeProvider thing)
+    private static RequiredAuthorization? GetRequiredAuth(RequiredAuthorization? requiredAuth, ICustomAttributeProvider thing)
     {
         var attributes = thing.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>();
         var requiredRoles = attributes.Where(c => !string.IsNullOrEmpty(c.Roles)).Select(c => c.Roles!.Split(",").ToList()).ToList();
         var requiredPolicies = attributes.Where(c => !string.IsNullOrEmpty(c.Policy)).Select(c => c.Policy!.Split(",").ToList()).ToList();
-        var newAuth = new RequiredAuthorization(requiredRoles, requiredPolicies);
-        if (requiredAuth != null)
-            requiredAuth = requiredAuth.Concat(newAuth);
-        else
-            requiredAuth = newAuth;
+
+        if (requiredRoles.Count > 0 || requiredPolicies.Count > 0)
+        {
+            var newAuth = new RequiredAuthorization();
+            foreach (var roles in requiredRoles)
+            {
+                newAuth.RequiresAnyRole(roles.ToArray());
+            }
+            if (requiredPolicies.Count > 0)
+            {
+                var policyList = new List<List<string>>(requiredPolicies);
+                newAuth.SetData(PolicyOrRoleBasedAuthorization.PoliciesKey, policyList);
+            }
+
+            if (requiredAuth != null)
+                requiredAuth = requiredAuth.Concat(newAuth);
+            else
+                requiredAuth = newAuth;
+        }
 
         var attributes2 = thing.GetCustomAttributes(typeof(GraphQLAuthorizePolicyAttribute), true).Cast<GraphQLAuthorizePolicyAttribute>();
+        var morePolicies = attributes2.Where(c => c.Policies?.Count > 0).Select(c => c.Policies.ToList()).ToList();
 
-        requiredPolicies = attributes2.Where(c => c.Policies?.Count > 0).Select(c => c.Policies.ToList()).ToList();
-        requiredAuth = requiredAuth.Concat(new RequiredAuthorization(null, requiredPolicies));
+        if (morePolicies.Count > 0)
+        {
+            var policyAuth = new RequiredAuthorization();
+            var policyList = new List<List<string>>(morePolicies);
+            policyAuth.SetData(PolicyOrRoleBasedAuthorization.PoliciesKey, policyList);
+
+            if (requiredAuth != null)
+                requiredAuth = requiredAuth.Concat(policyAuth);
+            else
+                requiredAuth = policyAuth;
+        }
+
         return requiredAuth;
     }
 
@@ -82,19 +111,19 @@ public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
         return requiredAuth;
     }
 
-    public override RequiredAuthorization GetRequiredAuthFromMember(MemberInfo field)
+    public override RequiredAuthorization? GetRequiredAuthFromMember(MemberInfo field)
     {
         var requiredAuth = base.GetRequiredAuthFromMember(field);
-        requiredAuth = GetRequiredAuth(requiredAuth, field);
+        var authFromAttributes = GetRequiredAuth(requiredAuth, field);
 
-        return requiredAuth;
+        return authFromAttributes ?? requiredAuth;
     }
 
-    public override RequiredAuthorization GetRequiredAuthFromType(Type type)
+    public override RequiredAuthorization? GetRequiredAuthFromType(Type type)
     {
         var requiredAuth = base.GetRequiredAuthFromType(type);
-        requiredAuth = GetRequiredAuth(requiredAuth, type);
+        var authFromAttributes = GetRequiredAuth(requiredAuth, type);
 
-        return requiredAuth;
+        return authFromAttributes ?? requiredAuth;
     }
 }

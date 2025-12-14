@@ -4,84 +4,86 @@ using System.Linq;
 namespace EntityGraphQL.Schema;
 
 /// <summary>
-/// Details on the authorisation required by a field or type
+/// Details on the authorization required by a field or type.
+/// Uses a keyed data structure to allow different authorization implementations to store their requirements.
+///
+/// Data is keyed by your authorization implementation and the value is a list of list of strings to allow for AND/OR combinations
+/// For example:
+/// To require any of roles A or B and also any of roles C or D you would have:
+/// [ [ "A", "B" ], [ "C", "D" ] ]
+///
+/// Core EntityGraphQL provides a role-based authorization implementation via extension methods
 /// </summary>
 public class RequiredAuthorization
 {
     /// <summary>
-    /// Each item in the "first" list is AND claims and each in the inner list is OR claims
-    /// This means [Authorize(Roles = "Blah,Blah2")] is either of those roles
-    /// and
-    /// [Authorize(Roles = "Blah")]
-    /// [Authorize(Roles = "Blah2")] is both of those roles
+    /// Keyed authorization data that can be used by authorization implementations
     /// </summary>
-    private readonly List<List<string>> requiredPolicies;
-    public IEnumerable<IEnumerable<string>> Policies => requiredPolicies;
-    private readonly List<List<string>> requiredRoles;
-    public IEnumerable<IEnumerable<string>> Roles => requiredRoles;
+    private readonly Dictionary<string, List<List<string>>> authData = [];
+    public IReadOnlyDictionary<string, List<List<string>>> AuthData => authData;
 
-    public RequiredAuthorization()
+    public bool Any() => authData.Count > 0;
+
+    /// <summary>
+    /// Set keyed authorization data
+    /// </summary>
+    public void SetData(string key, List<List<string>> value)
     {
-        requiredPolicies = [];
-        requiredRoles = [];
+        authData[key] = value;
     }
 
     /// <summary>
-    /// Create a new RequiredAuthorization object from a list of roles and/or policies
+    /// Get keyed authorization data
     /// </summary>
-    /// <param name="roles">Roles required</param>
-    /// <param name="policies">ASP.NET policies requried</param>
-    public RequiredAuthorization(IEnumerable<List<string>>? roles, IEnumerable<List<string>>? policies)
+    public bool TryGetData(string key, out List<List<string>>? value)
     {
-        requiredRoles = roles?.ToList() ?? [];
-        requiredPolicies = policies?.ToList() ?? [];
+        if (authData.TryGetValue(key, out var obj))
+        {
+            value = obj;
+            return true;
+        }
+        value = default;
+        return false;
     }
 
-    public bool Any() => requiredPolicies.Count > 0 || requiredRoles.Count > 0;
-
-    public void RequiresAnyRole(params string[] roles)
+    /// <summary>
+    /// Remove keyed authorization data
+    /// </summary>
+    public bool RemoveData(string key)
     {
-        requiredRoles.Add(roles.ToList());
+        return authData.Remove(key);
     }
 
-    public void RequiresAllRoles(params string[] roles)
-    {
-        requiredRoles.AddRange(roles.Select(s => new List<string> { s }));
-    }
-
-    public void RequiresAnyPolicy(params string[] policies)
-    {
-        requiredPolicies.Add(policies.ToList());
-    }
-
-    public void RequiresAllPolicies(params string[] policies)
-    {
-        requiredPolicies.AddRange(policies.Select(s => new List<string> { s }));
-    }
-
-    public void ClearRoles()
-    {
-        requiredRoles.Clear();
-    }
-
-    public void ClearPolicies()
-    {
-        requiredPolicies.Clear();
-    }
-
+    /// <summary>
+    /// Clear all authorization data
+    /// </summary>
     public void Clear()
     {
-        ClearRoles();
-        ClearPolicies();
+        authData.Clear();
     }
 
     public RequiredAuthorization Concat(RequiredAuthorization requiredAuthorization)
     {
         var newRequiredAuthorization = new RequiredAuthorization();
-        newRequiredAuthorization.requiredPolicies.AddRange(requiredPolicies);
-        newRequiredAuthorization.requiredPolicies.AddRange(requiredAuthorization.requiredPolicies);
-        newRequiredAuthorization.requiredRoles.AddRange(requiredRoles);
-        newRequiredAuthorization.requiredRoles.AddRange(requiredAuthorization.requiredRoles);
+
+        // Merge keyed data - need to handle list merging specially
+        foreach (var kvp in authData)
+        {
+            newRequiredAuthorization.authData[kvp.Key] = kvp.Value.Select(group => group.ToList()).ToList();
+        }
+
+        foreach (var kvp in requiredAuthorization.authData)
+        {
+            if (newRequiredAuthorization.authData.TryGetValue(kvp.Key, out var existing))
+            {
+                existing.AddRange(kvp.Value.Select(group => group.ToList()));
+            }
+            else
+            {
+                newRequiredAuthorization.authData[kvp.Key] = kvp.Value.Select(group => group.ToList()).ToList();
+            }
+        }
+
         return newRequiredAuthorization;
     }
 }

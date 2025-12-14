@@ -24,8 +24,10 @@ public class PoliciesTests
                 },
             }
         );
-        Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
-        Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+        var projectAuth = schema.Type<Project>().RequiredAuthorization!;
+        var policies = projectAuth.GetPolicies()!;
+        Assert.Single(policies);
+        Assert.Equal("admin", policies.ElementAt(0).ElementAt(0));
 
         var sdl = schema.ToGraphQLSchemaString();
         Assert.Contains("type Project @authorize(roles: \"\", policies: \"admin\") {", sdl);
@@ -42,8 +44,10 @@ public class PoliciesTests
         var schema = new SchemaProvider<PolicyDataContext>(new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!));
         schema.AddType<Project>("Project");
 
-        Assert.Single(schema.Type<Project>().RequiredAuthorization!.Policies);
-        Assert.Equal("admin", schema.Type<Project>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+        var projectAuth = schema.Type<Project>().RequiredAuthorization!;
+        var policies = projectAuth.GetPolicies()!;
+        Assert.Single(policies);
+        Assert.Equal("admin", policies.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -57,12 +61,14 @@ public class PoliciesTests
             new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
         );
 
-        Assert.Empty(schema.Type<Task>().RequiredAuthorization!.Policies);
+        Assert.Null(schema.Type<Task>().RequiredAuthorization);
 
         schema.Type<Task>().RequiresAnyPolicy("admin");
 
-        Assert.Single(schema.Type<Task>().RequiredAuthorization!.Policies);
-        Assert.Equal("admin", schema.Type<Task>().RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+        var taskAuth = schema.Type<Task>().RequiredAuthorization!;
+        var policies = taskAuth.GetPolicies()!;
+        Assert.Single(policies);
+        Assert.Equal("admin", policies.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -76,8 +82,10 @@ public class PoliciesTests
             new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
         );
 
-        Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies);
-        Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+        var fieldAuth = schema.Type<Project>().GetField("type", null).RequiredAuthorization!;
+        var policies = fieldAuth.GetPolicies()!;
+        Assert.Single(policies);
+        Assert.Equal("can-type", policies.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -91,8 +99,10 @@ public class PoliciesTests
 
         schema.AddType<Project>("Project", "All about the project").AddField(p => p.Type, "The type info");
 
-        Assert.Single(schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies);
-        Assert.Equal("can-type", schema.Type<Project>().GetField("type", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+        var fieldAuth = schema.Type<Project>().GetField("type", null).RequiredAuthorization!;
+        var policies = fieldAuth.GetPolicies()!;
+        Assert.Single(policies);
+        Assert.Equal("can-type", policies.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -106,8 +116,10 @@ public class PoliciesTests
 
         schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAllPolicies("admin");
 
-        Assert.Single(schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies);
-        Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+        var fieldAuth = schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!;
+        var policies = fieldAuth.GetPolicies()!;
+        Assert.Single(policies);
+        Assert.Equal("admin", policies.ElementAt(0).ElementAt(0));
     }
 
     [Fact]
@@ -121,8 +133,10 @@ public class PoliciesTests
 
         schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAllPolicies("admin", "can-type");
 
-        Assert.Equal(2, schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.Count());
-        Assert.Equal("admin", schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.Policies.ElementAt(0).ElementAt(0));
+        var fieldAuth = schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!;
+        var policies = fieldAuth.GetPolicies()!;
+        Assert.Equal(2, policies.Count());
+        Assert.Equal("admin", policies.ElementAt(0).ElementAt(0));
     }
 
     [Fact]

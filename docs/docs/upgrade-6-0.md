@@ -199,6 +199,21 @@ schemaProvider.Query()
 
 The `UseFilter` extension now supports filters referencing service fields.
 
+## Authorization Refactoring
+
+The authorization system has been refactored to use a keyed data structure for better extensibility. This allows any package to add custom authorization requirements without modifying core classes. **Role-based authorization methods are now extension methods**, following the same pattern as policy-based authorization.
+
+### `RequiredAuthorization` Changes
+
+`RequiredAuthorization` is now a pure data container that uses a keyed data dictionary (`AuthData`). All authorization logic is provided via extension methods.
+
+**Key Changes:**
+
+- `RequiresAllPolicies`, `RequiresAnyPolicy`, etc. have been moved to the `EntityGraphQL.AspNet` package as extension methods
+- `RequiresAllRoles()` and `RequiresAnyRole()` are now extension methods on `IField` and `SchemaType<T>` (from `RoleAuthorizationExtensions`)
+- Roles are stored under the `"egql:core:roles"` key - use `GetRoles()` extension method to retrieve them
+- Policies (in EntityGraphQL.AspNet) are stored under the `"egql:aspnet:policies"` key - use `GetPolicies()` extension method to retrieve them
+
 ## `IFieldExtension.GetExpressionAndArguments` Signature Change
 
 The method signature has changed to take the current GraphQL node instead of the parent node.

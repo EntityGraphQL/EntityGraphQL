@@ -13,7 +13,7 @@ public class MutationField : MethodField
         GqlTypeInfo returnType,
         MethodInfo method,
         string description,
-        RequiredAuthorization requiredAuth,
+        RequiredAuthorization? requiredAuth,
         bool isAsync,
         SchemaBuilderOptions options
     )

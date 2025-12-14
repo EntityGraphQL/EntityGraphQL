@@ -90,7 +90,12 @@ public abstract class ControllerType
         var methodAuth = SchemaType.Schema.AuthorizationService.GetRequiredAuthFromMember(method);
         var requiredClaims = methodAuth;
         if (classLevelRequiredAuth != null)
-            requiredClaims = requiredClaims.Concat(classLevelRequiredAuth);
+        {
+            if (requiredClaims != null)
+                requiredClaims = requiredClaims.Concat(classLevelRequiredAuth);
+            else
+                requiredClaims = classLevelRequiredAuth;
+        }
         var actualReturnType = GetTypeFromMethodReturn(method.ReturnType, isAsync);
         var nonListReturnType = actualReturnType.IsEnumerableOrArray() ? actualReturnType.GetNonNullableOrEnumerableType() : actualReturnType;
         if (!SchemaType.Schema.HasType(nonListReturnType) && options.AutoCreateNewComplexTypes)
@@ -119,7 +124,7 @@ public abstract class ControllerType
         string? description,
         SchemaBuilderOptions? options,
         bool isAsync,
-        RequiredAuthorization requiredClaims,
+        RequiredAuthorization? requiredClaims,
         GqlTypeInfo returnType
     );
 
