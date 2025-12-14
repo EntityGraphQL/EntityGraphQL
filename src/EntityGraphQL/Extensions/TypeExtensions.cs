@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace EntityGraphQL.Extensions;
 
@@ -97,18 +98,30 @@ public static class TypeExtensions
 
     public static bool IsGenericTypeQueryable(this Type source)
     {
-        bool isQueryable = source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>);
-        if (isQueryable)
-            return isQueryable;
-
-        foreach (var intType in source.GetInterfaces())
+        // Handle Task<> or other generic wrappers potentially containing IQueryable<>
+        if (source.IsGenericType)
         {
-            isQueryable = IsGenericTypeQueryable(intType);
-            if (isQueryable)
-                break;
+            var genericDef = source.GetGenericTypeDefinition();
+
+            if (genericDef == typeof(Task<>))
+            {
+                var innerType = source.GetGenericArguments()[0];
+                return IsGenericTypeQueryable(innerType);
+            }
         }
 
-        return isQueryable;
+        // Check if source is directly IQueryable<>
+        if (source.IsGenericType && source.GetGenericTypeDefinition() == typeof(IQueryable<>))
+            return true;
+
+        // Recursively check all interfaces to find IQueryable<>
+        foreach (var intType in source.GetInterfaces())
+        {
+            if (IsGenericTypeQueryable(intType))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
