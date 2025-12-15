@@ -82,35 +82,13 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                     right = ConvertToEnum(right, left.Type);
                 else if (right.Type.IsEnum && left.Type == typeof(string))
                     left = ConvertToEnum(left, right.Type);
-                // Align int/uint/short/long widths if mixed
-                else if (
-                    left.Type == typeof(int)
-                    && (right.Type == typeof(uint) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
-                )
-                    right = Expression.Convert(right, left.Type);
-                else if (
-                    left.Type == typeof(uint)
-                    && (right.Type == typeof(int) || right.Type == typeof(short) || right.Type == typeof(long) || right.Type == typeof(ushort) || right.Type == typeof(ulong))
-                )
+                // Convert integral types "up" to floating-point types (float/double/decimal)
+                else if (IsIntegralOrNullableIntegral(left.Type) && IsFloatingPointOrNullable(right.Type))
                     left = Expression.Convert(left, right.Type);
-                // convert ints "up" to float/decimal
-                else if (
-                    (left.Type == typeof(int) || left.Type == typeof(uint) || left.Type == typeof(short) || left.Type == typeof(ushort) || left.Type == typeof(long) || left.Type == typeof(ulong))
-                    && (right.Type == typeof(float) || right.Type == typeof(double) || right.Type == typeof(decimal))
-                )
-                    left = Expression.Convert(left, right.Type);
-                else if (
-                    (
-                        right.Type == typeof(int)
-                        || right.Type == typeof(uint)
-                        || right.Type == typeof(short)
-                        || right.Type == typeof(ushort)
-                        || right.Type == typeof(long)
-                        || right.Type == typeof(ulong)
-                    ) && (left.Type == typeof(float) || left.Type == typeof(double) || left.Type == typeof(decimal))
-                )
+                else if (IsIntegralOrNullableIntegral(right.Type) && IsFloatingPointOrNullable(left.Type))
                     right = Expression.Convert(right, left.Type);
-                else if (left.Type != right.Type) // default try to make types match
+                // Align floating-point types (float/double/decimal) or integral types
+                else if (!AlignFloatingPointTypes(ref left, ref right) && !AlignIntegralTypes(ref left, ref right) && left.Type != right.Type)
                     left = Expression.Convert(left, right.Type);
             }
         }
@@ -161,5 +139,108 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
             Expression.Call(typeof(Enum), nameof(Enum.Parse), null, Expression.Constant(enumType), Expression.Call(expression, typeof(object).GetMethod(nameof(ToString))!)),
             enumType
         );
+    }
+
+    /// <summary>
+    /// Aligns integral numeric types between left and right expressions, including nullable types.
+    /// </summary>
+    private static bool AlignIntegralTypes(ref Expression left, ref Expression right) => AlignNumericTypes(ref left, ref right, IsIntegralType);
+
+    /// <summary>
+    /// Aligns floating-point numeric types (float, double, decimal) between left and right expressions, including nullable types.
+    /// </summary>
+    private static bool AlignFloatingPointTypes(ref Expression left, ref Expression right) => AlignNumericTypes(ref left, ref right, IsFloatingPointType);
+
+    /// <summary>
+    /// Aligns numeric types between left and right expressions, including nullable types.
+    /// Prioritizes non-constant expressions (e.g., field access) over constants to avoid database column casts.
+    /// Returns true if alignment was performed.
+    /// </summary>
+    /// <param name="left">The left expression (may be modified)</param>
+    /// <param name="right">The right expression (may be modified)</param>
+    /// <param name="typeChecker">Function to check if a type belongs to the numeric category being aligned</param>
+    private static bool AlignNumericTypes(ref Expression left, ref Expression right, Func<Type, bool> typeChecker)
+    {
+        // Get the underlying types (unwrap nullable if needed)
+        var leftType = Nullable.GetUnderlyingType(left.Type) ?? left.Type;
+        var rightType = Nullable.GetUnderlyingType(right.Type) ?? right.Type;
+
+        // Check if both types belong to the same numeric category
+        if (!typeChecker(leftType) || !typeChecker(rightType))
+            return false;
+
+        // Determine which side to prioritize - prefer non-constant side (field access) over constant (literal).
+        // This avoids casting database columns which can prevent index usage.
+        // Truth table for prioritizeLeft:
+        //   left=constant, right=constant     -> true  (default to left)
+        //   left=constant, right=non-constant -> false (prioritize right, the field)
+        //   left=non-constant, right=constant -> true  (prioritize left, the field)
+        //   left=non-constant, right=non-constant -> true  (default to left)
+        var leftIsConstant = left is ConstantExpression;
+        var rightIsConstant = right is ConstantExpression;
+        var prioritizeLeft = !leftIsConstant || rightIsConstant;
+
+        // Convert to match the prioritized side's type
+        if (leftType != rightType)
+        {
+            if (prioritizeLeft)
+                right = Expression.Convert(right, left.Type);
+            else
+                left = Expression.Convert(left, right.Type);
+            return true;
+        }
+
+        // Types are the same underlying type but might differ in nullability
+        if (left.Type != right.Type)
+        {
+            if (prioritizeLeft)
+                right = Expression.Convert(right, left.Type);
+            else
+                left = Expression.Convert(left, right.Type);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a type is an integral numeric type (int, uint, short, ushort, long, ulong, byte, sbyte)
+    /// </summary>
+    private static bool IsIntegralType(Type type)
+    {
+        return type == typeof(int)
+            || type == typeof(uint)
+            || type == typeof(short)
+            || type == typeof(ushort)
+            || type == typeof(long)
+            || type == typeof(ulong)
+            || type == typeof(byte)
+            || type == typeof(sbyte);
+    }
+
+    /// <summary>
+    /// Checks if a type is a floating-point type (float, double, decimal)
+    /// </summary>
+    private static bool IsFloatingPointType(Type type)
+    {
+        return type == typeof(float) || type == typeof(double) || type == typeof(decimal);
+    }
+
+    /// <summary>
+    /// Checks if a type is an integral type or nullable integral type
+    /// </summary>
+    private static bool IsIntegralOrNullableIntegral(Type type)
+    {
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+        return IsIntegralType(underlyingType);
+    }
+
+    /// <summary>
+    /// Checks if a type is a floating-point type (float, double, decimal) or nullable version
+    /// </summary>
+    private static bool IsFloatingPointOrNullable(Type type)
+    {
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+        return underlyingType == typeof(float) || underlyingType == typeof(double) || underlyingType == typeof(decimal);
     }
 }

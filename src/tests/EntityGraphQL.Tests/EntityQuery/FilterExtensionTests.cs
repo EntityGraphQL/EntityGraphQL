@@ -771,6 +771,304 @@ public class FilterExtensionTests
         Assert.Equal("Alice", person.name);
     }
 
+    [Fact]
+    public void SupportFilterWithNullableIntComparedToLiteral()
+    {
+        // Test for issue #484 - nullable int fields compared to numeric literals should not cause type misalignment
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().ReplaceField("users", (ctx) => ctx.Users, "Return filtered users").UseFilter();
+
+        var context = new TestDataContext();
+        context.Users.Add(new User { Id = 1, RelationId = 4726 });
+        context.Users.Add(new User { Id = 2, RelationId = 1000 });
+        context.Users.Add(new User { Id = 3, RelationId = null });
+        context.Users.Add(new User { Id = 4, RelationId = 4726 });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+	users(filter: ""relationId == 4726"") { id relationId }
+}",
+        };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic users = ((IDictionary<string, object>)result.Data!)["users"];
+        Assert.Equal(2, Enumerable.Count(users));
+
+        var usersList = Enumerable.ToList(users);
+        Assert.Equal(1, usersList[0].id);
+        Assert.Equal(4726, usersList[0].relationId);
+        Assert.Equal(4, usersList[1].id);
+        Assert.Equal(4726, usersList[1].relationId);
+    }
+
+    [Fact]
+    public void SupportFilterWithNullableIntComparedToLiteralReversed()
+    {
+        // Test for issue #484 - ensure reverse order (literal == field) also works correctly
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().ReplaceField("users", (ctx) => ctx.Users, "Return filtered users").UseFilter();
+
+        var context = new TestDataContext();
+        context.Users.Add(new User { Id = 1, RelationId = 4726 });
+        context.Users.Add(new User { Id = 2, RelationId = 1000 });
+        context.Users.Add(new User { Id = 3, RelationId = null });
+        context.Users.Add(new User { Id = 4, RelationId = 4726 });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+	users(filter: ""4726 == relationId"") { id relationId }
+}",
+        };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic users = ((IDictionary<string, object>)result.Data!)["users"];
+        Assert.Equal(2, Enumerable.Count(users));
+
+        var usersList = Enumerable.ToList(users);
+        Assert.Equal(1, usersList[0].id);
+        Assert.Equal(4726, usersList[0].relationId);
+        Assert.Equal(4, usersList[1].id);
+        Assert.Equal(4726, usersList[1].relationId);
+    }
+
+    [Fact]
+    public void SupportFilterWithNullableIntComparedToLiteralNotEqual()
+    {
+        // Additional test for issue #484 - testing != operator
+        // Note: In nullable comparisons, != will match null values
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().ReplaceField("users", (ctx) => ctx.Users, "Return filtered users").UseFilter();
+
+        var context = new TestDataContext();
+        context.Users.Add(new User { Id = 1, RelationId = 4726 });
+        context.Users.Add(new User { Id = 2, RelationId = 1000 });
+        context.Users.Add(new User { Id = 3, RelationId = null });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+	users(filter: ""relationId != 4726"") { id relationId }
+}",
+        };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic users = ((IDictionary<string, object>)result.Data!)["users"];
+        // Should match both the one with 1000 and the one with null (as null != 4726)
+        Assert.Equal(2, Enumerable.Count(users));
+
+        var usersList = Enumerable.ToList(users);
+        Assert.Equal(2, usersList[0].id);
+        Assert.Equal(1000, usersList[0].relationId);
+        Assert.Equal(3, usersList[1].id);
+        Assert.Null(usersList[1].relationId);
+    }
+
+    [Fact]
+    public void SupportFilterWithNullableShortComparedToLiteral()
+    {
+        // Test for issue #484 - testing with short type to ensure it's handled
+        var schemaProvider = SchemaBuilder.FromObject<TestContextWithNullableShort>();
+        schemaProvider.Query().ReplaceField("items", (ctx) => ctx.Items, "Return filtered items").UseFilter();
+
+        var context = new TestContextWithNullableShort();
+        context.Items.Add(new ItemWithNullableShort { Id = 1, Count = 100 });
+        context.Items.Add(new ItemWithNullableShort { Id = 2, Count = 200 });
+        context.Items.Add(new ItemWithNullableShort { Id = 3, Count = null });
+
+        var gql = new QueryRequest { Query = @"query { items(filter: ""count == 100"") { id count } }" };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic items = ((IDictionary<string, object>)result.Data!)["items"];
+        Assert.Equal(1, Enumerable.Count(items));
+
+        var item = Enumerable.First(items);
+        Assert.Equal(1, item.id);
+        Assert.Equal((short)100, item.count);
+    }
+
+    private class TestContextWithNullableShort
+    {
+        public List<ItemWithNullableShort> Items { get; set; } = [];
+    }
+
+    private class ItemWithNullableShort
+    {
+        public int Id { get; set; }
+        public short? Count { get; set; }
+    }
+
+    [Fact]
+    public void SupportFilterWithIntComparedToDouble()
+    {
+        // Test for integral to floating-point conversion
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().ReplaceField("users", (ctx) => ctx.Users, "Return filtered users").UseFilter();
+
+        var context = new TestDataContext();
+        context.Users.Add(new User { Id = 1, Field1 = 100 });
+        context.Users.Add(new User { Id = 2, Field1 = 200 });
+        context.Users.Add(new User { Id = 3, Field1 = 150 });
+
+        var gql = new QueryRequest { Query = @"query { users(filter: ""field1 > 150.5"") { id field1 } }" };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic users = ((IDictionary<string, object>)result.Data!)["users"];
+        Assert.Equal(1, Enumerable.Count(users));
+
+        var user = Enumerable.First(users);
+        Assert.Equal(2, user.id);
+        Assert.Equal(200, user.field1);
+    }
+
+    [Fact]
+    public void SupportFilterWithDoubleFieldComparedToInt()
+    {
+        // Test for floating-point field with integral literal
+        var schemaProvider = SchemaBuilder.FromObject<TestContextWithDouble>();
+        schemaProvider.Query().ReplaceField("items", (ctx) => ctx.Items, "Return filtered items").UseFilter();
+
+        var context = new TestContextWithDouble();
+        context.Items.Add(new ItemWithDouble { Id = 1, Value = 100.5 });
+        context.Items.Add(new ItemWithDouble { Id = 2, Value = 200.5 });
+        context.Items.Add(new ItemWithDouble { Id = 3, Value = 50.5 });
+
+        var gql = new QueryRequest { Query = @"query { items(filter: ""value > 100"") { id value } }" };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic items = ((IDictionary<string, object>)result.Data!)["items"];
+        Assert.Equal(2, Enumerable.Count(items));
+    }
+
+    private class TestContextWithDouble
+    {
+        public List<ItemWithDouble> Items { get; set; } = [];
+    }
+
+    private class ItemWithDouble
+    {
+        public int Id { get; set; }
+        public double Value { get; set; }
+    }
+
+    [Fact]
+    public void SupportFilterWithFloatFieldComparedToDoubleLiteral()
+    {
+        // Test for float field with double literal (potential type mismatch)
+        var schemaProvider = SchemaBuilder.FromObject<TestContextWithFloat>();
+        schemaProvider.Query().ReplaceField("items", (ctx) => ctx.Items, "Return filtered items").UseFilter();
+
+        var context = new TestContextWithFloat();
+        context.Items.Add(new ItemWithFloat { Id = 1, Value = 100.5f });
+        context.Items.Add(new ItemWithFloat { Id = 2, Value = 200.5f });
+        context.Items.Add(new ItemWithFloat { Id = 3, Value = 50.5f });
+
+        var gql = new QueryRequest { Query = @"query { items(filter: ""value > 100.5"") { id value } }" };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic items = ((IDictionary<string, object>)result.Data!)["items"];
+        Assert.Equal(1, Enumerable.Count(items));
+        var item = Enumerable.First(items);
+        Assert.Equal(2, item.id);
+    }
+
+    private class TestContextWithFloat
+    {
+        public List<ItemWithFloat> Items { get; set; } = [];
+    }
+
+    private class ItemWithFloat
+    {
+        public int Id { get; set; }
+        public float Value { get; set; }
+    }
+
+    [Fact]
+    public void SupportFilterWithNullableFloatComparedToDoubleLiteral()
+    {
+        // Test for nullable float field with double literal
+        var schemaProvider = SchemaBuilder.FromObject<TestContextWithNullableFloat>();
+        schemaProvider.Query().ReplaceField("items", (ctx) => ctx.Items, "Return filtered items").UseFilter();
+
+        var context = new TestContextWithNullableFloat();
+        context.Items.Add(new ItemWithNullableFloat { Id = 1, Value = 100.5f });
+        context.Items.Add(new ItemWithNullableFloat { Id = 2, Value = 200.5f });
+        context.Items.Add(new ItemWithNullableFloat { Id = 3, Value = null });
+
+        var gql = new QueryRequest { Query = @"query { items(filter: ""value == 100.5"") { id value } }" };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic items = ((IDictionary<string, object>)result.Data!)["items"];
+        Assert.Equal(1, Enumerable.Count(items));
+        var item = Enumerable.First(items);
+        Assert.Equal(1, item.id);
+    }
+
+    private class TestContextWithNullableFloat
+    {
+        public List<ItemWithNullableFloat> Items { get; set; } = [];
+    }
+
+    private class ItemWithNullableFloat
+    {
+        public int Id { get; set; }
+        public float? Value { get; set; }
+    }
+
+    [Fact]
+    public void SupportFilterWithDecimalFieldComparedToDoubleLiteral()
+    {
+        // Test for decimal field with double literal
+        var schemaProvider = SchemaBuilder.FromObject<TestContextWithDecimal>();
+        schemaProvider.Query().ReplaceField("items", (ctx) => ctx.Items, "Return filtered items").UseFilter();
+
+        var context = new TestContextWithDecimal();
+        context.Items.Add(new ItemWithDecimal { Id = 1, Value = 100.5m });
+        context.Items.Add(new ItemWithDecimal { Id = 2, Value = 200.5m });
+        context.Items.Add(new ItemWithDecimal { Id = 3, Value = 50.5m });
+
+        var gql = new QueryRequest { Query = @"query { items(filter: ""value > 100.5"") { id value } }" };
+
+        var result = schemaProvider.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic items = ((IDictionary<string, object>)result.Data!)["items"];
+        Assert.Equal(1, Enumerable.Count(items));
+        var item = Enumerable.First(items);
+        Assert.Equal(2, item.id);
+    }
+
+    private class TestContextWithDecimal
+    {
+        public List<ItemWithDecimal> Items { get; set; } = [];
+    }
+
+    private class ItemWithDecimal
+    {
+        public int Id { get; set; }
+        public decimal Value { get; set; }
+    }
+
     private class TestDataContext2 : TestDataContext
     {
         [UseFilter]

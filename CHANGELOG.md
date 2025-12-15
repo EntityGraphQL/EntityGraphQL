@@ -38,6 +38,7 @@
 - #481 - handle `ResolveAsync` on a top level field
 - #488 - Support async fields with `[GraphQLField]`
 - #487 - Fix `ResolveAsync` with arguments
+- #484 - Better support for nullable numeric types in filter expressions. Nullable int/short/long fields can now be compared to numeric literals without type mismatch errors. The fix also prioritizes converting literals over field expressions to avoid database column casts that could prevent index usage.
 - As per spec - `_Type.fields` should be `null` for `INPUT_OBJECT`. Previously the `inputFields` were repeated.
 
 # 6.0.0-beta2
