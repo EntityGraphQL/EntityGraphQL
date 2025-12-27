@@ -27,7 +27,7 @@ public class GraphQLQueryStatement : ExecutableGraphQLStatement
         // apply directives
         foreach (var directive in field.Directives)
         {
-            if (directive.VisitNode(ExecutableDirectiveLocation.Field, Schema, field, Arguments, null, null) == null)
+            if (directive.VisitNode(ExecutableDirectiveLocation.Field, Schema, field, Arguments, OpVariableParameter, docVariables) == null)
                 return (null, false, []);
         }
         (var data, var didExecute) = await CompileAndExecuteNodeAsync(compileContext, context!, serviceProvider, fragments, field, docVariables);
