@@ -88,8 +88,11 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
             // For async fields (e.g. Task<IEnumerable<T>>), GetEnumerableOrArrayType returns
             // IEnumerable<T> (the Task's single type argument) instead of T (the list element type).
             // Unwrap Task<>/ValueTask<> first so the element parameter has the correct type.
+            // IAsyncEnumerable<T> must NOT be unwrapped here — its single generic argument IS already
+            // the element type, so GetEnumerableOrArrayType() on IAsyncEnumerable<T> returns T directly.
+            // Use IsAwaitableGenericType() rather than IsAsyncGenericType() for this reason.
             var listContextType = listContext.Type;
-            if (listContextType.IsAsyncGenericType())
+            if (listContextType.IsAwaitableGenericType())
                 listContextType = listContextType.GetGenericArguments()[0];
             nextFieldContext = Expression.Parameter(listContextType.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             // Store replacement so child paging extensions (e.g. ConnectionEdgeExtension) can get

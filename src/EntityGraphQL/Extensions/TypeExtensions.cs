@@ -102,6 +102,17 @@ public static class TypeExtensions
             && (source.GetGenericTypeDefinition() == typeof(Task<>) || source.GetGenericTypeDefinition() == typeof(ValueTask<>) || source.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
     }
 
+    /// <summary>
+    /// Returns true if the type is <c>Task&lt;T&gt;</c> or <c>ValueTask&lt;T&gt;</c> — i.e. directly awaitable.
+    /// Use this instead of <see cref="IsAsyncGenericType"/> when you need to unwrap the async wrapper
+    /// to reach the inner type (e.g. to find the enumerable element type), because
+    /// <c>IAsyncEnumerable&lt;T&gt;</c> is NOT a wrapper: its generic argument already IS the element type.
+    /// </summary>
+    public static bool IsAwaitableGenericType(this Type source)
+    {
+        return source.IsGenericType && (source.GetGenericTypeDefinition() == typeof(Task<>) || source.GetGenericTypeDefinition() == typeof(ValueTask<>));
+    }
+
     public static bool IsGenericTypeQueryable(this Type source)
     {
         // Handle Task<> or other generic wrappers potentially containing IQueryable<>
