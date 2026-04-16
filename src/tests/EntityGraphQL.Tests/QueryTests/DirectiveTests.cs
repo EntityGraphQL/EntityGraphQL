@@ -286,6 +286,59 @@ public class DirectiveTests
         Assert.Empty(result.Data);
     }
 
+    /// <summary>
+    /// Root-level field with @include(if: $var) where var=true — the field should appear in results.
+    /// Without the fix (passing null,null to VisitNode in GraphQLQueryStatement), variable resolution
+    /// fails with "Variable or value used for argument 'if' does not match argument type 'Boolean!'".
+    /// </summary>
+    [Fact]
+    public void TestIncludeDirectiveVariableOnRootField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var query = new QueryRequest
+        {
+            Query =
+                @"query MyQuery($include: Boolean!) {
+                    people @include(if: $include) {
+                        id
+                        name
+                    }
+                }",
+            Variables = new QueryVariables { { "include", true } },
+        };
+        var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data);
+    }
+
+    /// <summary>
+    /// Root-level field with @skip(if: $var) where var=false — the field should appear in results.
+    /// Without the fix, the same variable resolution failure occurs because Expand() only filters
+    /// fields when the directive says to skip; when the field is kept, ExecuteOperationField still
+    /// calls VisitNode with null docVariables.
+    /// </summary>
+    [Fact]
+    public void TestSkipDirectiveVariableFalseOnRootField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var query = new QueryRequest
+        {
+            Query =
+                @"query MyQuery($skip: Boolean!) {
+                    people @skip(if: $skip) {
+                        id
+                        name
+                    }
+                }",
+            Variables = new QueryVariables { { "skip", false } },
+        };
+        var result = schema.ExecuteRequestWithContext(query, new TestDataContext().FillWithTestData(), null, null, null);
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        Assert.NotEmpty(result.Data);
+    }
+
     [Fact]
     public void TestDirectiveInSchemaOutputWithArgs()
     {
