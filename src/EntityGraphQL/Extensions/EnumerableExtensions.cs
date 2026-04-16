@@ -65,6 +65,19 @@ public static class EnumerableExtensions
         return awaitedSource.Select(selector);
     }
 
+    /// <summary>
+    /// Converts <c>Task{TCollection}</c> to <c>Task{IEnumerable{TSource}}</c>.
+    /// Used internally when an async service field returns a concrete collection type
+    /// (e.g. <c>Task{List{T}}</c>, <c>Task{ICollection{T}}</c>) rather than exactly
+    /// <c>Task{IEnumerable{T}}</c>, so that <see cref="SelectWithNullCheck{TSource,TResult}(Task{IEnumerable{TSource}},Func{TSource,TResult})"/>
+    /// can be resolved by <c>Expression.Call</c> (which requires an exact type match on generic arguments).
+    /// </summary>
+    internal static async Task<IEnumerable<TSource>> ToEnumerableTask<TCollection, TSource>(this Task<TCollection> task)
+        where TCollection : IEnumerable<TSource>
+    {
+        return await task;
+    }
+
     public static IEnumerable<TResult>? SelectWithNullCheck<TSource, TResult>(this IEnumerable<TSource>? source, Func<TSource, TResult> selector, bool returnEmptyList)
     {
         if (source == null)

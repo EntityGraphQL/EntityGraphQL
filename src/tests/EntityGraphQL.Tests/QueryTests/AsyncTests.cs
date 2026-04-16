@@ -292,6 +292,118 @@ public class AsyncTests
         Assert.Single(catalog);
     }
 
+    /// <summary>
+    /// Same as TestAsyncServiceFieldReturningListOnSingleObjectFromQueryArg but toolCatalog
+    /// is on Step (a list element), so the path is workflow -> steps (list) -> toolCatalog (service).
+    /// </summary>
+    [Fact]
+    public void TestAsyncServiceFieldReturningListNestedInsideList()
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.AddType<WorkflowTool>("WorkflowTool").AddAllFields();
+
+        schema.UpdateType<Step>(type =>
+        {
+            type.AddField("toolCatalog", "Resolved tool catalog for this step.").ResolveAsync<IWorkflowToolCatalogService>((step, tools) => tools.GetWorkflowToolCatalogAsync(step.WorkflowId));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query BuilderGetWorkflow($id: String) {
+                workflow(id: $id) {
+                    id
+                    steps {
+                        id
+                        toolCatalog { name }
+                    }
+                }
+            }",
+            Variables = new QueryVariables { { "id", "wf-1" } },
+        };
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(
+            new Workflow
+            {
+                Id = "wf-1",
+                Name = "My Workflow",
+                Steps = [new Step { Id = "s-1", WorkflowId = "wf-1" }],
+            }
+        );
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IWorkflowToolCatalogService>(new WorkflowToolCatalogService());
+
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.NotNull(res.Data);
+        dynamic workflow = res.Data!["workflow"]!;
+        Assert.Equal("wf-1", workflow.id);
+        var steps = (IEnumerable<dynamic>)workflow.steps;
+        Assert.Single(steps);
+        var catalog = (IEnumerable<dynamic>)((dynamic)steps.First()).toolCatalog;
+        Assert.Single(catalog);
+        Assert.Equal("tool-a", ((dynamic)catalog.First()).name);
+    }
+
+    /// <summary>
+    /// Same as TestAsyncServiceFieldReturningListNestedInsideList but the service returns
+    /// Task{List{T}} (a concrete collection type) rather than Task{IEnumerable{T}}.
+    /// Verifies that SelectWithNullCheck can be called regardless of the concrete async return type.
+    /// </summary>
+    [Fact]
+    public void TestAsyncServiceFieldReturningConcreteListNestedInsideList()
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.AddType<WorkflowTool>("WorkflowTool").AddAllFields();
+
+        schema.UpdateType<Step>(type =>
+        {
+            type.AddField("toolCatalog", "Resolved tool catalog for this step.")
+                .ResolveAsync<IWorkflowToolCatalogServiceConcreteReturn>((step, tools) => tools.GetWorkflowToolCatalogAsync(step.WorkflowId));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query BuilderGetWorkflow($id: String) {
+                workflow(id: $id) {
+                    id
+                    steps {
+                        id
+                        toolCatalog { name }
+                    }
+                }
+            }",
+            Variables = new QueryVariables { { "id", "wf-1" } },
+        };
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(
+            new Workflow
+            {
+                Id = "wf-1",
+                Name = "My Workflow",
+                Steps = [new Step { Id = "s-1", WorkflowId = "wf-1" }],
+            }
+        );
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IWorkflowToolCatalogServiceConcreteReturn>(new WorkflowToolCatalogServiceConcreteReturn());
+
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.NotNull(res.Data);
+        dynamic workflow = res.Data!["workflow"]!;
+        Assert.Equal("wf-1", workflow.id);
+        var steps = (IEnumerable<dynamic>)workflow.steps;
+        Assert.Single(steps);
+        var catalog = (IEnumerable<dynamic>)((dynamic)steps.First()).toolCatalog;
+        Assert.Single(catalog);
+        Assert.Equal("tool-a", ((dynamic)catalog.First()).name);
+    }
+
     private class WorkflowContext
     {
         public List<Workflow> Workflows { get; set; } = [];
@@ -301,6 +413,13 @@ public class AsyncTests
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+        public List<Step> Steps { get; set; } = [];
+    }
+
+    private class Step
+    {
+        public string Id { get; set; } = string.Empty;
+        public string WorkflowId { get; set; } = string.Empty;
     }
 
     private class WorkflowTool
@@ -319,6 +438,19 @@ public class AsyncTests
         {
             IEnumerable<WorkflowTool> tools = [new WorkflowTool { Name = "tool-a" }];
             return System.Threading.Tasks.Task.FromResult(tools);
+        }
+    }
+
+    private interface IWorkflowToolCatalogServiceConcreteReturn
+    {
+        System.Threading.Tasks.Task<List<WorkflowTool>> GetWorkflowToolCatalogAsync(string workflowId);
+    }
+
+    private class WorkflowToolCatalogServiceConcreteReturn : IWorkflowToolCatalogServiceConcreteReturn
+    {
+        public System.Threading.Tasks.Task<List<WorkflowTool>> GetWorkflowToolCatalogAsync(string workflowId)
+        {
+            return System.Threading.Tasks.Task.FromResult(new List<WorkflowTool> { new WorkflowTool { Name = "tool-a" } });
         }
     }
 

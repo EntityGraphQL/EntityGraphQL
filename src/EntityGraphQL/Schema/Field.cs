@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -268,7 +268,35 @@ public class Field : BaseField
         // do the above before unwrapping Task<>
         returnType = SchemaBuilder.GetReturnType(returnType, out bool returnsAsync);
         if (returnsAsync)
+        {
             IsAsync = true;
+            // Normalize Task<TCollection> → Task<IEnumerable<T>> in the stored expression so
+            // all downstream compilation always sees a consistent Task<IEnumerable<T>> type.
+            // Expression.Call (used in MakeSelectWithDynamicType) resolves generic overloads by
+            // exact type match, so Task<List<T>>, Task<ICollection<T>> etc. would fail to match
+            // the SelectWithNullCheck(Task<IEnumerable<T>>, …) overload without this.
+            // We do it here — once at registration — rather than at every compilation site.
+            if (ResolveExpression != null)
+            {
+                var exprType = ResolveExpression.Type;
+                if (exprType.IsGenericType && exprType.GetGenericTypeDefinition() == typeof(Task<>))
+                {
+                    var taskInner = exprType.GetGenericArguments()[0];
+                    var elementType = returnType.GetEnumerableOrArrayType();
+                    if (elementType != null)
+                    {
+                        var exactEnumType = typeof(IEnumerable<>).MakeGenericType(elementType);
+                        if (
+                            taskInner != exactEnumType
+                            && taskInner.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>) && i.GetGenericArguments()[0] == elementType)
+                        )
+                        {
+                            ResolveExpression = Expression.Call(typeof(EnumerableExtensions), nameof(EnumerableExtensions.ToEnumerableTask), [taskInner, elementType], ResolveExpression);
+                        }
+                    }
+                }
+            }
+        }
 
         if (!isAsync && IsAsync)
             throw new EntityGraphQLSchemaException("Field is synchronous but returns an async type. Use ResolveAsync() or resolve the field expression with .GetAwaiter().GetResult()");

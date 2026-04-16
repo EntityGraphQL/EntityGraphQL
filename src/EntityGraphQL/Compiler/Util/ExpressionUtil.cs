@@ -585,6 +585,7 @@ public static partial class ExpressionUtil
                 return (baseExp, null);
             var selector = Expression.Lambda(memberInit, currentContextParam);
             var isQueryable = baseExp.Type.IsGenericTypeQueryable();
+
             Expression call;
             if (nullCheck || isAsync)
                 call = Expression.Call(
