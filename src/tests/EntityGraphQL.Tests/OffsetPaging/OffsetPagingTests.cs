@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace EntityGraphQL.Tests.OffsetPaging;
@@ -522,4 +524,268 @@ public class OffsetPagingTests
         var schema = SchemaBuilder.FromObject<TestDataContext2>();
         Assert.Contains(schema.Query().GetFields(), x => x.Name == "person");
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndOffsetPaging(bool executeServiceFieldsSeparately)
+    {
+        // Issue #459 - Using UseOffsetPaging() with a resolver that depends on an injected service.
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        // Add birthdays so the filter has something to work with
+        for (var i = 0; i < data.People.Count; i++)
+        {
+            data.People[i].Birthday = DateTime.Now.AddYears(-(20 + i * 5));
+        }
+
+        // Set up a field with a service dependency and offset paging
+        schema
+            .Query()
+            .ReplaceField("people", "Get a page of people")
+            .Resolve<OffsetPagingAgeService>((ctx, service) => ctx.People.Where(p => p.Birthday != null && service.GetAge(p.Birthday) > 0).OrderBy(p => p.Id))
+            .UseOffsetPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people {
+                        items {
+                            id name
+                        }
+                        totalItems
+                        hasNextPage
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<OffsetPagingAgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.NotNull(people.items);
+        Assert.Equal(5, people.totalItems);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndOffsetPagingWithArgs(bool executeServiceFieldsSeparately)
+    {
+        // Issue #459 - Variant with additional arguments alongside service.
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        // Add birthdays so the filter has something to work with
+        for (var i = 0; i < data.People.Count; i++)
+        {
+            data.People[i].Birthday = DateTime.Now.AddYears(-(20 + i * 5));
+        }
+
+        // Set up a field with both arguments and a service dependency
+        schema
+            .Query()
+            .ReplaceField("people", new { minAge = 0 }, "Get a page of people")
+            .Resolve<OffsetPagingAgeService>((ctx, args, service) => ctx.People.Where(p => p.Birthday != null && service.GetAge(p.Birthday) > args.minAge).OrderBy(p => p.Id))
+            .UseOffsetPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people(minAge: 25) {
+                        items {
+                            id name
+                        }
+                        totalItems
+                        hasNextPage
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<OffsetPagingAgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.NotNull(people.items);
+        // With minAge 25 and ages 20,25,30,35,40 - should get 3 people (30,35,40)
+        Assert.Equal(3, people.totalItems);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndOffsetPagingOnNonRoot(bool executeServiceFieldsSeparately)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillProjectData(data);
+
+        schema
+            .Type<Project>()
+            .ReplaceField("tasks", "Return list of tasks with paging metadata")
+            .Resolve<OffsetPagingTaskFilterService>((project, service) => project.Tasks.Where(t => service.IncludeTask(t.Id)).OrderBy(t => t.Id))
+            .UseOffsetPaging(defaultPageSize: 2);
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    projects {
+                        tasks {
+                            totalItems
+                            items { id }
+                        }
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<OffsetPagingTaskFilterService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic projects = result.Data!["projects"]!;
+        dynamic tasks = projects[0].tasks;
+        Assert.Equal(4, tasks.totalItems);
+        Assert.Equal(2, Enumerable.Count(tasks.items));
+    }
+
+    [Fact]
+    public void TestMixedRootFields_ServicePagedAndNormal_WithSeparateServices()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+        FillProjectData(data);
+        for (var i = 0; i < data.People.Count; i++)
+        {
+            data.People[i].Birthday = DateTime.Now.AddYears(-(20 + i * 5));
+        }
+
+        schema
+            .Query()
+            .ReplaceField("people", "Get a page of people")
+            .Resolve<OffsetPagingAgeService>((ctx, service) => ctx.People.Where(p => p.Birthday != null && service.GetAge(p.Birthday) > 0).OrderBy(p => p.Id))
+            .UseOffsetPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people {
+                        totalItems
+                    }
+                    projects {
+                        id
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<OffsetPagingAgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = true }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(5, people.totalItems);
+        dynamic projects = result.Data!["projects"]!;
+        Assert.Single(projects);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndOffsetPaging_MinimalSelection(bool executeServiceFieldsSeparately)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        for (var i = 0; i < data.People.Count; i++)
+        {
+            data.People[i].Birthday = DateTime.Now.AddYears(-(20 + i * 5));
+        }
+
+        schema
+            .Query()
+            .ReplaceField("people", "Get a page of people")
+            .Resolve<OffsetPagingAgeService>((ctx, service) => ctx.People.Where(p => p.Birthday != null && service.GetAge(p.Birthday) > 0).OrderBy(p => p.Id))
+            .UseOffsetPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people {
+                        totalItems
+                        hasNextPage
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<OffsetPagingAgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(5, people.totalItems);
+    }
+}
+
+public class OffsetPagingAgeService
+{
+    public int GetAge(DateTime? birthday)
+    {
+        return birthday.HasValue ? (int)(DateTime.Now - birthday.Value).TotalDays / 365 : 0;
+    }
+}
+
+public class OffsetPagingTaskFilterService
+{
+    public bool IncludeTask(int taskId) => taskId > 0;
 }

@@ -35,7 +35,12 @@ public interface IFieldExtension
     /// <param name="argumentParam">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
     /// <param name="arguments">The value of the arguments. Null if field have no arguments</param>
     /// <param name="context">The context of the schema</param>
-    /// <param name="servicesPass">True if this is the second visit. This means the object graph is built and we are now bringing in fields that use services</param>
+    /// <param name="servicesPass">True if we're in the services pass (second pass or single pass when ExecuteServiceFieldsSeparately=false).
+    /// When true, service dependencies are available and can be used safely.
+    /// When false, we're in the first pass building a DB-friendly expression without service dependencies.</param>
+    /// <param name="withoutServiceFields">True if we're building an expression without service fields (first pass of two-pass execution).
+    /// When true, extensions should NOT use expressions that contain service parameter references.
+    /// When false, service fields can be safely included in the expression.</param>
     /// <param name="parameterReplacer"></param>
     /// <param name="originalArgParam"></param>
     /// <param name="compileContext"></param>
@@ -48,6 +53,7 @@ public interface IFieldExtension
         dynamic? arguments,
         Expression context,
         bool servicesPass,
+        bool withoutServiceFields,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
         CompileContext compileContext

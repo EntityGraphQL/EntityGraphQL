@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -216,16 +215,17 @@ public class FilteredFieldTests
         Assert.DoesNotContain("filter: String = ", sdl);
     }
 
-    [Fact(Skip = "This test currently fails - see GitHub issue #378")]
+    [Fact(Skip = "GitHub Issue #378 - Fix not implemented yet")]
     public void ReproducesGitHubIssue378_CountMethodNotFoundOnOffsetPage()
     {
         var schema = SchemaBuilder.FromObject<IncidentContext>();
 
         // Set up the exact hierarchical scenario from GitHub issue #378:
-        // incident -> enquiries (with filtering and paging) -> enquirerDaps (with filtering and paging)
         schema.Type<Incident>().GetField("enquiries", null).UseFilter().UseOffsetPaging();
         schema.Type<Enquiry>().GetField("enquirerDaps", null).UseFilter().UseOffsetPaging();
 
+        // Filter uses "enquirerDaps.items.count()" which matches the GraphQL schema the user sees
+        // (enquirerDaps returns EnquirerDapPage with items property)
         var gql = new QueryRequest
         {
             Query =
@@ -233,10 +233,11 @@ public class FilteredFieldTests
                 query {
                     incident(id: 1) {
                         id
-                        enquiries(filter: ""enquirerDaps.selectMany(items).count() > 0"", skip: 0, take: null) {
+                        enquiries(filter: ""enquirerDaps.items.count() > 0"") {
                             items {
+                                id
                                 enquirerDaps(filter: ""dapId==209"") {
-                                    items { 
+                                    items {
                                         dapId
                                     }
                                 }
@@ -249,16 +250,66 @@ public class FilteredFieldTests
         var context = new IncidentContext().FillWithIncidentData();
         var result = schema.ExecuteRequestWithContext(gql, context, null, null);
 
-        // This test reproduces GitHub issue #378:
-        // https://github.com/EntityGraphQL/EntityGraphQL/issues/378
         Assert.Null(result.Errors);
         dynamic incident = ((IDictionary<string, object>)result.Data!)["incident"];
-        Assert.Equal(3, incident.enquiries.items);
-        var enquiry = Enumerable.First(incident.enquiries.items);
-        Assert.Equal(1, enquiry.id);
-        Assert.Single(enquiry.enquirerDaps.items);
-        var enquirerDap = Enumerable.First(enquiry.enquirerDaps.items);
+        // Should return 2 enquiries (id=1 and id=3) - both have enquirerDaps.items.count() > 0
+        // Enquiry id=2 has no enquirerDaps, so it's filtered out
+        Assert.Equal(2, Enumerable.Count(incident.enquiries.items));
+
+        // First enquiry (id=1) should have one filtered enquirerDap with dapId=209
+        var firstEnquiry = Enumerable.First(incident.enquiries.items);
+        Assert.Equal(1, firstEnquiry.id);
+        Assert.Single(firstEnquiry.enquirerDaps.items);
+        var enquirerDap = Enumerable.First(firstEnquiry.enquirerDaps.items);
         Assert.Equal(209, enquirerDap.dapId);
+
+        // Second enquiry (id=3) should have no enquirerDaps after filtering (dapId=999 != 209)
+        var secondEnquiry = Enumerable.ElementAt(incident.enquiries.items, 1);
+        Assert.Equal(3, secondEnquiry.id);
+        Assert.Empty(secondEnquiry.enquirerDaps.items);
+    }
+
+    [Fact(Skip = "GitHub Issue #378 - Fix not implemented yet")]
+    public void ReproducesGitHubIssue378_CountMethodNotFoundOnConnectionPage()
+    {
+        var schema = SchemaBuilder.FromObject<IncidentContext>();
+
+        // Similar to the OffsetPaging test but using ConnectionPaging instead
+        schema.Type<Incident>().GetField("enquiries", null).UseFilter().UseConnectionPaging();
+        schema.Type<Enquiry>().GetField("enquirerDaps", null).UseFilter().UseConnectionPaging();
+
+        // Filter uses "enquirerDaps.edges.count()" which matches the GraphQL schema the user sees
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query {
+                    incident(id: 1) {
+                        id
+                        enquiries(filter: ""enquirerDaps.edges.count() > 0"") {
+                            edges {
+                                node {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                }",
+        };
+
+        var context = new IncidentContext().FillWithIncidentData();
+        var result = schema.ExecuteRequestWithContext(gql, context, null, null);
+
+        Assert.Null(result.Errors);
+        dynamic incident = ((IDictionary<string, object>)result.Data!)["incident"];
+        // Should return 2 enquiries (id=1 and id=3) - both have enquirerDaps.edges.count() > 0
+        // Enquiry id=2 has no enquirerDaps, so it's filtered out
+        Assert.Equal(2, Enumerable.Count(incident.enquiries.edges));
+
+        var firstEnquiry = Enumerable.First(incident.enquiries.edges);
+        Assert.Equal(1, firstEnquiry.node.id);
+        var secondEnquiry = Enumerable.ElementAt(incident.enquiries.edges, 1);
+        Assert.Equal(3, secondEnquiry.node.id);
     }
 
     private class IncidentContext

@@ -14,6 +14,7 @@ public class CompileContext
 {
     private readonly Dictionary<ParameterExpression, object?> constantParameters = [];
     private readonly Dictionary<IField, ParameterExpression> constantParametersForField = [];
+    private readonly Dictionary<ParameterExpression, ParameterExpression> fieldContextReplacements = [];
 
     public CompileContext(
         ExecutionOptions options,
@@ -65,6 +66,20 @@ public class CompileContext
     {
         if (constantParametersForField.TryGetValue(field, out var param))
             return param;
+        return null;
+    }
+
+    /// <summary>
+    /// Stores the second-pass element parameter that replaces an original list element parameter.
+    /// Used by paging extensions (ConnectionEdgeExtension, OffsetPagingItemsExtension) to get the
+    /// correct anonymous-type element when building service expressions in the second pass.
+    /// </summary>
+    public void SetFieldContextReplacement(ParameterExpression original, ParameterExpression replacement) => fieldContextReplacements[original] = replacement;
+
+    public ParameterExpression? GetFieldContextReplacement(ParameterExpression original)
+    {
+        if (fieldContextReplacements.TryGetValue(original, out var p))
+            return p;
         return null;
     }
 

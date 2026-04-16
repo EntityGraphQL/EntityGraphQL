@@ -816,4 +816,252 @@ public class ConnectionPagingTests
         var schema = SchemaBuilder.FromObject<TestDataContext2>();
         Assert.Contains(schema.Query().GetFields(), x => x.Name == "person");
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndConnectionPaging(bool executeServiceFieldsSeparately)
+    {
+        // Issue #459 - Using UseConnectionPaging() with a resolver that depends on an injected service.
+        // Requires ExecuteServiceFieldsSeparately = false because paging expressions like
+        // ctx.People.Where(service.Filter) have interleaved service and context dependencies
+        // that can't be split across the two-pass execution model.
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        // Set up a field with a service dependency and connection paging
+        schema
+            .Query()
+            .ReplaceField("people", "Get a page of people")
+            .Resolve<AgeService>((ctx, service) => ctx.People.Where(p => p.Birthday != null && service.GetAgeAsync(p.Birthday).Result > 0).OrderBy(p => p.Id))
+            .UseConnectionPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people {
+                        edges {
+                            node {
+                                id name
+                            }
+                        }
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<AgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.NotNull(people.edges);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndConnectionPagingWithArgs(bool executeServiceFieldsSeparately)
+    {
+        // Issue #459 - Variant with additional arguments alongside service.
+        // Requires ExecuteServiceFieldsSeparately = false (see TestResolveWithServiceAndConnectionPaging).
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+
+        // Set up a field with both arguments and a service dependency
+        schema
+            .Query()
+            .ReplaceField("people", new { minAge = 0 }, "Get a page of people")
+            .Resolve<AgeService>((ctx, args, service) => ctx.People.Where(p => p.Birthday != null && service.GetAgeAsync(p.Birthday).Result > args.minAge).OrderBy(p => p.Id))
+            .UseConnectionPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people(minAge: 18) {
+                        edges {
+                            node {
+                                id name
+                            }
+                        }
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<AgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.NotNull(people.edges);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndConnectionPagingOnNonRoot(bool executeServiceFieldsSeparately)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillProjectData(data);
+
+        schema
+            .Type<Project>()
+            .ReplaceField("tasks", "Return list of task with paging metadata")
+            .Resolve<TaskFilterService>((project, service) => project.Tasks.Where(t => service.IncludeTask(t.Id)).OrderBy(t => t.Id))
+            .UseConnectionPaging(defaultPageSize: 2);
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    projects {
+                        tasks {
+                            edges {
+                                node { id }
+                            }
+                            totalCount
+                        }
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<TaskFilterService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic projects = result.Data!["projects"]!;
+        dynamic tasks = projects[0].tasks;
+        Assert.Equal(4, tasks.totalCount);
+        Assert.Equal(2, Enumerable.Count(tasks.edges));
+    }
+
+    [Fact]
+    public void TestMixedRootFields_ServicePagedAndNormal_WithSeparateServices()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+        FillProjectData(data);
+        for (var i = 0; i < data.People.Count; i++)
+        {
+            data.People[i].Birthday = DateTime.Now.AddYears(-(20 + i * 5));
+        }
+
+        schema
+            .Query()
+            .ReplaceField("people", "Get a page of people")
+            .Resolve<AgeService>((ctx, service) => ctx.People.Where(p => p.Birthday != null && service.GetAgeAsync(p.Birthday).Result > 0).OrderBy(p => p.Id))
+            .UseConnectionPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people {
+                        totalCount
+                    }
+                    projects {
+                        id
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<AgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = true }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(5, people.totalCount);
+        dynamic projects = result.Data!["projects"]!;
+        Assert.Single(projects);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestResolveWithServiceAndConnectionPaging_MinimalSelection(bool executeServiceFieldsSeparately)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillData(data);
+        for (var i = 0; i < data.People.Count; i++)
+        {
+            data.People[i].Birthday = DateTime.Now.AddYears(-(20 + i * 5));
+        }
+
+        schema
+            .Query()
+            .ReplaceField("people", "Get a page of people")
+            .Resolve<AgeService>((ctx, service) => ctx.People.Where(p => p.Birthday != null && service.GetAgeAsync(p.Birthday).Result > 0).OrderBy(p => p.Id))
+            .UseConnectionPaging();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people {
+                        totalCount
+                        pageInfo {
+                            hasNextPage
+                        }
+                    }
+                }",
+        };
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<AgeService>();
+
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = executeServiceFieldsSeparately }
+        );
+
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal(5, people.totalCount);
+    }
+}
+
+public class TaskFilterService
+{
+    public bool IncludeTask(int taskId) => taskId > 0;
 }

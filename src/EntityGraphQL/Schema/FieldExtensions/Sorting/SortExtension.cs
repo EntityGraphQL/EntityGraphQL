@@ -133,6 +133,7 @@ public class SortExtension : BaseFieldExtension
         dynamic? arguments,
         Expression context,
         bool servicesPass,
+        bool withoutServiceFields,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
         CompileContext compileContext

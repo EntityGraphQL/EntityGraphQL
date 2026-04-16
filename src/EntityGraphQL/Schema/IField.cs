@@ -99,6 +99,7 @@ public interface IField
         IArgumentsTracker? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
+        bool withoutServiceFields,
         ParameterReplacer replacer
     );
     Expression? ResolveExpression { get; }

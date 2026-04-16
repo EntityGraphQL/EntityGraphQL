@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler;
 
@@ -67,30 +68,63 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
     )
     {
         var nextFieldContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, NextFieldContext);
+
+        // Detect interleaved paging once so we can use it in both passes.
+        bool isInterleavedPagingField =
+            Field?.Extensions.Any(e => (e is ConnectionPagingExtension cp && cp.IsInterleavedServiceField) || (e is OffsetPagingExtension op && op.IsInterleavedServiceField)) == true;
         if (HasServices && withoutServiceFields)
-            return Field
-                ?.ExtractedFieldsFromServices?.FirstOrDefault()
-                ?.GetNodeExpression(
-                    compileContext,
-                    serviceProvider,
-                    fragments,
-                    docParam,
-                    docVariables,
-                    schemaContext,
-                    withoutServiceFields,
-                    replacementNextFieldContext,
-                    possibleNextContextTypes,
-                    contextChanged,
-                    replacer
-                );
+        {
+            // Detect paging fields where the service is embedded inside the resolver expression
+            // (e.g. ctx.People.Where(service.Filter).OrderBy()). The service cannot be separated
+            // from the DB expression so the two-pass approach cannot be used for this field.
+            if (!isInterleavedPagingField)
+                return Field
+                    ?.ExtractedFieldsFromServices?.FirstOrDefault()
+                    ?.GetNodeExpression(
+                        compileContext,
+                        serviceProvider,
+                        fragments,
+                        docParam,
+                        docVariables,
+                        schemaContext,
+                        withoutServiceFields,
+                        replacementNextFieldContext,
+                        possibleNextContextTypes,
+                        contextChanged,
+                        replacer
+                    );
+
+            if (IsRootField)
+                // Root interleaved paging: return null so the caller (CompileAndExecuteNodeAsync)
+                // skips the two-pass path and uses the single-pass fallback, which executes the
+                // whole field (including the service) in one shot.
+                return null;
+
+            // Non-root interleaved paging: fall through. We build the full selection (edges +
+            // totalCount etc.) here in the first pass with the service included so that the
+            // parent's first-pass anon type contains a complete pre-computed value for this field.
+            // The second pass then reads the pre-computed value via ReplaceContext.GetField().
+        }
 
         if (contextChanged && replacementNextFieldContext != null)
         {
             nextFieldContext = ReplaceContext(replacementNextFieldContext!, replacer, nextFieldContext!, possibleNextContextTypes);
         }
         (nextFieldContext, var argumentParam) =
-            Field?.GetExpression(nextFieldContext!, replacementNextFieldContext, this, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer)
-            ?? (nextFieldContext, null);
+            Field?.GetExpression(
+                nextFieldContext!,
+                replacementNextFieldContext,
+                this,
+                schemaContext,
+                compileContext,
+                Arguments,
+                docParam,
+                docVariables,
+                Directives,
+                contextChanged,
+                withoutServiceFields,
+                replacer
+            ) ?? (nextFieldContext, null);
         if (nextFieldContext == null)
             return null;
 
@@ -98,8 +132,10 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
 
         (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
 
-        // if we have services and they don't want service fields, return the expression only for extraction
-        if (withoutServiceFields && HasServices && !IsRootField)
+        // if we have services and they don't want service fields, return the expression only for extraction.
+        // Non-root interleaved paging fields must NOT return early here: they need to continue below
+        // to build the full selection (edges + totalCount) in the first pass.
+        if (withoutServiceFields && HasServices && !IsRootField && !isInterleavedPagingField)
             return nextFieldContext;
 
         var selectionContext = nextFieldContext;

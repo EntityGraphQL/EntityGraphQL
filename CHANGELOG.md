@@ -19,6 +19,7 @@
   - Policy support moved entirely to `EntityGraphQL.AspNet` package using `"egql:aspnet:policies"` key
   - `RequiredAuthorization` constructor that took roles parameter has been removed - use `RequiresAnyRole()` or `RequiresAllRoles()` methods instead
   - Custom authorization implementations should use namespaced keys (e.g., `"myapp:custom-auth"`) to avoid conflicts
+- Added `withoutServiceFields` parameter to `IFieldExtension.GetExpressionAndArguments()` to allow extensions to know when they're in the first pass of two-pass execution and should skip service-dependent expressions.
 
 ## Changes
 
@@ -39,6 +40,7 @@
 - #488 - Support async fields with `[GraphQLField]`
 - #487 - Fix `ResolveAsync` with arguments
 - #484 - Better support for nullable numeric types in filter expressions. Nullable int/short/long fields can now be compared to numeric literals without type mismatch errors. The fix also prioritizes converting literals over field expressions to avoid database column casts that could prevent index usage.
+- #459 - Fixed error "variable 'service' ... is not defined" when using `Resolve<TService>()` directly on a field that also uses `UseConnectionPaging()` or `UseOffsetPaging()`. When the paging field's own resolver depends on a service, the field now falls back to single-pass execution so the service parameter is always in scope. Fields with services on child types (not the paging field itself) continue to use the normal two-pass execution path where the DB query runs first and the service is resolved in-memory against the paged results.
 - As per spec - `_Type.fields` should be `null` for `INPUT_OBJECT`. Previously the `inputFields` were repeated.
 
 # 6.0.0-beta2
@@ -56,13 +58,11 @@
 ## Breaking Changes
 
 - Support for partial results as per spec. **This actually _fixes_ EntityGraphQL to follow the GraphQL spec regarding partial results.** However it does change behavior.
-
   - EntityGraphQL basically executes each "top level" field in the operation separately, now if any fail, you'll get the partial results of those that succeeded and error information about the failed ones.
   - `AddGraphQLValidator` now registers `IGraphQLValidator` as `Transient`. This _was_ the original intent as the docs have examples of bailing early by checking if the validator has any errors. The intent was errors for that field. This change helps enable partial results. If you want the old behavior, remove the use of `AddGraphQLValidator` and just add `IGraphQLValidator` yourself as `Scoped`
   - As per spec [If an error was raised during the execution that prevented a valid response, the "data" entry in the response should be null](https://spec.graphql.org/draft/#sec-Data). This was not always the case
 
 - Removed methods/properties marked as obsolete
-
   - `IField.UseArgumentsFromField` use `GetExpressionAndArguments`
   - `IField.UseArgumentsFrom` use `GetExpressionAndArguments`
   - `IField.ResolveWithService` use `Resolve`

@@ -111,6 +111,7 @@ public abstract class BaseField : IField
         IArgumentsTracker? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
+        bool withoutServiceFields,
         ParameterReplacer replacer
     );
 

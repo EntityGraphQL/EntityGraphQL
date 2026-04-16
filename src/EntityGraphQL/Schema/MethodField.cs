@@ -218,6 +218,7 @@ public abstract class MethodField : BaseField
         IArgumentsTracker? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
+        bool withoutServiceFields,
         ParameterReplacer replacer
     )
     {

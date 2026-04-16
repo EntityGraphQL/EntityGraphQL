@@ -86,10 +86,26 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         {
             listContext = ReplaceContext(replacementNextFieldContext!, replacer, listContext!, possibleNextContextTypes);
             nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
+            // Store replacement so child paging extensions (e.g. ConnectionEdgeExtension) can get
+            // the correct anonymous-type element parameter when building service expressions.
+            if (NextFieldContext is ParameterExpression origNextCtx)
+                compileContext.SetFieldContextReplacement(origNextCtx, nextFieldContext);
         }
         (listContext, var argumentParams) =
-            Field?.GetExpression(listContext!, replacementNextFieldContext, this, schemaContext, compileContext, Arguments, docParam, docVariables, Directives, contextChanged, replacer)
-            ?? (ListExpression, null);
+            Field?.GetExpression(
+                listContext!,
+                replacementNextFieldContext,
+                this,
+                schemaContext,
+                compileContext,
+                Arguments,
+                docParam,
+                docVariables,
+                Directives,
+                contextChanged,
+                withoutServiceFields,
+                replacer
+            ) ?? (ListExpression, null);
         if (listContext == null)
             return null;
 

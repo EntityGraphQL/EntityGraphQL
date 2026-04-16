@@ -22,6 +22,14 @@ public class ConnectionPagingExtension : BaseFieldExtension
     public int? MaxPageSize { get; }
     public List<IFieldExtension> ExtensionsBeforePaging { get; private set; } = [];
 
+    /// <summary>
+    /// True when the resolver interleaves service calls with context expressions
+    /// (e.g. ctx.People.Where(p => service.Filter(p))).
+    /// In this case the service and DB calls cannot be split across two passes,
+    /// so the field executes in the first pass with the service included.
+    /// </summary>
+    public bool IsInterleavedServiceField { get; private set; }
+
     public ConnectionPagingExtension(int? defaultPageSize, int? maxPageSize)
     {
         DefaultPageSize = defaultPageSize;
@@ -78,6 +86,11 @@ public class ConnectionPagingExtension : BaseFieldExtension
 
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));
 
+        // Save the resolve expression BEFORE AddArguments, which may replace it with a new
+        // object when the field already has arguments (arg params are merged/renamed).
+        // We need this pre-merge reference to detect interleaved service fields below.
+        var preAddArgsExpression = field.ResolveExpression;
+
         // Update field arguments
         field.AddArguments(new ConnectionArgs());
 
@@ -95,6 +108,20 @@ public class ConnectionPagingExtension : BaseFieldExtension
             edgesField.AddExtension(new ConnectionEdgeExtension(listType, isQueryable));
 
         OriginalFieldExpression = field.ResolveExpression;
+
+        // Detect interleaved service: ExpressionExtractor extracts the whole resolver expression
+        // (not just sub-expressions) when a service is used inside the resolver body
+        // e.g. ctx.People.Where(p => service.Filter(p)).OrderBy(p => p.Id)
+        // In that case we cannot split into two passes and fall back to single-pass execution.
+        // Compare against preAddArgsExpression because AddArguments may have replaced the expression
+        // with a new object (when the field already had arguments whose params were merged/renamed).
+        IsInterleavedServiceField = field.ExtractedFieldsFromServices?.Any(f => f.FieldExpressions.Any(e => ReferenceEquals(e, preAddArgsExpression))) ?? false;
+
+        if (IsInterleavedServiceField && field.ExtractedFieldsFromServices != null && field.FieldParam != null)
+        {
+            field.ExtractedFieldsFromServices.Clear();
+            field.ExtractedFieldsFromServices.AddRange(BuildInterleavedServiceInputs(schema, field, OriginalFieldExpression));
+        }
 
         // Rebuild expression so all the fields and types are known
         // and get it ready for completion at runtime (we need to know the selection fields to complete)
@@ -134,6 +161,33 @@ public class ConnectionPagingExtension : BaseFieldExtension
         field.UpdateExpression(fieldExpression);
     }
 
+    private static List<GraphQLExtractedField> BuildInterleavedServiceInputs(ISchemaProvider schema, IField field, Expression? fieldExpression)
+    {
+        var fieldParam = field.FieldParam ?? throw new EntityGraphQLSchemaException($"Field {field.Name} must have a field parameter");
+        var extracted = new List<GraphQLExtractedField> { new(schema, BuildExtractedName($"{fieldParam}_ctx"), [fieldParam], fieldParam) };
+
+        var baseCollection = FindBaseCollectionExpression(fieldExpression!);
+        if (!ReferenceEquals(baseCollection, fieldParam))
+            extracted.Add(new(schema, BuildExtractedName(baseCollection.ToString()), [baseCollection], fieldParam));
+
+        return extracted;
+    }
+
+    private static Expression FindBaseCollectionExpression(Expression expression)
+    {
+        Expression current = expression;
+        while (current is MethodCallExpression methodCall)
+        {
+            current = methodCall.Object ?? methodCall.Arguments[0];
+        }
+        return current;
+    }
+
+    private static string BuildExtractedName(string value)
+    {
+        return "egql__" + new string(value.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
+    }
+
     private MemberInitExpression BuildConnectionExpression(BaseGraphQLField? fieldNode, dynamic? arguments, Expression resolve, ParameterExpression argumentParam)
     {
         // Check if we need to compute totalCount:
@@ -164,13 +218,17 @@ public class ConnectionPagingExtension : BaseFieldExtension
         dynamic? arguments,
         Expression context,
         bool servicesPass,
+        bool withoutServiceFields,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
         CompileContext compileContext
     )
     {
-        // second pass with services we have the new edges shape. We need to handle things on the EdgeExtension
-        if (servicesPass)
+        // For fields WITHOUT services: skip rebuild in second pass (paging was done in first pass).
+        // For service-backed paging fields, GraphQLObjectProjectionField returns early from GetFieldExpression
+        // in the first pass before calling Field.GetExpression, so this extension is never reached then.
+        // Paging is therefore always built in the second pass for service-backed fields.
+        if (servicesPass && field.Services.Count == 0)
             return (expression, originalArgParam, argumentParam, arguments);
 
 #if NET8_0_OR_GREATER
@@ -182,12 +240,43 @@ public class ConnectionPagingExtension : BaseFieldExtension
 
         var edgeExpression = OriginalFieldExpression!;
 
+        // In the services pass, replace context-dependent expressions (e.g. dir.Id → anonElem.egql__dir_Id)
+        // so that the TotalCount expression uses the correct values from the anonymous type.
+        // Note: `context` here is the Connection<T> MemberInit (already processed by ReplaceContext),
+        // not the anonymous element parameter. We look up the actual anonymous element via the parent
+        // field node's NextFieldContext, which was stored by GraphQLListSelectionField in the second pass.
+        if (servicesPass && field.Services.Count > 0)
+        {
+            compileContext.AddServices(field.Services);
+            if (field.ExtractedFieldsFromServices != null)
+            {
+                var anonElement = fieldNode.ParentNode?.NextFieldContext is ParameterExpression parentNextCtx ? compileContext.GetFieldContextReplacement(parentNextCtx) : null;
+                var replacementCtx = (Expression?)anonElement ?? context;
+                var expReplacer = new ExpressionReplacer(field.ExtractedFieldsFromServices, replacementCtx, false, false, null);
+                edgeExpression = expReplacer.Replace(edgeExpression);
+                if (field.FieldParam != null)
+                    edgeExpression = parameterReplacer.Replace(edgeExpression, field.FieldParam, replacementCtx);
+            }
+        }
+
         if (ExtensionsBeforePaging.Count > 0)
         {
             // if we have other extensions (filter etc) we need to apply them to the totalCount
             foreach (var extension in ExtensionsBeforePaging)
             {
-                var res = extension.GetExpressionAndArguments(field, fieldNode, edgeExpression, argumentParam, arguments, context, servicesPass, parameterReplacer, originalArgParam, compileContext);
+                var res = extension.GetExpressionAndArguments(
+                    field,
+                    fieldNode,
+                    edgeExpression,
+                    argumentParam,
+                    arguments,
+                    context,
+                    servicesPass,
+                    withoutServiceFields,
+                    parameterReplacer,
+                    originalArgParam,
+                    compileContext
+                );
                 (edgeExpression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
             }
         }

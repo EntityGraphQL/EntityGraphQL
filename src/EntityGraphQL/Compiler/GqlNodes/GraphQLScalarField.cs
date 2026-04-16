@@ -62,6 +62,7 @@ public class GraphQLScalarField : BaseGraphQLField
             docVariables,
             Directives,
             contextChanged,
+            withoutServiceFields,
             replacer
         );
 

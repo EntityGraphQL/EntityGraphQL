@@ -29,6 +29,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         dynamic? arguments,
         Expression context,
         bool servicesPass,
+        bool withoutServiceFields,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
         CompileContext compileContext
@@ -51,19 +52,62 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         // is on may be used in multiple places and have different arguments etc
         // See OffsetConnectionPagingTests.TestMultiUseWithArgs
         var pagingExtension = (ConnectionPagingExtension)fieldNode.ParentNode!.Field!.Extensions.Find(e => e is ConnectionPagingExtension)!;
-        expression = servicesPass
-            ? expression
-            : parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, fieldNode.ParentNode!.Field!.FieldParam!, fieldNode.ParentNode!.ParentNode!.NextFieldContext!);
+        var parentField = fieldNode.ParentNode!.Field!;
+
+        // For fields WITHOUT services in second pass: skip (paging done in first pass).
+        // For service-backed paging fields the parent (pagedConfigs) returns early from GetFieldExpression
+        // in the first pass, so edges is never reached then — paging is always built in the second pass.
+        if (servicesPass && parentField.Services.Count == 0)
+            return (expression, originalArgParam, argumentParam, arguments);
+
+        // Build the paging expression using the original field expression.
+        // This happens in first pass for non-service fields, or second pass for service fields.
+        // In the services pass (second pass), the grandparent list's element type has changed to an
+        // anonymous type. We look up the replacement context stored by GraphQLListSelectionField and
+        // use ExpressionReplacer to correctly remap member accesses (e.g. dir.Id → anonElem.id).
+        var grandparentContext = fieldNode.ParentNode!.ParentNode!.NextFieldContext;
+        if (servicesPass && parentField.Services.Count > 0 && grandparentContext is ParameterExpression grandparentParam)
+        {
+            var replacement = compileContext.GetFieldContextReplacement(grandparentParam);
+            if (replacement != null && parentField.ExtractedFieldsFromServices != null)
+            {
+                var expReplacer = new ExpressionReplacer(parentField.ExtractedFieldsFromServices, replacement, false, false, null);
+                expression = expReplacer.Replace(pagingExtension.OriginalFieldExpression!);
+                if (parentField.FieldParam != null)
+                    expression = parameterReplacer.Replace(expression, parentField.FieldParam, replacement);
+            }
+            else if (replacement != null)
+            {
+                expression = parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentField.FieldParam!, replacement);
+            }
+            else
+            {
+                expression = parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentField.FieldParam!, grandparentContext!);
+            }
+        }
+        else
+        {
+            expression = parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentField.FieldParam!, grandparentContext!);
+        }
 
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
         foreach (var extension in pagingExtension.ExtensionsBeforePaging)
         {
-            var res = extension.GetExpressionAndArguments(field, fieldNode, expression, argumentParam, arguments, context, servicesPass, parameterReplacer, originalArgParam, compileContext);
+            var res = extension.GetExpressionAndArguments(
+                field,
+                fieldNode,
+                expression,
+                argumentParam,
+                arguments,
+                context,
+                servicesPass,
+                withoutServiceFields,
+                parameterReplacer,
+                originalArgParam,
+                compileContext
+            );
             (expression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
-
-        if (servicesPass)
-            return (expression, originalArgParam, argumentParam, arguments); // don't need to do paging as it is done already
 
         arguments ??= new { };
 

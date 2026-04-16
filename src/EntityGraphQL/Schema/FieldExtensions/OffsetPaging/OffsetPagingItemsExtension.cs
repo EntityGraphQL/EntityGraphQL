@@ -25,6 +25,7 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         dynamic? arguments,
         Expression context,
         bool servicesPass,
+        bool withoutServiceFields,
         ParameterReplacer parameterReplacer,
         ParameterExpression? originalArgParam,
         CompileContext compileContext
@@ -44,20 +45,63 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         // is on may be used in multiple places and have different arguments etc
         // See OffsetPagingTests.TestMultiUseWithArgs
         var offsetPagingExtension = (OffsetPagingExtension)fieldNode.ParentNode!.Field!.Extensions.Find(e => e is OffsetPagingExtension)!;
+        var parentField = fieldNode.ParentNode!.Field!;
 
-        var resolveExpression = offsetPagingExtension.OriginalFieldExpression!;
-        var originalFieldParam = fieldNode.ParentNode.Field!.FieldParam!;
-        Expression newItemsExp = servicesPass ? expression : parameterReplacer.Replace(resolveExpression, originalFieldParam, fieldNode.ParentNode!.ParentNode!.NextFieldContext!);
-        // other extensions defined on the original field need to run on the collection
+        // For fields WITHOUT services in second pass: skip (paging done in first pass).
+        // For service-backed paging fields the parent (e.g. pagedItems) returns early from GetFieldExpression
+        // in the first pass, so items is never reached then — paging is always built in the second pass.
+        if (servicesPass && parentField.Services.Count == 0)
+            return (expression, originalArgParam, argumentParam, arguments);
 
-        foreach (var extension in offsetPagingExtension.Extensions)
+        // Build the paging expression using the original field expression.
+        // This happens in first pass for non-service fields, or second pass for service fields.
+        // In the services pass (second pass), the grandparent list's element type has changed to an
+        // anonymous type. We look up the replacement context stored by GraphQLListSelectionField and
+        // use ExpressionReplacer to correctly remap member accesses (e.g. dir.Id → anonElem.id).
+        var originalFieldParam = parentField.FieldParam!;
+        var grandparentContext = fieldNode.ParentNode!.ParentNode!.NextFieldContext;
+        Expression newItemsExp;
+        if (servicesPass && parentField.Services.Count > 0 && grandparentContext is ParameterExpression grandparentParam)
         {
-            var res = extension.GetExpressionAndArguments(field, fieldNode, newItemsExp, argumentParam, arguments, context, servicesPass, parameterReplacer, originalArgParam, compileContext);
-            (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
+            var replacement = compileContext.GetFieldContextReplacement(grandparentParam);
+            if (replacement != null && parentField.ExtractedFieldsFromServices != null)
+            {
+                var expReplacer = new ExpressionReplacer(parentField.ExtractedFieldsFromServices, replacement, false, false, null);
+                newItemsExp = expReplacer.Replace(offsetPagingExtension.OriginalFieldExpression!);
+                newItemsExp = parameterReplacer.Replace(newItemsExp, originalFieldParam, replacement);
+            }
+            else if (replacement != null)
+            {
+                newItemsExp = parameterReplacer.Replace(offsetPagingExtension.OriginalFieldExpression!, originalFieldParam, replacement);
+            }
+            else
+            {
+                newItemsExp = parameterReplacer.Replace(offsetPagingExtension.OriginalFieldExpression!, originalFieldParam, grandparentContext!);
+            }
+        }
+        else
+        {
+            newItemsExp = parameterReplacer.Replace(offsetPagingExtension.OriginalFieldExpression!, originalFieldParam, grandparentContext!);
         }
 
-        if (servicesPass)
-            return (newItemsExp, originalArgParam, argumentParam, arguments); // paging is done already
+        // other extensions defined on the original field need to run on the collection
+        foreach (var extension in offsetPagingExtension.Extensions)
+        {
+            var res = extension.GetExpressionAndArguments(
+                field,
+                fieldNode,
+                newItemsExp,
+                argumentParam,
+                arguments,
+                context,
+                servicesPass,
+                withoutServiceFields,
+                parameterReplacer,
+                originalArgParam,
+                compileContext
+            );
+            (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
+        }
 
         if (argumentParam == null)
             throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "OffsetPagingItemsExtension requires an argument parameter to be passed in");

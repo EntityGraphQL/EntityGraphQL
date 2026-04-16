@@ -172,12 +172,13 @@ public class Field : BaseField
         IArgumentsTracker? docVariables,
         IEnumerable<GraphQLDirective> directives,
         bool contextChanged,
+        bool withoutServiceFields,
         ParameterReplacer replacer
     )
     {
         Expression? expression = fieldExpression;
         // don't store parameterReplacer as a class field as GetExpression is called in compiling - i.e. across threads
-        (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, fieldNode, docParam, docVariables, contextChanged, compileContext);
+        (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, fieldNode, docParam, docVariables, contextChanged, withoutServiceFields, compileContext);
         if (result == null)
             return (null, null);
         // the expressions we collect have a different starting parameter. We need to change that
@@ -205,6 +206,7 @@ public class Field : BaseField
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         bool servicesPass,
+        bool withoutServiceFields,
         CompileContext compileContext
     )
     {
@@ -234,6 +236,7 @@ public class Field : BaseField
                         argumentValue,
                         context,
                         servicesPass,
+                        withoutServiceFields,
                         replacer,
                         originalArgParam,
                         compileContext
