@@ -675,6 +675,29 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 return array;
             }
 
+            // Try to return a List<T> matching the IEnumerable<T> element type so that
+            // the resolved collection is assignable back to typed fields (e.g. IEnumerable<T>
+            // produced by an async service field).
+            var enumerableInterface =
+                originalType.IsGenericType && originalType.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                    ? originalType
+                    : originalType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            if (enumerableInterface != null)
+            {
+                var elementType = enumerableInterface.GetGenericArguments()[0];
+                var typedList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
+                try
+                {
+                    foreach (var item in resolvedItems)
+                        typedList.Add(item);
+                    return typedList;
+                }
+                catch
+                {
+                    // Items couldn't be added to typed list (e.g. element type mismatch); fall back below
+                }
+            }
+
             return resolvedItems;
         }
 

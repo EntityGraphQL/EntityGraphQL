@@ -85,7 +85,13 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         if (contextChanged && replacementNextFieldContext != null)
         {
             listContext = ReplaceContext(replacementNextFieldContext!, replacer, listContext!, possibleNextContextTypes);
-            nextFieldContext = Expression.Parameter(listContext.Type.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
+            // For async fields (e.g. Task<IEnumerable<T>>), GetEnumerableOrArrayType returns
+            // IEnumerable<T> (the Task's single type argument) instead of T (the list element type).
+            // Unwrap Task<>/ValueTask<> first so the element parameter has the correct type.
+            var listContextType = listContext.Type;
+            if (listContextType.IsAsyncGenericType())
+                listContextType = listContextType.GetGenericArguments()[0];
+            nextFieldContext = Expression.Parameter(listContextType.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
             // Store replacement so child paging extensions (e.g. ConnectionEdgeExtension) can get
             // the correct anonymous-type element parameter when building service expressions.
             if (NextFieldContext is ParameterExpression origNextCtx)

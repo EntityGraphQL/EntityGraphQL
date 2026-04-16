@@ -36,6 +36,7 @@
 
 ## Fixes
 
+- Fixed `SelectWithNullCheck` error when using `.ResolveAsync<TService>()` on a field that returns a list of complex objects with subfield selection (e.g. `toolCatalog { name }`), where the parent field returns a single object. In the two-pass execution path the element-type parameter was incorrectly derived from `Task<IEnumerable<T>>` rather than `T`, and the resolved collection was not preserved as a typed `List<T>` when rebuilding the async result graph.
 - #481 - handle `ResolveAsync` on a top level field
 - #488 - Support async fields with `[GraphQLField]`
 - #487 - Fix `ResolveAsync` with arguments

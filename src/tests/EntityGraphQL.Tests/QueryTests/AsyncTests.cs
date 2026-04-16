@@ -244,6 +244,84 @@ public class AsyncTests
         Assert.Equal(2, result.Data!["jobCount"]);
     }
 
+    /// <summary>
+    /// Reproduces the error:
+    /// "No generic method 'SelectWithNullCheck' on type 'EntityGraphQL.Extensions.EnumerableExtensions'
+    ///  is compatible with the supplied type arguments and arguments."
+    ///
+    /// Scenario: root query field returns a single object by ID arg, and that object
+    /// has a service field added via UpdateType that resolves async to a list.
+    /// The sub-selection of fields on that list triggers the SelectWithNullCheck failure.
+    /// </summary>
+    [Fact]
+    public void TestAsyncServiceFieldReturningListOnSingleObjectFromQueryArg()
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.AddType<WorkflowTool>("WorkflowTool").AddAllFields();
+
+        schema.UpdateType<Workflow>(type =>
+        {
+            type.AddField("toolCatalog", "Resolved tool catalog from workflow-bound services.")
+                .ResolveAsync<IWorkflowToolCatalogService>((workflow, tools) => tools.GetWorkflowToolCatalogAsync(workflow.Id));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query BuilderGetWorkflow($id: String) {
+                workflow(id: $id) {
+                    id
+                    toolCatalog { name }
+                }
+            }",
+            Variables = new QueryVariables { { "id", "wf-1" } },
+        };
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IWorkflowToolCatalogService>(new WorkflowToolCatalogService());
+
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.NotNull(res.Data);
+        dynamic workflow = res.Data!["workflow"]!;
+        Assert.Equal("wf-1", workflow.id);
+        var catalog = (IEnumerable<dynamic>)workflow.toolCatalog;
+        Assert.Single(catalog);
+    }
+
+    private class WorkflowContext
+    {
+        public List<Workflow> Workflows { get; set; } = [];
+    }
+
+    private class Workflow
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private class WorkflowTool
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private interface IWorkflowToolCatalogService
+    {
+        System.Threading.Tasks.Task<IEnumerable<WorkflowTool>> GetWorkflowToolCatalogAsync(string workflowId);
+    }
+
+    private class WorkflowToolCatalogService : IWorkflowToolCatalogService
+    {
+        public System.Threading.Tasks.Task<IEnumerable<WorkflowTool>> GetWorkflowToolCatalogAsync(string workflowId)
+        {
+            IEnumerable<WorkflowTool> tools = [new WorkflowTool { Name = "tool-a" }];
+            return System.Threading.Tasks.Task.FromResult(tools);
+        }
+    }
+
     private class JobContext
     {
         [GraphQLIgnore]
