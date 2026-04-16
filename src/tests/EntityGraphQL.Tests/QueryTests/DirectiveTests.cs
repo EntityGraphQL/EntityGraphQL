@@ -14,6 +14,30 @@ namespace EntityGraphQL.Tests;
 public class DirectiveTests
 {
     [Fact]
+    public void ParsedFieldDirectivesAreAccessible()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        var document = GraphQLParser.Parse(
+            """
+            query {
+                people {
+                    name @skip(if: true)
+                }
+            }
+            """,
+            schema
+        );
+
+        var peopleField = document.Operations[0].QueryFields[0];
+        var nameField = peopleField.QueryFields[0];
+
+        var directive = Assert.Single(nameField.Directives);
+        Assert.Equal("skip", directive.Name);
+        Assert.IsType<SkipDirectiveProcessor>(directive.Processor);
+    }
+
+    [Fact]
     public void TestIncludeIfTrueConstant()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

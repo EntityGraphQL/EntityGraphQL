@@ -25,6 +25,7 @@
 
 - Added support for [document descriptions](https://spec.graphql.org/September2025/#sec-Descriptions) as outlined in the latest 2025 spec. Basically string comments in the query document
 - #474 - Add support for `TimeSpan` as a scalar in the default schema
+- #500 - Expose parsed executable directive metadata via `BaseGraphQLField.Directives` by making `GraphQLDirective.Name` and `GraphQLDirective.Processor` public for custom query processing scenarios
 - Replaced the previous 3rd party GraphQL document parser.
 - Add `net10.0` as a target
 - When using Offset Paging the total items expression is now only executed if the query requests `hasNextPage` or `totalItems` fields

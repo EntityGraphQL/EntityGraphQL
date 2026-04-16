@@ -19,6 +19,10 @@ public class GraphQLDirective
         this.name = name;
     }
 
+    public string Name => name;
+
+    public IDirectiveProcessor Processor => processor;
+
     public IGraphQLNode? VisitNode(
         ExecutableDirectiveLocation location,
         ISchemaProvider schema,
