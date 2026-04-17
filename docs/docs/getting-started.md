@@ -100,12 +100,7 @@ app.Run();
 This sets up a `HTTP` `POST` end point at `/graphql` where the body of the post is expected to be a GraphQL query. You can change the path with the `path` argument in `MapGraphQL<T>()`
 
 :::tip
-Version 5.6 introduced an argument to `MapGraphQL` called `followSpec`. When set to true it will follow [this GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md). This will be the default behavior in version 6 so if you are starting a new project we suggest setting it to `true` now.
-
-```cs
-app.MapGraphQL<DemoContext>(followSpec: true);
-```
-
+`MapGraphQL` follows the GraphQL over HTTP behavior that EntityGraphQL adopted in v6. GraphQL execution errors are returned in the GraphQL response body rather than by changing the route shape or adding a special endpoint mode.
 :::
 
 _You can authorize the route how ever you wish using ASP.NET. See the Authorization section for more details._
@@ -265,10 +260,12 @@ We can use the helper method `SchemaBuilder.FromObject<T>>()` to build the schem
 ```cs
 var schema = SchemaBuilder.FromObject<DemoContext>();
 
-services.AddSingleton<SchemaProvider<DemoContext>>();
+services.AddSingleton(schema);
 ```
 
 _See the [Schema Creation](./schema-creation) section to learn more about `SchemaBuilder.FromObject<T>>()`_
+
+If you are already using `EntityGraphQL.AspNet`, prefer `AddGraphQLSchema<T>()` so the schema is registered consistently with the rest of the ASP.NET integration.
 
 ### Executing a Query in a custom controller
 
@@ -278,19 +275,17 @@ Here is an example of a controller that receives a `QueryRequest` and executes t
 [Route("graphql")]
 public class QueryController : Controller
 {
-    private readonly DemoContext _dbContext;
     private readonly SchemaProvider<DemoContext> _schemaProvider;
 
-    public QueryController(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider)
+    public QueryController(SchemaProvider<DemoContext> schemaProvider)
     {
-        this._dbContext = dbContext;
         this._schemaProvider = schemaProvider;
     }
 
     [HttpPost]
     public async Task<object> Post([FromBody]QueryRequest query)
     {
-        var results = await _schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, HttpContext.RequestServices, null);
+        var results = await _schemaProvider.ExecuteRequestAsync(query, HttpContext.RequestServices, HttpContext.User);
         // gql compile errors show up in results.Errors
         return results;
     }
@@ -299,23 +294,25 @@ public class QueryController : Controller
 
 ### Executing a Query in azure functions (isolated)
 
-Here is an example of a function that receives a `HttpRequestData`, from its Body property `QueryRequest` is deserialized and graphQL query is executed.
+Here is an example of a function that receives a `HttpRequestData`, deserializes a `QueryRequest` from the body, and executes it against a schema that is created once and reused.
 
 ```cs
 public class GraphQLFunctions
 {
     private readonly DemoContext _dbContext;
-    public GraphQLFunctions(DemoContext dbContext)
+    private readonly SchemaProvider<DemoContext> _schemaProvider;
+
+    public GraphQLFunctions(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider)
     {
         _dbContext = dbContext;
+        _schemaProvider = schemaProvider;
     }
 
     [Function(nameof(GraphQL))]
     public async Task<HttpResponseData> GraphQL([HttpTrigger(AuthorizationLevel.Function, "post", Route = "graphql")] HttpRequestData req)
     {
         var query = await req.GetJsonBody<QueryRequest>(); //helper method to deserialize QueryRequest from req.Body
-        var schemaProvider = SchemaBuilder.FromObject<DemoContext>();
-        var results = await schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, null, null);
+        var results = await _schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, null, null);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(results);
@@ -344,7 +341,7 @@ services.AddControllers()
 
 ## Deserialization of QueryRequest & QueryVariables
 
-If you are using you're own controller/method to execute GraphQL and deserializing a GraphQL request like below into the `GraphQLRequest` object. You need to be aware of how your serializer handles nested `Dictionary<string, object>`.
+If you are using your own controller/method to execute GraphQL and deserializing a GraphQL request like below into the `QueryRequest` object, you need to be aware of how your serializer handles nested `Dictionary<string, object>`.
 
 _Sample incoming json request_
 
