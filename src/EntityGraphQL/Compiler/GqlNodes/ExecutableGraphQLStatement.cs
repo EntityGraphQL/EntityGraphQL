@@ -685,16 +685,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             if (enumerableInterface != null)
             {
                 var elementType = enumerableInterface.GetGenericArguments()[0];
-                var typedList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
-                try
+                if (CanMaterializeTypedCollection(elementType, resolvedItems))
                 {
+                    var typedList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
                     foreach (var item in resolvedItems)
                         typedList.Add(item);
                     return typedList;
-                }
-                catch
-                {
-                    // Items couldn't be added to typed list (e.g. element type mismatch); fall back below
                 }
             }
 
@@ -708,6 +704,19 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 
         return obj;
+    }
+
+    private static bool CanMaterializeTypedCollection(Type elementType, IEnumerable<object?> items)
+    {
+        return items.All(item => IsCompatibleCollectionItem(elementType, item));
+    }
+
+    private static bool IsCompatibleCollectionItem(Type elementType, object? item)
+    {
+        if (item == null)
+            return !elementType.IsValueType || Nullable.GetUnderlyingType(elementType) != null;
+
+        return elementType.IsInstanceOfType(item);
     }
 
     /// <summary>
