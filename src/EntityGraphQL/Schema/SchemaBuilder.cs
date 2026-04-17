@@ -341,7 +341,7 @@ public static class SchemaBuilder
         if (!ShouldIncludeMember(prop, options, isInputType))
             yield break;
 
-        (string name, string description) = GetNameAndDescription(prop, schema);
+        (string name, string description) = GetNameAndDescription(prop, schema, fromType);
 
         LambdaExpression? le = null;
         le = prop.MemberType switch
@@ -413,9 +413,10 @@ public static class SchemaBuilder
         return baseReturnType;
     }
 
-    internal static (string name, string description) GetNameAndDescription(MemberInfo prop, ISchemaProvider schema)
+    internal static (string name, string description) GetNameAndDescription(MemberInfo prop, ISchemaProvider schema, ISchemaType? fromType = null)
     {
-        var name = schema.SchemaFieldNamer(prop.Name);
+        var namer = fromType?.Name.StartsWith("__", StringComparison.InvariantCulture) == true ? SchemaProviderOptions.DefaultFieldNamer : schema.SchemaFieldNamer;
+        var name = namer(prop.Name);
         var description = string.Empty;
         var descAttribute = prop.GetCustomAttribute<DescriptionAttribute>(false);
         if (descAttribute != null)

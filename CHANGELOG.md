@@ -38,6 +38,7 @@
 ## Fixes
 
 - Fixed `SelectWithNullCheck` error when using `.ResolveAsync<TService>()` on a field that returns a list of complex objects with subfield selection (e.g. `toolCatalog { name }`), where the parent field returns a single object. In the two-pass execution path the element-type parameter was incorrectly derived from `Task<IEnumerable<T>>` rather than `T`, and the resolved collection was not preserved as a typed `List<T>` when rebuilding the async result graph.
+- #498 - Fixed introspection types and fields incorrectly using the configured `FieldNamer`. Spec-defined introspection names now remain standard camelCase even when the application schema uses a custom naming convention.
 - #486 - Fixed directives on root-level fields failing to resolve query variable arguments (e.g. `@include(if: $var)`). `OpVariableParameter` and `docVariables` were not being passed through to directive evaluation in `GraphQLQueryStatement`, causing any directive that references a variable to throw a type-mismatch error.
 - #481 - handle `ResolveAsync` on a top level field
 - #488 - Support async fields with `[GraphQLField]`

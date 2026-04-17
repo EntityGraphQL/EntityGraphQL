@@ -163,6 +163,56 @@ public class IntrospectionTests
     }
 
     [Fact]
+    public void TestIntrospectionUsesSpecFieldNamesWhenCustomFieldNamerIsConfigured()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { FieldNamer = name => name });
+
+        var gql = new QueryRequest
+        {
+            Query = """
+                query IntrospectionQuery {
+                  __schema {
+                    queryType {
+                      name
+                    }
+                    mutationType {
+                      name
+                    }
+                    subscriptionType {
+                      name
+                    }
+                    types {
+                      name
+                    }
+                    directives {
+                      name
+                    }
+                  }
+                  __type(name: "__Schema") {
+                    fields(includeDeprecated: true) {
+                      name
+                    }
+                  }
+                }
+                """,
+        };
+
+        var context = new TestDataContext { Projects = [] };
+
+        var res = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(res.Errors);
+
+        var introspectionFields = (IEnumerable<dynamic>)((dynamic)res.Data!["__type"]!).fields;
+        Assert.Contains(introspectionFields, f => f.name == "queryType");
+        Assert.Contains(introspectionFields, f => f.name == "mutationType");
+        Assert.Contains(introspectionFields, f => f.name == "subscriptionType");
+        Assert.Contains(introspectionFields, f => f.name == "types");
+        Assert.Contains(introspectionFields, f => f.name == "directives");
+        Assert.DoesNotContain(introspectionFields, f => f.name == "QueryType");
+        Assert.DoesNotContain(introspectionFields, f => f.name == "Types");
+    }
+
+    [Fact]
     public void TestGraphiQLIntrospectionFragInFrag()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

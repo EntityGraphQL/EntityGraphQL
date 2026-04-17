@@ -242,11 +242,7 @@ public static class SchemaIntrospection
                 if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
-                var f = new Models.Field(schema.SchemaFieldNamer(field.Name), BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet))
-                {
-                    Args = BuildArgs(schema, field).ToArray(),
-                    Description = field.Description,
-                };
+                var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet)) { Args = BuildArgs(schema, field).ToArray(), Description = field.Description };
 
                 field.DirectivesReadOnly.ProcessField(f);
 
