@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 
@@ -21,6 +22,7 @@ public sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposab
     private readonly IDisposable subscription;
     private readonly GraphQLSubscriptionStatement subscriptionStatement;
     private readonly GraphQLSubscriptionField subscriptionNode;
+    private int _disposed;
 
     public WebSocketSubscription(string id, object observable, IGraphQLWebSocketServer server, GraphQLSubscriptionStatement subscriptionStatement, GraphQLSubscriptionField node)
     {
@@ -47,7 +49,8 @@ public sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposab
             );
             var result = new QueryResult();
             result.SetData(new Dictionary<string, object?> { { subscriptionNode.Name, data } });
-            server.SendNextAsync(OperationId, result).GetAwaiter().GetResult();
+            // SendNextAsync only enqueues — never blocks, never throws.
+            server.SendNextAsync(OperationId, result);
         }
         catch (Exception ex)
         {
@@ -57,16 +60,24 @@ public sealed class WebSocketSubscription<TQueryContext, TEventType> : IDisposab
 
     public void OnError(Exception error)
     {
-        server.SendErrorAsync(OperationId, error).GetAwaiter().GetResult();
+        // SendErrorAsync only enqueues — the drain task delivers it without blocking this thread.
+        server.SendErrorAsync(OperationId, error);
+        // Per the Rx contract, OnError means the sequence has terminated.
+        // Remove the subscription from the server so no further events are processed.
+        server.CompleteSubscriptionAsync(OperationId);
     }
 
     public void OnCompleted()
     {
+        // The observable sequence has ended normally; clean up the server-side subscription.
         server.CompleteSubscriptionAsync(OperationId);
     }
 
     public void Dispose()
     {
-        subscription.Dispose();
+        // Interlocked ensures the inner subscription is disposed exactly once even if
+        // CompleteSubscriptionAsync and an explicit Dispose() call race.
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            subscription.Dispose();
     }
 }

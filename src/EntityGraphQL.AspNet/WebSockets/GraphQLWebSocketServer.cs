@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Subscriptions;
@@ -18,15 +20,32 @@ namespace EntityGraphQL.AspNet.WebSockets;
 /// Implementation of the GraphQL over WebSocket protocol - https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md.
 /// </summary>
 /// <typeparam name="TQueryType"></typeparam>
-public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
+public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisposable
 {
     /// <summary>
-    /// These are the subscriptions/clients that are currently active with this server.
+    /// Active subscriptions keyed by operation id.
+    /// ConcurrentDictionary because observer callbacks (OnNext/OnError/OnCompleted) can fire
+    /// from threads other than the WebSocket receive loop.
     /// </summary>
-    private readonly Dictionary<string, IDisposable> subscriptions = [];
+    private readonly ConcurrentDictionary<string, IDisposable> subscriptions = new();
+
+    /// <summary>
+    /// All outbound WebSocket frames are written here and drained by a single background task,
+    /// which guarantees WebSocket.SendAsync is never called concurrently (a .NET requirement).
+    /// </summary>
+    private readonly Channel<object> outgoing = Channel.CreateUnbounded<object>(new UnboundedChannelOptions { SingleReader = true });
+
+    /// <summary>
+    /// Cancelled to stop the drain task when the connection closes (error or normal close).
+    /// </summary>
+    private readonly CancellationTokenSource closeCts = new();
+
+    /// <summary>Represents the running drain task; awaited in HandleAsync's finally block.</summary>
+    private Task drainTask = Task.CompletedTask;
+
     private readonly WebSocket webSocket;
     private readonly ExecutionOptions options;
-    private bool initialised;
+    private bool initialized;
     private readonly JsonSerializerOptions jsonOptions = new() { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public HttpContext Context { get; }
@@ -40,36 +59,87 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
 
     public async Task HandleAsync()
     {
-        while (!webSocket.CloseStatus.HasValue && webSocket.State == WebSocketState.Open)
+        // Create a combined token: cancelled when the connection closes (via _closeCts) OR
+        // the HTTP request is aborted (e.g. client disconnects at the transport layer).
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(Context.RequestAborted, closeCts.Token);
+        drainTask = DrainOutgoingAsync(linked.Token);
+
+        try
         {
-            using var memoryStream = new MemoryStream();
-            WebSocketReceiveResult? receiveResult = null;
-            do
+            while (!webSocket.CloseStatus.HasValue && webSocket.State == WebSocketState.Open)
             {
-                var buffer = new byte[1024 * 4];
-                var segment = new ArraySegment<byte>(buffer);
-                receiveResult = await webSocket.ReceiveAsync(segment, CancellationToken.None);
-
-                if (receiveResult.CloseStatus.HasValue)
+                using var memoryStream = new MemoryStream();
+                WebSocketReceiveResult? receiveResult = null;
+                do
                 {
-                    await CloseConnectionAsync(receiveResult.CloseStatus.Value, receiveResult.CloseStatusDescription);
-                    break;
+                    var buffer = new byte[1024 * 4];
+                    var segment = new ArraySegment<byte>(buffer);
+                    receiveResult = await webSocket.ReceiveAsync(segment, linked.Token);
+
+                    if (receiveResult.CloseStatus.HasValue)
+                    {
+                        await CloseConnectionAsync(receiveResult.CloseStatus.Value, receiveResult.CloseStatusDescription);
+                        break;
+                    }
+
+                    if (receiveResult.Count == 0)
+                        continue;
+
+                    await memoryStream.WriteAsync(segment.AsMemory(segment.Offset, receiveResult.Count), linked.Token);
+                } while (!receiveResult.EndOfMessage);
+
+                if (!webSocket.CloseStatus.HasValue)
+                {
+                    var message = Encoding.UTF8.GetString(memoryStream.ToArray());
+                    await HandleMessageAsync(JsonSerializer.Deserialize<GraphQLWSRequest>(message, jsonOptions)!);
                 }
-
-                if (receiveResult.Count == 0)
-                    continue;
-
-                await memoryStream.WriteAsync(segment.AsMemory(segment.Offset, receiveResult.Count), CancellationToken.None);
-            } while (!receiveResult.EndOfMessage);
-
-            if (!webSocket.CloseStatus.HasValue)
-            {
-                var message = Encoding.UTF8.GetString(memoryStream.ToArray());
-                await HandleMessageAsync(JsonSerializer.Deserialize<GraphQLWSRequest>(message, jsonOptions)!);
             }
         }
+        catch (OperationCanceledException) when (linked.IsCancellationRequested)
+        {
+            // Connection closed or HTTP request aborted — fall through to finally for cleanup.
+        }
+        finally
+        {
+            // Dispose subscriptions first so no new events can be enqueued after this point.
+            DisposeAllSubscriptions();
 
-        await CloseConnectionAsync(webSocket.CloseStatus, webSocket.CloseStatusDescription);
+            // Signal the drain task to stop (idempotent if CloseConnectionAsync already did it).
+            closeCts.Cancel();
+            outgoing.Writer.TryComplete();
+            await drainTask;
+
+            // Close the WebSocket if it isn't already closed.
+            await CloseWebSocketAsync(webSocket.CloseStatus, webSocket.CloseStatusDescription);
+
+            closeCts.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Single reader that drains <see cref="outgoing"/> and writes frames to the WebSocket.
+    /// Having exactly one sender guarantees we never call WebSocket.SendAsync concurrently.
+    /// </summary>
+    private async Task DrainOutgoingAsync(CancellationToken ct)
+    {
+        try
+        {
+            await foreach (var msg in outgoing.Reader.ReadAllAsync(ct))
+            {
+                if (webSocket.State != WebSocketState.Open)
+                    break;
+
+                var json = JsonSerializer.Serialize(msg, jsonOptions);
+                var buffer = Encoding.UTF8.GetBytes(json);
+                await webSocket.SendAsync(buffer, WebSocketMessageType.Text, endOfMessage: true, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        { /* connection closed or request aborted */
+        }
+        catch (WebSocketException)
+        { /* socket closed mid-send */
+        }
     }
 
     private async Task HandleMessageAsync(GraphQLWSRequest graphQLWSMessage)
@@ -78,17 +148,17 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
         {
             case GraphQLWSMessageType.ConnectionInit:
             {
-                if (initialised)
+                if (initialized)
                     await CloseConnectionAsync((WebSocketCloseStatus)4429, "Too many initialisation requests");
                 else
                 {
-                    initialised = true;
-                    await SendSimpleResponseAsync(GraphQLWSMessageType.ConnectionAck);
+                    initialized = true;
+                    Enqueue(new BaseGraphQLWSResponse { Type = GraphQLWSMessageType.ConnectionAck });
                 }
                 break;
             }
             case GraphQLWSMessageType.Ping:
-                await SendSimpleResponseAsync(GraphQLWSMessageType.Pong);
+                Enqueue(new BaseGraphQLWSResponse { Type = GraphQLWSMessageType.Pong });
                 break;
             case GraphQLWSMessageType.Subscribe:
                 await HandleSubscribeAsync(graphQLWSMessage);
@@ -109,7 +179,7 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
 
     private async Task HandleSubscribeAsync(GraphQLWSRequest graphQLWSMessage)
     {
-        if (!initialised)
+        if (!initialized)
         {
             await CloseConnectionAsync((WebSocketCloseStatus)4401, "Unauthorized");
             return;
@@ -132,7 +202,9 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
             }
 
             if (subscriptions.ContainsKey(graphQLWSMessage.Id))
+            {
                 await CloseConnectionAsync((WebSocketCloseStatus)4409, $"Subscriber for {graphQLWSMessage.Id} already exists");
+            }
             else
             {
                 var request = graphQLWSMessage.Payload;
@@ -154,7 +226,11 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                             subscribeResult!.SubscriptionStatement,
                             subscribeResult!.Field
                         )!;
-                    subscriptions.Add(graphQLWSMessage.Id, websocketSubscription);
+
+                    // TryAdd is atomic: if two Subscribe messages race for the same id, the loser
+                    // disposes its subscription cleanly rather than silently overwriting.
+                    if (!subscriptions.TryAdd(graphQLWSMessage.Id, websocketSubscription))
+                        websocketSubscription.Dispose();
                 }
                 else
                 {
@@ -164,20 +240,20 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                         await SendNextAsync(graphQLWSMessage.Id, result);
                     }
                     // send complete after next or error above
-                    await SendAsync(new BaseWithIdGraphQLWSResponse { Type = GraphQLWSMessageType.Complete, Id = graphQLWSMessage.Id });
+                    Enqueue(new BaseWithIdGraphQLWSResponse { Type = GraphQLWSMessageType.Complete, Id = graphQLWSMessage.Id });
                 }
             }
         }
     }
 
-    public async Task SendErrorAsync(string id, Exception exception)
+    public Task SendErrorAsync(string id, Exception exception)
     {
-        await SendErrorAsync(id, new List<GraphQLError> { new(exception.Message, null) });
+        return SendErrorAsync(id, new List<GraphQLError> { new(exception.Message, null) });
     }
 
     public Task SendErrorAsync(string id, IEnumerable<GraphQLError> errors)
     {
-        return SendAsync(
+        Enqueue(
             new GraphQLWSError
             {
                 Id = id,
@@ -185,22 +261,19 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                 Payload = errors.ToList(),
             }
         );
+        return Task.CompletedTask;
     }
 
     public Task CompleteSubscriptionAsync(string id)
     {
-        subscriptions.TryGetValue(id, out var subscription);
-        if (subscription != null)
-        {
+        if (subscriptions.TryRemove(id, out var subscription))
             subscription.Dispose();
-            subscriptions.Remove(id);
-        }
         return Task.CompletedTask;
     }
 
-    public async Task SendNextAsync(string id, QueryResult result)
+    public Task SendNextAsync(string id, QueryResult result)
     {
-        await SendAsync(
+        Enqueue(
             new GraphQLWSResponse
             {
                 Id = id,
@@ -208,31 +281,51 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer
                 Payload = result,
             }
         );
+        return Task.CompletedTask;
     }
 
-    private async Task SendSimpleResponseAsync(string type)
-    {
-        await SendAsync(new BaseGraphQLWSResponse { Type = type });
-    }
+    /// <summary>
+    /// Enqueues a message for the drain task to send. Never blocks.
+    /// For an unbounded channel the only way <c>TryWrite</c> returns <c>false</c> is when
+    /// the writer has already been completed — which happens intentionally during connection
+    /// shutdown. Messages dropped at that point are expected and correct.
+    /// </summary>
+    private void Enqueue(object message) => outgoing.Writer.TryWrite(message);
 
-    private Task SendAsync(object graphQLWSMessage)
-    {
-        if (webSocket.State != WebSocketState.Open)
-            return Task.CompletedTask;
-        var json = JsonSerializer.Serialize(graphQLWSMessage, jsonOptions);
-        var buffer = Encoding.UTF8.GetBytes(json);
-        var segment = new ArraySegment<byte>(buffer);
-        return webSocket.SendAsync(segment, WebSocketMessageType.Text, true, CancellationToken.None);
-    }
-
+    /// <summary>
+    /// Handles protocol-level closes (errors, client-initiated close frames).
+    /// Cancels the drain task so it releases the WebSocket exclusively before the close frame is sent.
+    /// </summary>
     private async Task CloseConnectionAsync(WebSocketCloseStatus? closeStatus, string? closeStatusDescription)
     {
-        if (webSocket.State != WebSocketState.Closed && webSocket.State != WebSocketState.CloseSent && webSocket.State != WebSocketState.Aborted)
+        // Stop the drain task so no concurrent SendAsync races with the CloseAsync call below.
+        closeCts.Cancel();
+        outgoing.Writer.TryComplete();
+        await drainTask;
+
+        await CloseWebSocketAsync(closeStatus, closeStatusDescription);
+    }
+
+    private async Task CloseWebSocketAsync(WebSocketCloseStatus? closeStatus, string? closeStatusDescription)
+    {
+        if (webSocket.State is not (WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted))
         {
             await webSocket.CloseAsync(closeStatus ?? WebSocketCloseStatus.NormalClosure, closeStatusDescription, CancellationToken.None);
         }
+    }
 
-        foreach (var subscription in subscriptions.Values)
-            subscription.Dispose();
+    private void DisposeAllSubscriptions()
+    {
+        foreach (var key in subscriptions.Keys)
+        {
+            if (subscriptions.TryRemove(key, out var sub))
+                sub.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        closeCts.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
