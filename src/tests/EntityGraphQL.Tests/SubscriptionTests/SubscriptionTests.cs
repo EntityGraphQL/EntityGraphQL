@@ -1,10 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Subscriptions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+// Alias needed: TestDataContext.cs defines a non-generic 'Task' model class in the global namespace
+// which shadows System.Threading.Tasks.Task for static member calls like Task.FromResult().
+using SysTask = System.Threading.Tasks.Task;
 
 namespace EntityGraphQL.Tests.SubscriptionTests;
 
@@ -166,6 +171,77 @@ public class SubscriptionTests
         var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), services.BuildServiceProvider(), null);
         Assert.Null(res.Errors);
     }
+
+    [Fact]
+    public void TestTaskObservableSubscriptionRegisters()
+    {
+        var schema = new SchemaProvider<TestDataContext>();
+        schema.AddType<Message>("Message info").AddAllFields();
+        // Task<IObservable<T>> should be accepted during registration
+        schema.Subscription().AddFrom<AsyncTestSubscriptions>();
+        var res = schema.ToGraphQLSchemaString();
+        Assert.Contains("onMessageAsync: Message!", res);
+    }
+
+    [Fact]
+    public void TestValueTaskObservableSubscriptionRegisters()
+    {
+        var schema = new SchemaProvider<TestDataContext>();
+        schema.AddType<Message>("Message info").AddAllFields();
+        // ValueTask<IObservable<T>> should be accepted during registration
+        schema.Subscription().Add("onMessageValueTask", (ChatService chat) => new ValueTask<IObservable<Message>>(chat.Subscribe()));
+        var res = schema.ToGraphQLSchemaString();
+        Assert.Contains("onMessageValueTask: Message!", res);
+    }
+
+    [Fact]
+    public void TestInvalidAsyncSubscriptionThrows()
+    {
+        var schema = new SchemaProvider<TestDataContext>();
+        schema.AddType<Message>("Message info").AddAllFields();
+        // Task<string> is not a valid subscription return type
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Subscription().AddFrom<BadAsyncSubscriptions>());
+        Assert.Contains("IObservable", ex.Message);
+    }
+
+    [Fact]
+    public void TestTaskObservableSubscriptionExecutes()
+    {
+        var schema = new SchemaProvider<TestDataContext>();
+        schema.AddType<Message>("Message info").AddAllFields();
+        schema.Subscription().AddFrom<AsyncTestSubscriptions>();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"subscription {
+                  onMessageAsync { id text }
+                }",
+        };
+        var services = new ServiceCollection();
+        var chat = new ChatService();
+        services.AddSingleton(chat);
+        services.AddSingleton(new TestDataContext());
+        var sp = services.BuildServiceProvider();
+
+        // Setup: subscription method is called, observable is returned
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), sp, null);
+        Assert.Null(res.Errors);
+        var subscribeResult = res.Data?.Values.First() as GraphQLSubscribeResult;
+        Assert.NotNull(subscribeResult);
+        Assert.Equal(typeof(Message), subscribeResult.EventType);
+
+        // Event: fire a message and verify the GraphQL projection runs correctly
+        var msg = chat.PostMessage("hello");
+        dynamic? data = subscribeResult.SubscriptionStatement.ExecuteSubscriptionEvent<TestDataContext, Message>(
+            subscribeResult.Field,
+            msg,
+            sp,
+            new QueryRequestContext(schema.AuthorizationService, null)
+        );
+        Assert.NotNull(data);
+        Assert.Equal(msg.Id, (int)data!.id);
+        Assert.Equal("hello", (string)data!.text);
+    }
 }
 
 internal class TestSubscriptions
@@ -174,6 +250,24 @@ internal class TestSubscriptions
     public IObservable<Message> OnMessage(ChatService chat)
     {
         return chat.Subscribe();
+    }
+}
+
+internal class AsyncTestSubscriptions
+{
+    [GraphQLSubscription]
+    public Task<IObservable<Message>> OnMessageAsync(ChatService chat)
+    {
+        return SysTask.FromResult(chat.Subscribe());
+    }
+}
+
+internal class BadAsyncSubscriptions
+{
+    [GraphQLSubscription]
+    public Task<string> BadSubscription()
+    {
+        return SysTask.FromResult("not an observable");
     }
 }
 

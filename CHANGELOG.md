@@ -34,6 +34,8 @@
 - `AddGraphQLSchema` in ASP.NET now automatically detects and applies environment-based defaults:
   - Uses `PolicyOrRoleBasedAuthorization` by default (instead of requiring explicit configuration)
   - Automatically sets `IsDevelopment = false` in non-Development environments
+- Subscription fields now support `Task<IObservable<T>>` and `ValueTask<IObservable<T>>` as return types in addition to `IObservable<T>`. This allows subscription setup methods to be async, which is useful when subscribing to an external message broker (Redis, RabbitMQ, etc.) requires an async connection step.
+
 
 ## Fixes
 

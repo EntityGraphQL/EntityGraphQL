@@ -67,7 +67,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         Func<string, string>? fieldNamer = null,
         ILogger<SchemaProvider<TContextType>>? logger = null,
         bool introspectionEnabled = true,
-        bool isDevelopment = true
+        bool isDevelopment = false
     )
     {
         AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
