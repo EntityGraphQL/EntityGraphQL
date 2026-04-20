@@ -42,8 +42,9 @@ public class DefaultQueryComplexityAnalyzer : IQueryComplexityAnalyzer
     /// <summary>
     /// Mirrors <c>ExecutableGraphQLStatement.BuildDocumentVariables</c>: populates the dynamic docVars object
     /// from the request's query variables so <c>$var</c> MemberExpression args resolve to their real values.
+    /// Also used by <see cref="QueryLimitsValidator"/> so the depth/node/alias walker can evaluate directives.
     /// </summary>
-    private static (ParameterExpression? docParam, IArgumentsTracker? docVariables) BuildDocVariables(ExecutableGraphQLStatement op, QueryVariables? variables)
+    internal static (ParameterExpression? docParam, IArgumentsTracker? docVariables) BuildDocVariables(ExecutableGraphQLStatement op, QueryVariables? variables)
     {
         if (op.OpVariableParameter == null || op.OpDefinedVariables.Count == 0)
             return (null, null);
@@ -68,6 +69,9 @@ public class DefaultQueryComplexityAnalyzer : IQueryComplexityAnalyzer
 
     private static int CostOfField(BaseGraphQLField field, IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments, ParameterExpression? docParam, IArgumentsTracker? docVariables)
     {
+        if (field.IsExcludedByDirectives(docParam, docVariables))
+            return 0;
+
         if (field is GraphQLFragmentSpreadField spread)
         {
             if (!fragments.TryGetValue(spread.Name, out var fragment))

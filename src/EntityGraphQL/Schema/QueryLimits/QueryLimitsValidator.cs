@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 
 namespace EntityGraphQL.Schema.QueryLimits;
@@ -29,7 +30,8 @@ internal static class QueryLimitsValidator
 
         if (depthLimit is not null || nodeLimit is not null || aliasLimit is not null)
         {
-            var state = new WalkState(document.Fragments, depthLimit, nodeLimit, aliasLimit);
+            var (docParam, docVariables) = DefaultQueryComplexityAnalyzer.BuildDocVariables(op, variables);
+            var state = new WalkState(document.Fragments, depthLimit, nodeLimit, aliasLimit, docParam, docVariables);
             foreach (var field in op.QueryFields)
                 Walk(field, 1, ref state);
         }
@@ -45,6 +47,9 @@ internal static class QueryLimitsValidator
 
     private static void Walk(BaseGraphQLField field, int depth, ref WalkState state)
     {
+        if (field.IsExcludedByDirectives(state.DocParam, state.DocVariables))
+            return;
+
         if (field is GraphQLFragmentSpreadField spread)
         {
             if (!state.Fragments.TryGetValue(spread.Name, out var fragment))
@@ -85,16 +90,27 @@ internal static class QueryLimitsValidator
         public readonly int? DepthLimit;
         public readonly int? NodeLimit;
         public readonly int? AliasLimit;
+        public readonly ParameterExpression? DocParam;
+        public readonly IArgumentsTracker? DocVariables;
         private HashSet<string>? visitedFragments;
         private int nodeCount;
         private int aliasCount;
 
-        public WalkState(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments, int? depthLimit, int? nodeLimit, int? aliasLimit)
+        public WalkState(
+            IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
+            int? depthLimit,
+            int? nodeLimit,
+            int? aliasLimit,
+            ParameterExpression? docParam,
+            IArgumentsTracker? docVariables
+        )
         {
             Fragments = fragments;
             DepthLimit = depthLimit;
             NodeLimit = nodeLimit;
             AliasLimit = aliasLimit;
+            DocParam = docParam;
+            DocVariables = docVariables;
             visitedFragments = null;
             nodeCount = 0;
             aliasCount = 0;

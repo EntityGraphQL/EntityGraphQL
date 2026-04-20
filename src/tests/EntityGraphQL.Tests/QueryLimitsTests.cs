@@ -338,4 +338,89 @@ public class QueryLimitsTests
         var zeroPass = schema.ExecuteRequestWithContext(zeroGql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1 });
         Assert.Null(zeroPass.Errors);
     }
+
+    [Fact]
+    public void SkipDirective_LiteralTrue_ExcludedFromComplexityAndNodeCount()
+    {
+        // @skip(if: true) on an expensive field should not count — the field will never execute.
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetComplexity(50);
+        var data = new TestDataContext();
+
+        // Without @skip this would cost 50 and be blocked at limit=49.
+        // With @skip(if: true) it costs 0, so limit=1 passes.
+        var gql = new QueryRequest { Query = "{ totalPeople @skip(if: true) }" };
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxQueryNodes = 1 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void IncludeDirective_LiteralFalse_ExcludedFromComplexityAndNodeCount()
+    {
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetComplexity(50);
+        var data = new TestDataContext();
+
+        var gql = new QueryRequest { Query = "{ totalPeople @include(if: false) }" };
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxQueryNodes = 1 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void SkipDirective_Variable_UsesRealValue()
+    {
+        // @skip(if: $s) where $s=true → field excluded → complexity 0.
+        // Same query with $s=false → field included → complexity applies.
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetComplexity(50);
+        var data = new TestDataContext();
+
+        var skipped = new QueryRequest
+        {
+            Query = "query Q($s: Boolean!) { totalPeople @skip(if: $s) }",
+            Variables = new QueryVariables { { "s", true } },
+        };
+        var passWhenSkipped = schema.ExecuteRequestWithContext(skipped, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxQueryNodes = 1 });
+        Assert.Null(passWhenSkipped.Errors);
+
+        var included = new QueryRequest
+        {
+            Query = "query Q($s: Boolean!) { totalPeople @skip(if: $s) }",
+            Variables = new QueryVariables { { "s", false } },
+        };
+        var blockedWhenIncluded = schema.ExecuteRequestWithContext(included, data, null, null, new ExecutionOptions { MaxQueryComplexity = 49 });
+        Assert.NotNull(blockedWhenIncluded.Errors);
+        Assert.Contains(blockedWhenIncluded.Errors!, e => e.Message.Contains("complexity"));
+    }
+
+    [Fact]
+    public void SkipDirective_ExcludedFromDepthAndAliasCount()
+    {
+        var schema = BuildSchema();
+        var data = new TestDataContext();
+
+        // 4 aliases, but one is @skip(if: true) → only 3 should count
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                a: totalPeople
+                b: totalPeople
+                c: totalPeople
+                d: totalPeople @skip(if: true)
+            }",
+        };
+
+        // Limit=3 passes because the skipped alias is not counted
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxFieldAliases = 3 });
+        Assert.Null(pass.Errors);
+
+        // Without @skip this query has 4 aliases and should be blocked at limit=3
+        var gqlNoSkip = new QueryRequest { Query = @"{ a: totalPeople b: totalPeople c: totalPeople d: totalPeople }" };
+        var fail = schema.ExecuteRequestWithContext(gqlNoSkip, data, null, null, new ExecutionOptions { MaxFieldAliases = 3 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("alias"));
+    }
 }

@@ -300,6 +300,17 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return result;
     }
 
+    /// <summary>
+    /// Returns true if this field would be excluded at runtime by its @skip / @include (or any custom) directives.
+    /// Used by pre-execution limit validators so they don't charge cost for fields the client is explicitly opting out of.
+    /// </summary>
+    internal bool IsExcludedByDirectives(ParameterExpression? docParam, IArgumentsTracker? docVariables)
+    {
+        if (Directives.Count == 0)
+            return false;
+        return ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables) == null;
+    }
+
     protected Expression ReplaceContext(Expression replacementNextFieldContext, ParameterReplacer replacer, Expression nextFieldContext, List<Type>? possibleNextContextTypes)
     {
         var possibleField = replacementNextFieldContext.Type.GetField(Name);
