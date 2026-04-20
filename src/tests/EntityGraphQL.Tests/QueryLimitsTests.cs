@@ -220,6 +220,81 @@ public class QueryLimitsTests
         Assert.Contains(fail.Errors!, e => e.Message.Contains("999"));
     }
 
+    [Fact]
+    public void FieldComplexityAttribute_OnQueryField_AppliesCost()
+    {
+        var schema = SchemaBuilder.FromObject<AttributeComplexityContext>();
+        var data = new AttributeComplexityContext();
+
+        // ExpensiveReport has [FieldComplexity(50)] → cost = 50 (no children)
+        var gql = new QueryRequest { Query = "{ expensiveReport }" };
+
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 49 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("complexity"));
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 50 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void FieldComplexityAttribute_OnMutation_AppliesCost()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddMutationsFrom<AttributeMutations>();
+        var data = new TestDataContext();
+
+        // ExpensiveMutation has [FieldComplexity(75)]
+        var gql = new QueryRequest { Query = "mutation { expensiveMutation }" };
+
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 74 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("complexity"));
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 75 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void QueryLimits_ApplyToMutations()
+    {
+        // Depth, node, and alias limits run on mutations the same as queries.
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddMutationsFrom<AttributeMutations>();
+        var data = new TestDataContext();
+
+        var deepMutation = new QueryRequest { Query = "mutation { expensiveMutation }" };
+
+        // MaxQueryNodes — expensiveMutation is 1 node
+        var pass = schema.ExecuteRequestWithContext(deepMutation, data, null, null, new ExecutionOptions { MaxQueryNodes = 1 });
+        Assert.Null(pass.Errors);
+
+        var fail = schema.ExecuteRequestWithContext(deepMutation, data, null, null, new ExecutionOptions { MaxQueryNodes = 0 });
+        // 0 means unlimited — should pass
+        Assert.Null(fail.Errors);
+
+        // Alias limit
+        var aliasedMutation = new QueryRequest { Query = "mutation { a: expensiveMutation b: expensiveMutation }" };
+        var aliasFail = schema.ExecuteRequestWithContext(aliasedMutation, data, null, null, new ExecutionOptions { MaxFieldAliases = 1 });
+        Assert.NotNull(aliasFail.Errors);
+        Assert.Contains(aliasFail.Errors!, e => e.Message.Contains("alias"));
+    }
+
+    private sealed class AttributeComplexityContext
+    {
+        [FieldComplexity(50)]
+#pragma warning disable CA1822 // must be instance — SchemaBuilder.FromObject only maps instance members
+        public string ExpensiveReport => "report";
+#pragma warning restore CA1822
+    }
+
+    private sealed class AttributeMutations : IMutations
+    {
+        [GraphQLMutation]
+        [FieldComplexity(75)]
+        public static bool ExpensiveMutation() => true;
+    }
+
     private sealed class FixedCostAnalyzer : IQueryComplexityAnalyzer
     {
         private readonly int cost;

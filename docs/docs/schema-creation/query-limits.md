@@ -73,7 +73,9 @@ There is no built-in list-size multiplier. If a field's cost depends on argument
 
 ### Fixed per-field cost
 
-Expensive resolvers can be given an explicit cost:
+Expensive resolvers can be given an explicit cost — fluently or via an attribute.
+
+**Fluent** — call `.SetComplexity(n)` after adding or updating a field:
 
 ```cs
 using EntityGraphQL.Schema.QueryLimits;
@@ -88,7 +90,26 @@ schema.Query()
     .SetComplexity(50);
 ```
 
-The fixed value replaces the default base cost of `1`. Child fields still contribute.
+**Attribute** — decorate the C# property or method directly. Works on query fields, mutations, and subscription fields:
+
+```cs
+using EntityGraphQL.Schema.QueryLimits;
+
+public class QueryContext
+{
+    [FieldComplexity(50)]
+    public Report GenerateReport() => ...;
+}
+
+public class MyMutations : IMutations
+{
+    [GraphQLMutation]
+    [FieldComplexity(75)]
+    public bool ExpensiveOperation() => ...;
+}
+```
+
+The attribute is equivalent to calling `SetComplexity(n)` and can be combined with `[GraphQLMutation]` or any other field attribute. The fixed value replaces the default base cost of `1`. Child fields still contribute.
 
 ### Args-aware cost
 
@@ -127,7 +148,7 @@ schema.Query().GetField("projects", null).SetComplexity(ctx =>
 All three forms give you `ctx.ChildComplexity` (the sum of children's cost — typically you multiply it by your row count). **The calculator's return value is the whole cost for that field.** Children are not re-added. This lets you express any model, from "flat cost regardless of children" to "super-linear in children × row count".
 
 :::info Variable-bound args
-Argument values sourced from `$variables` are represented as expression placeholders at cost-calculation time rather than resolved values. For those, `ctx.Arg<T>("name")` and `ctx.Args<T>()` surface the property's default (`0` / `null`). Inline literal args (`take: 50`) bind directly and are the common case. If you need variable resolution during cost calc, conservatively code the calculator to treat missing / default values as worst-case.
+Argument values sourced from `$variables` are resolved to their real request values before the calculator runs — `ctx.Arg<int>("take")` returns `50` when the client passes `$pageSize = 50`, not the C# default `0`. If a variable is not supplied and has no default, the calculator sees `0` / `null`.
 :::
 
 ### Custom analyzer
