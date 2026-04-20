@@ -6,7 +6,48 @@ sidebar_position: 11
 
 Being GraphQL there are many tools that integrate well with EntityGraphQL.
 
-EntityGraphQL supports GraphQL introspection queries so tools like GraphiQL etc can work against your schema.
+EntityGraphQL supports GraphQL introspection queries so tools like GraphiQL and Relay can work against your schema.
+
+## Introspection
+
+Introspection is **enabled by default** and is required by most GraphQL client tools (GraphiQL, Insomnia, Relay dev tools, Apollo Studio, code generators, etc.). Disabling it is not recommended unless your schema must be kept confidential.
+
+### Disabling introspection
+
+**ASP.NET** — via `AddGraphQLSchema`:
+
+```cs
+builder.Services.AddGraphQLSchema<MyContext>(options =>
+{
+    options.Schema.IntrospectionEnabled = false;
+});
+```
+
+**Direct schema creation**:
+
+```cs
+var schema = SchemaBuilder.FromObject<MyContext>(
+    schemaOptions: new SchemaProviderOptions { IntrospectionEnabled = false }
+);
+```
+
+### Restricting introspection with authorization
+
+Rather than a blanket disable, you can restrict introspection to authenticated or authorized users. Add `[GraphQLAuthorize]` / `RequiredAuthorization` to the `__schema` and `__type` introspection fields after schema construction:
+
+```cs
+builder.Services.AddGraphQLSchema<MyContext>(options =>
+{
+    options.ConfigureSchema = schema =>
+    {
+        // require any authenticated user for introspection
+        schema.Query().GetField("__schema", null)?.RequireAuthorization();
+        schema.Query().GetField("__type", null)?.RequireAuthorization();
+    };
+});
+```
+
+This leaves introspection available to your own developers while hiding it from unauthenticated requests.
 
 You can use `schema.ToGraphQLSchemaString()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools.
 

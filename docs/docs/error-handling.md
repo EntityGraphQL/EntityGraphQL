@@ -225,31 +225,71 @@ This returns multiple errors for a single field:
 
 ### Development vs Production
 
-In development mode, exception details are exposed:
+EntityGraphQL gates exception-message disclosure behind an `IsDevelopment` flag. In **production mode** (the default for ASP.NET deployments), any exception not on the allow-list is replaced with the generic message `"Error occurred"`:
 
 ```json
 {
-  "message": "Object reference not set to an instance of an object"
+  "message": "Field 'reports' - Error occurred"
 }
 ```
 
-In production, generic messages are shown unless exceptions are marked with `AllowedExceptionAttribute` or add to `Schema.AllowedExceptions`.
+In **development mode**, the raw message is forwarded as-is:
+
+```json
+{
+  "message": "Field 'reports' - Object reference not set to an instance of an object"
+}
+```
+
+#### How `IsDevelopment` is set
+
+**ASP.NET (recommended)** — `AddGraphQLSchema` auto-detects `IWebHostEnvironment`. When the environment is `"Development"`, messages are disclosed; every other named environment (Staging, Production, etc.) masks them. You never need to set this manually in typical setups:
+
+```cs
+// Program.cs — detection is automatic
+builder.Services.AddGraphQLSchema<MyContext>(options =>
+{
+    options.ConfigureSchema = schema => { /* ... */ };
+});
+```
+
+To override the auto-detection — for example to enable development messages in a staging environment during an incident — set `IsDevelopment` explicitly:
+
+```cs
+builder.Services.AddGraphQLSchema<MyContext>(options =>
+{
+    options.Schema.IsDevelopment = true; // force dev messages even in non-Development env
+});
+```
+
+**Direct schema creation** (non-ASP.NET) — `SchemaProviderOptions.IsDevelopment` defaults to `true`, so messages are disclosed unless you opt out:
+
+```cs
+var schema = SchemaBuilder.FromObject<MyContext>(
+    schemaOptions: new SchemaProviderOptions { IsDevelopment = false }
+);
+```
 
 ### Allowed Exceptions
 
+Even in production mode, certain exceptions can be allowed to pass their message through. EntityGraphQL's own exception types (`EntityGraphQLException`, `EntityGraphQLFieldException`, `EntityGraphQLSchemaException`) are always allowed.
+
+For your own domain exceptions, use `[AllowedException]` on the class or add them to the allow-list at schema setup:
+
 ```csharp
-// Use AllowedExceptionAttribute
+// Mark your exception class directly
 [AllowedException]
 public class ValidationException : Exception
 {
     public ValidationException(string message) : base(message) { }
 }
 
-// Configure at schema creation
-services.AddGraphQLSchema<MyContext>(options =>
+// Or add them at schema creation
+builder.Services.AddGraphQLSchema<MyContext>(options =>
 {
     options.Schema.AllowedExceptions.Add(new AllowedException(typeof(ArgumentException)));
-    options.Schema.AllowedExceptions.Add(new AllowedException(typeof(InvalidOperationException)));
+    // Pass exactMatch: true to require the exact type (no subclasses)
+    options.Schema.AllowedExceptions.Add(new AllowedException(typeof(DomainException), exactMatch: true));
 });
 ```
 
