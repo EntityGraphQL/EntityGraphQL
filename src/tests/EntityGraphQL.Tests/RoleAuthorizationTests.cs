@@ -284,6 +284,105 @@ public class RoleAuthorizationTests
         Assert.Null(result.Errors);
     }
 
+    // ── §2.4 auth on fragments / aliases ──────────────────────────────────────
+
+    [Fact]
+    public void Auth_FragmentSpread_ProtectedField_IsBlocked()
+    {
+        // A protected field accessed through a named fragment spread must still require auth.
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query { tasks { ...TaskDetails } }
+                fragment TaskDetails on Task { id description }",
+        };
+
+        var noClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "other")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(noClaim));
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("description"));
+
+        var withClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "can-description")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(withClaim));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void Auth_FragmentSpread_ProtectedType_IsBlocked()
+    {
+        // A fragment spread that expands into a protected type (Project requires "admin") must block access.
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query { tasks { project { ...ProjectDetails } } }
+                fragment ProjectDetails on Project { id }",
+        };
+
+        var noClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "other")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(noClaim));
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("Project"));
+
+        var withClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(withClaim));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void Auth_InlineFragment_ProtectedField_IsBlocked()
+    {
+        // A protected field accessed through an inline fragment must still require auth.
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        var gql = new QueryRequest { Query = @"{ tasks { ... on Task { id description } } }" };
+
+        var noClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "other")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(noClaim));
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("description"));
+
+        var withClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "can-description")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(withClaim));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void Auth_InlineFragment_ProtectedType_IsBlocked()
+    {
+        // An inline fragment on a type-guarded type (Project requires "admin") must block access.
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        var gql = new QueryRequest { Query = @"{ tasks { project { ... on Project { id } } } }" };
+
+        var noClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "other")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(noClaim));
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("Project"));
+
+        var withClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(withClaim));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void Auth_Alias_ProtectedField_IsBlocked()
+    {
+        // Aliasing a protected field must not bypass its authorization requirement.
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        var gql = new QueryRequest { Query = @"{ tasks { aliasedDesc: description } }" };
+
+        var noClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "other")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(noClaim));
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("description"));
+
+        var withClaim = new ClaimsIdentity([new Claim(ClaimTypes.Role, "can-description")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(withClaim));
+        Assert.Null(pass.Errors);
+    }
+
     internal class RolesDataContext
     {
         public IEnumerable<Project> Projects { get; set; } = new List<Project>();
