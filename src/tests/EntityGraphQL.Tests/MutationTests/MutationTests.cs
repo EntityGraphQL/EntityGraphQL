@@ -1075,7 +1075,7 @@ public class MutationTests
         var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
         schemaProvider.Mutation().AddFrom<IMutations>(new SchemaBuilderOptions { AutoCreateInputTypes = true });
 
-        Assert.Equal(35, schemaProvider.Mutation().SchemaType.GetFields().Count());
+        Assert.Equal(36, schemaProvider.Mutation().SchemaType.GetFields().Count());
     }
 
     public class NonAttributeMarkedMethod
