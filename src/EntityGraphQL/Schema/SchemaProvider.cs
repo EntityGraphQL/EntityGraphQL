@@ -12,6 +12,7 @@ using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
+using EntityGraphQL.Schema.QueryLimits;
 using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema;
@@ -521,15 +522,29 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 compiledQuery = GraphQLParser.Parse(gql, this);
             }
 
-            result = await compiledQuery.ExecuteQueryAsync(
-                overwriteContext,
-                serviceProvider,
-                gql.Variables,
-                gql.OperationName,
-                new QueryRequestContext(AuthorizationService, user),
-                options,
-                cancellationToken
-            );
+            QueryLimitsValidator.Validate(compiledQuery, gql.OperationName, gql.Variables, options);
+
+            var fieldRateLimiter = options.FieldRateLimitService ?? (IFieldRateLimitService?)serviceProvider?.GetService(typeof(IFieldRateLimitService));
+            AggregateFieldRateLimitLease? leases = null;
+            if (fieldRateLimiter != null)
+                leases = await FieldRateLimitExecutor.AcquireAsync(compiledQuery, gql.OperationName, fieldRateLimiter, user, options.UserKeySelector, cancellationToken);
+
+            try
+            {
+                result = await compiledQuery.ExecuteQueryAsync(
+                    overwriteContext,
+                    serviceProvider,
+                    gql.Variables,
+                    gql.OperationName,
+                    new QueryRequestContext(AuthorizationService, user),
+                    options,
+                    cancellationToken
+                );
+            }
+            finally
+            {
+                leases?.Dispose();
+            }
         }
         catch (Exception ex)
         {

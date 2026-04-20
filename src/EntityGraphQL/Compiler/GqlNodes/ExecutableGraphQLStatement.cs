@@ -30,7 +30,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// <summary>
     /// Variables that are expected to be passed in to execute this query
     /// </summary>
-    protected IReadOnlyDictionary<string, ArgType> OpDefinedVariables { get; set; }
+    protected internal IReadOnlyDictionary<string, ArgType> OpDefinedVariables { get; set; }
     public ISchemaProvider Schema { get; protected set; }
 
     public ParameterExpression? OpVariableParameter { get; }

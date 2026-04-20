@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.FieldExtensions;
+using EntityGraphQL.Schema.QueryLimits;
 
 namespace EntityGraphQL.Schema;
 
@@ -18,6 +19,53 @@ public class FieldWithContextAndArgs<TContext, TParams> : Field
 {
     public FieldWithContextAndArgs(ISchemaProvider schema, ISchemaType fromType, string name, string? description, TParams argTypes)
         : base(schema, fromType, name, null, description, argTypes, SchemaBuilder.MakeGraphQlType(schema, fromType.GqlType == GqlTypes.InputObject, typeof(object), null, name, fromType), null) { }
+
+    /// <summary>
+    /// Create a typed field directly from a resolve expression — used by the single-call
+    /// <c>AddField&lt;TParams, TReturn&gt;</c> / <c>ReplaceField&lt;TParams, TReturn&gt;</c> overloads so the
+    /// returned instance carries <typeparamref name="TParams"/> and <c>SetComplexity((args, ctx) =&gt; ...)</c>
+    /// can infer without a sample object.
+    /// </summary>
+    public FieldWithContextAndArgs(
+        ISchemaProvider schema,
+        ISchemaType fromType,
+        string name,
+        LambdaExpression? resolve,
+        string? description,
+        TParams argTypes,
+        GqlTypeInfo returnType,
+        RequiredAuthorization? requiredAuth
+    )
+        : base(schema, fromType, name, resolve, description, argTypes, returnType, requiredAuth) { }
+
+    /// <summary>
+    /// Set a cost calculator with strongly-typed access to the field's arguments. <typeparamref name="TParams"/>
+    /// comes from the field's declared args shape — no sample object needed.
+    /// <code>
+    /// .SetComplexity(ctx =&gt; ctx.Args.take * (1 + ctx.ChildComplexity));
+    /// </code>
+    /// </summary>
+    public FieldWithContextAndArgs<TContext, TParams> SetComplexity(Func<FieldComplexityContext<TParams>, int> calculator)
+    {
+#if NET8_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(calculator);
+#else
+        if (calculator == null)
+            throw new ArgumentNullException(nameof(calculator));
+#endif
+        for (var i = Extensions.Count - 1; i >= 0; i--)
+        {
+            if (Extensions[i] is FieldComplexityExtension)
+                Extensions.RemoveAt(i);
+        }
+        AddExtension(
+            new FieldComplexityExtension(ctx =>
+            {
+                return calculator(new FieldComplexityContext<TParams>(ctx.ArgsAs<TParams>(), ctx.Arguments, ctx.ChildComplexity));
+            })
+        );
+        return this;
+    }
 
     public Field ResolveBulk<TService, TKey, TResult>(Expression<Func<TContext, TKey>> dataSelector, Expression<Func<IEnumerable<TKey>, TParams, TService, IDictionary<TKey, TResult>>> fieldExpression)
     {

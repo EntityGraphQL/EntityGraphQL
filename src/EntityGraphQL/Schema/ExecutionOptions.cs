@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Security.Claims;
+using EntityGraphQL.Schema.QueryLimits;
 
 namespace EntityGraphQL.Schema;
 
@@ -74,6 +76,60 @@ public class ExecutionOptions
     /// This overrides any individual field or service limits.
     /// </summary>
     public int? MaxQueryConcurrency { get; set; }
+
+    /// <summary>
+    /// Maximum nesting depth of a GraphQL query. Fragment spreads and inline fragments do not add depth.
+    /// Null or 0 means unlimited. Recommended production value: 10-15.
+    /// Protects against deeply-nested query DoS attacks.
+    /// </summary>
+    public int? MaxQueryDepth { get; set; }
+
+    /// <summary>
+    /// Maximum number of field selections in a GraphQL query, counted after fragment/inline fragment expansion.
+    /// Null or 0 means unlimited. Recommended production value: a few hundred to a few thousand depending on schema.
+    /// Protects against batched-alias and fragment-spread DoS attacks where the same field is selected many times.
+    /// </summary>
+    public int? MaxQueryNodes { get; set; }
+
+    /// <summary>
+    /// Maximum number of aliased field selections in a GraphQL query. An alias is any selection whose response name
+    /// differs from the schema field name (e.g. <c>foo: bar</c>).
+    /// Null or 0 means unlimited. Recommended production value: 20-50.
+    /// Protects against alias-batching DoS where attackers submit <c>{ a: field b: field c: field ... }</c>.
+    /// </summary>
+    public int? MaxFieldAliases { get; set; }
+
+    /// <summary>
+    /// Maximum allowed query complexity score. When set, a <see cref="IQueryComplexityAnalyzer"/> walks the
+    /// parsed query tree and rejects queries whose cost exceeds this limit.
+    /// Null or 0 means unlimited.
+    ///
+    /// Field cost defaults to 1. For fields whose cost depends on arguments (e.g. <c>first: 100</c>), use
+    /// <c>field.SetComplexity(ctx =&gt; ...)</c> which receives the field's arguments and its children's cost.
+    /// </summary>
+    public int? MaxQueryComplexity { get; set; }
+
+    /// <summary>
+    /// Optional custom complexity analyzer. If null and <see cref="MaxQueryComplexity"/> is set,
+    /// a <see cref="DefaultQueryComplexityAnalyzer"/> will be used.
+    /// </summary>
+    public IQueryComplexityAnalyzer? QueryComplexityAnalyzer { get; set; }
+
+    /// <summary>
+    /// Per-field rate limit service. When set, every selected field tagged with
+    /// <see cref="QueryLimits.FieldRateLimitExtension"/> (via <c>field.AddRateLimit(policy)</c>) has a permit
+    /// acquired before execution and released after. If null and no service is registered in DI, field
+    /// rate limiting is disabled even on tagged fields — the tag becomes a no-op.
+    /// </summary>
+    public IFieldRateLimitService? FieldRateLimitService { get; set; }
+
+    /// <summary>
+    /// Selects a user key for rate limiters tagged <c>userSpecific: true</c>. Default selector uses
+    /// <c>ClaimsPrincipal.Identity?.Name</c>; override for services that key on a claim or API-key header.
+    /// Return null to disable per-user partitioning for the current request (request then hits the shared
+    /// partition).
+    /// </summary>
+    public Func<ClaimsPrincipal?, string?>? UserKeySelector { get; set; }
 
 #if DEBUG
     /// <summary>

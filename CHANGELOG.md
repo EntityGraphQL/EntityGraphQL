@@ -23,6 +23,9 @@
 
 ## Changes
 
+- Added pre-execution query guards (`MaxQueryDepth`, `MaxQueryNodes`, `MaxFieldAliases`, `MaxQueryComplexity`) to `ExecutionOptions`. All default to unlimited (opt-in). A limit violation returns a GraphQL `DocumentError` and prevents any resolver from running. Configure in `ExecutionOptions` in your call to `schema.ExecuteRequest(...)`.
+- Added complexity scoring via `field.SetComplexity(int)` (fixed cost) or `field.SetComplexity(ctx => ctx.Args.take * (1 + ctx.ChildComplexity))` (args-aware). Pluggable via `IQueryComplexityAnalyzer` / `ExecutionOptions.QueryComplexityAnalyzer`.
+- Added per-field rate limiting via `field.AddRateLimit("policy-name")`. `EntityGraphQL.AspNet` ships a `PartitionedRateLimiter`-backed default registered with `services.AddGraphQLFieldRateLimit(opts => { opts.AddFixedWindowPolicy(...); opts.AddConcurrencyPolicy(...); ... })`. Rate limits count per-selection (aliases each burn a permit) and support `userSpecific: true` partitioning by user key.
 - Added support for [document descriptions](https://spec.graphql.org/September2025/#sec-Descriptions) as outlined in the latest 2025 spec. Basically string comments in the query document
 - #474 - Add support for `TimeSpan` as a scalar in the default schema
 - #500 - Expose parsed executable directive metadata via `BaseGraphQLField.Directives` by making `GraphQLDirective.Name` and `GraphQLDirective.Processor` public for custom query processing scenarios

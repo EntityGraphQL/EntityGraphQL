@@ -156,11 +156,11 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     /// <param name="fieldSelection">The expression to resolve the field value from this current schema type. e.g. ctx => ctx.LotsOfPeople.Where(p => p.Age > 50)</param>
     /// <param name="description">Description of the field for schema documentation</param>
     /// <returns>The field object to perform further configuration</returns>
-    public Field AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
+    public FieldWithContextAndArgs<TBaseType, TParams> AddField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
     {
         var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
-        var field = new Field(
+        var field = new FieldWithContextAndArgs<TBaseType, TParams>(
             Schema,
             this,
             name,
@@ -234,23 +234,23 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     /// <param name="fieldSelection">The expression to resolve the field value from this current schema type. e.g. ctx => ctx.LotsOfPeople.Where(p => p.Age > 50)</param>
     /// <param name="description">Description of the field for schema documentation</param>
     /// <returns>The field object to perform further configuration</returns>
-    public Field ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
+    public FieldWithContextAndArgs<TBaseType, TParams> ReplaceField<TParams, TReturn>(string name, TParams argTypes, Expression<Func<TBaseType, TParams, TReturn>> fieldSelection, string? description)
     {
         var requiredAuth = Schema.AuthorizationService.GetRequiredAuthFromExpression(fieldSelection);
 
         RemoveField(name);
-        return AddField(
-            new Field(
-                Schema,
-                this,
-                name,
-                fieldSelection,
-                description,
-                argTypes,
-                SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null, name, this),
-                requiredAuth
-            )
+        var field = new FieldWithContextAndArgs<TBaseType, TParams>(
+            Schema,
+            this,
+            name,
+            fieldSelection,
+            description,
+            argTypes,
+            SchemaBuilder.MakeGraphQlType(Schema, GqlType == GqlTypes.InputObject, typeof(TReturn), null, name, this),
+            requiredAuth
         );
+        AddField(field);
+        return field;
     }
 
     /// <summary>
