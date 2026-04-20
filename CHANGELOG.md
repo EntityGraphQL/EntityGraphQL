@@ -1,3 +1,9 @@
+# 5.7.2
+
+## Fixes
+
+- #512 - Updated `HotChocolate.Language` dependency from 13.9.14 to 13.9.16 to resolve critical vulnerability (GHSA-qr3m-xw4c-jqw3: stack overflow via deeply nested GraphQL documents)
+
 # 5.7.1
 
 ## Fixes
