@@ -37,6 +37,18 @@ public class CompileContext
 
     public List<ParameterExpression> Services { get; } = [];
     public IReadOnlyDictionary<ParameterExpression, object?> ConstantParameters => constantParameters;
+
+    /// <summary>
+    /// Set by <see cref="ExecutableGraphQLStatement"/> when <see cref="ExecutionOptions.CacheCompiledDelegates"/> is true.
+    /// Carries the cache instance so <c>ExecuteExpressionAsync</c> can look up / store compiled delegates.
+    /// </summary>
+    internal QueryCache? DelegateCache { get; set; }
+
+    /// <summary>
+    /// Base key for the delegate cache — <c>"{statementId}:{variablesHash}"</c>.
+    /// The pass suffix (":1" or ":2") is appended inside <c>ExecuteExpressionAsync</c>.
+    /// </summary>
+    internal string? DelegateCacheKeyBase { get; set; }
     public List<CompiledBulkFieldResolver> BulkResolvers { get; private set; } = [];
     public Dictionary<string, object>? BulkData { get; }
     public ParameterExpression? BulkParameter { get; }

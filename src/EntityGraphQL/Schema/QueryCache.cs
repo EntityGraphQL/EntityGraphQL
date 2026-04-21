@@ -30,7 +30,19 @@ public class QueryCache : IDisposable
 
     public void AddCompiledQuery(string hash, GraphQLDocument compiledQuery)
     {
-        cache.Add(hash, compiledQuery, new CacheItemPolicy { SlidingExpiration = new System.TimeSpan(0, 10, 0) });
+        cache.Add(hash, compiledQuery, new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 10, 0) });
+    }
+
+    private const string DelegatePrefix = "__d:";
+
+    public Delegate? GetDelegate(string key)
+    {
+        return (Delegate?)cache.Get(DelegatePrefix + key);
+    }
+
+    public void AddDelegate(string key, Delegate compiled)
+    {
+        cache.Add(DelegatePrefix + key, compiled, new CacheItemPolicy { SlidingExpiration = new TimeSpan(0, 10, 0) });
     }
 
     public static string ComputeHash(string data)

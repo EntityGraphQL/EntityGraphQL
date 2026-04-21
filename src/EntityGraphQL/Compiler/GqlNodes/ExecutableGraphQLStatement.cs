@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler.Util;
@@ -59,6 +60,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// The schema type for this operation
     /// </summary>
     protected abstract ISchemaType SchemaType { get; }
+
+    private static int nextStatementId;
+    private readonly int statementId = Interlocked.Increment(ref nextStatementId);
 
     public ExecutableGraphQLStatement(ISchemaProvider schema, string? name, Expression nodeExpression, ParameterExpression rootParameter, IReadOnlyDictionary<string, ArgType> opVariables)
     {
@@ -123,6 +127,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         {
             IArgumentsTracker? docVariables = BuildDocumentVariables(ref variables);
             CompileContext compileContext = new(options, null, requestContext, OpVariableParameter, docVariables, cancellationToken);
+
+            if (options.CacheCompiledDelegates && options.EnableQueryCache && options.BeforeExecuting == null)
+            {
+                compileContext.DelegateCache = Schema.QueryCache;
+                compileContext.DelegateCacheKeyBase = $"{statementId}:{ComputeVariablesHash(variables)}";
+            }
 
             foreach (var fieldNode in QueryFields)
             {
@@ -278,6 +288,16 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return variablesToUse;
     }
 
+    private static string ComputeVariablesHash(QueryVariables? variables)
+    {
+        if (variables == null || variables.Count == 0)
+            return "";
+        var sb = new StringBuilder();
+        foreach (var kv in variables.OrderBy(k => k.Key, StringComparer.Ordinal))
+            sb.Append(kv.Key).Append(':').Append(kv.Value?.ToString() ?? "\0").Append(';');
+        return QueryCache.ComputeHash(sb.ToString());
+    }
+
     protected async Task<(object? result, bool didExecute)> CompileAndExecuteNodeAsync(
         CompileContext compileContext,
         object context,
@@ -336,7 +356,13 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     var bulkData = await ResolveBulkLoadersAsync(compileContext, serviceProvider, node, runningContext, replacer, newContextType);
 
                     // new context
-                    compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken);
+                    var prevDelegateCache = compileContext.DelegateCache;
+                    var prevDelegateCacheKeyBase = compileContext.DelegateCacheKeyBase;
+                    compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken)
+                    {
+                        DelegateCache = prevDelegateCache,
+                        DelegateCacheKeyBase = prevDelegateCacheKeyBase,
+                    };
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query
@@ -563,17 +589,39 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             expression = compileContext.ExecutionOptions.BeforeExecuting.Invoke(expression, isFinal);
         }
 
-        var lambdaExpression = Expression.Lambda(expression, parameters.ToArray());
+        var parametersArray = parameters.ToArray();
+        var argsArray = allArgs.ToArray();
+        var lambdaExpression = Expression.Lambda(expression, parametersArray);
+
+        Delegate compiledDelegate;
+        var delegateCache = compileContext.DelegateCache;
+        string? delegateKey = delegateCache != null && compileContext.DelegateCacheKeyBase != null ? $"{compileContext.DelegateCacheKeyBase}:{(isSecondExec ? 2 : 1)}" : null;
+
+        if (delegateKey != null && delegateCache!.GetDelegate(delegateKey) is Delegate cached)
+        {
+            compiledDelegate = cached;
+        }
+        else
+        {
+            // When caching, emit IL so repeated invocations are fast.
+            // When not caching (compile-once-use-once per request), prefer interpretation —
+            // it skips IL emission and is significantly faster, especially on .NET 10.
+            compiledDelegate = lambdaExpression.Compile(preferInterpretation: delegateKey == null);
+            if (delegateKey != null)
+                delegateCache!.AddDelegate(delegateKey, compiledDelegate);
+        }
 
 #if DEBUG
+        // do after hitting cache so we can test i.e. no execution oly disables execution not cache lookup etc.
         if (compileContext.ExecutionOptions.NoExecution)
             return (null, false);
 #endif
+
         object? res = null;
         if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.IsAsyncGenericType())
-            res = await (dynamic?)lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+            res = await (dynamic?)compiledDelegate.DynamicInvoke(argsArray);
         else
-            res = lambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+            res = compiledDelegate.DynamicInvoke(argsArray);
 
         // Resolve any nested async results in the returned object graph if the query contains async fields
         if (res != null && node.HasAsyncFieldsAtOrBelow(fragments) && (!compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || isSecondExec))

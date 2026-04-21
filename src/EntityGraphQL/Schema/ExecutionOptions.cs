@@ -116,6 +116,20 @@ public class ExecutionOptions
     public IQueryComplexityAnalyzer? QueryComplexityAnalyzer { get; set; }
 
     /// <summary>
+    /// When enabled, caches the compiled <see cref="Delegate"/> produced by <c>LambdaExpression.Compile()</c> for
+    /// each unique (query, variable-set, pass) combination. Cache hits skip IL codegen and reuse the compiled
+    /// delegate, passing fresh context, service, and argument values positionally. Expected improvement: 15-25 %
+    /// on top of the document cache.
+    ///
+    /// Disabled by default because it adds a small per-hit overhead (argument re-evaluation) that is only
+    /// profitable for queries that repeat with the same variable set. Enable when you observe high reuse.
+    ///
+    /// Incompatible with <see cref="BeforeExecuting"/> — if that hook is set, delegate caching is silently
+    /// skipped for that request.
+    /// </summary>
+    public bool CacheCompiledDelegates { get; set; }
+
+    /// <summary>
     /// Per-field rate limit service. When set, every selected field tagged with
     /// <see cref="QueryLimits.FieldRateLimitExtension"/> (via <c>field.AddRateLimit(policy)</c>) has a permit
     /// acquired before execution and released after. If null and no service is registered in DI, field

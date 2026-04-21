@@ -37,6 +37,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     private readonly QueryCache queryCache;
 
     public string QueryContextName => queryType.Name;
+    public QueryCache QueryCache => queryCache;
 
     private readonly SchemaType<TContextType> queryType;
     private readonly ILogger<SchemaProvider<TContextType>>? logger;

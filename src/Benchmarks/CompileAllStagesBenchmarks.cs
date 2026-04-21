@@ -5,9 +5,9 @@ using EntityGraphQL.Schema;
 namespace Benchmarks;
 
 /// <summary>
-/// Comparing the speed and allocation of compiling queries with and without caching
-/// On a Apple M1 Max 64GB ram
-/// Command: `dotnet run -c Debug --framework net8.0` to skip execution
+/// Comparing the speed and allocation of compiling queries with and without caching.
+/// Run with: dotnet run -c Release --framework net9.0
+/// (use -c Debug to add NoExecution=true and skip actual query execution)
 ///
 /// 5.6.0 with net9.0
 /// On a Apple M1 Max 64GB ram
@@ -26,6 +26,26 @@ namespace Benchmarks;
 /// | CompileNoCache | 93.56 us | 1.776 us | 1.662 us | 15.3809 | 0.7324 |  94.25 KB |
 /// | CompileCache   | 77.24 us | 1.524 us | 1.425 us | 12.2070 | 0.2441 |  75.39 KB |
 ///
+///
+///
+/// I made that change. Here is the output now for dotnet run -c Debug --framework net9.0
+// | Method                     | Mean     | Error   | StdDev  | Gen0    | Gen1   | Allocated |
+// |--------------------------- |---------:|--------:|--------:|--------:|-------:|----------:|
+// | CompileNoCache             | 502.7 us | 8.17 us | 6.83 us | 19.5313 | 4.8828 | 124.06 KB |
+// | CompileDocCache            | 493.1 us | 6.62 us | 6.19 us | 18.5547 | 3.9063 | 116.09 KB |
+// | CompileDocAndDelegateCache | 208.4 us | 2.65 us | 2.48 us | 16.6016 | 1.4648 |  103.7 KB |
+// | CompileDelegateOnlyCache   | 505.6 us | 6.73 us | 6.29 us | 19.5313 | 4.8828 | 124.77 KB |
+
+// and output of dotnet run -c Debug --framework net10.0
+
+// | Method                     | Mean       | Error    | StdDev   | Gen0    | Gen1   | Allocated |
+// |--------------------------- |-----------:|---------:|---------:|--------:|-------:|----------:|
+// | CompileNoCache             | 6,783.2 us | 57.27 us | 53.57 us | 15.6250 |      - | 122.74 KB |
+// | CompileDocCache            | 6,647.8 us | 57.74 us | 51.18 us | 15.6250 |      - | 114.59 KB |
+// | CompileDocAndDelegateCache |   120.6 us |  2.34 us |  2.51 us | 16.6016 | 1.4648 | 102.53 KB |
+// | CompileDelegateOnlyCache   | 7,042.1 us | 34.08 us | 30.21 us | 15.6250 |      - |  123.7 KB |
+
+// dotnet 10 is much slower. any ideas why?
 /// </summary>
 [MemoryDiagnoser]
 public class CompileAllStagesBenchmarks : BaseBenchmark
@@ -66,12 +86,50 @@ public class CompileAllStagesBenchmarks : BaseBenchmark
     }
 
     [Benchmark]
-    public void CompileCache()
+    public void CompileDocCache()
     {
         Schema.ExecuteRequestWithContext(gql, context, null, null, new ExecutionOptions {
 #if DEBUG
                 NoExecution = true,
 #endif
                 EnableQueryCache = true });
+    }
+
+    [Benchmark]
+    public void CompileDocAndDelegateCache()
+    {
+        Schema.ExecuteRequestWithContext(
+            gql,
+            context,
+            null,
+            null,
+            new ExecutionOptions
+            {
+#if DEBUG
+                NoExecution = true,
+#endif
+                EnableQueryCache = true,
+                CacheCompiledDelegates = true,
+            }
+        );
+    }
+
+    [Benchmark]
+    public void CompileDelegateOnlyCache()
+    {
+        Schema.ExecuteRequestWithContext(
+            gql,
+            context,
+            null,
+            null,
+            new ExecutionOptions
+            {
+#if DEBUG
+                NoExecution = true,
+#endif
+                EnableQueryCache = false,
+                CacheCompiledDelegates = true,
+            }
+        );
     }
 }

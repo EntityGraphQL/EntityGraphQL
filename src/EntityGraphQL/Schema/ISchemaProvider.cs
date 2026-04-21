@@ -100,6 +100,7 @@ public interface ISchemaProvider
     void UpdateType<TType>(Action<SchemaType<TType>> configure);
     MutationType Mutation();
     SubscriptionType Subscription();
+    QueryCache QueryCache { get; }
 
     /// <summary>
     /// Call this to validate that the schema contains all the information it needs. As fields and Types can be added out of
