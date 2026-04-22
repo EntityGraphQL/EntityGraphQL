@@ -49,7 +49,7 @@ builder.Services.AddGraphQLSchema<MyContext>(options =>
 
 This leaves introspection available to your own developers while hiding it from unauthenticated requests.
 
-You can use `schema.ToGraphQLSchemaString()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools.
+You can use `schema.ToGraphQLSchemaString()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools. If you want to expose that SDL from a custom endpoint or controller, see the custom controller example in [Getting Started](./getting-started#executing-a-query-in-a-custom-controller).
 
 ## Query Information & Monitoring
 

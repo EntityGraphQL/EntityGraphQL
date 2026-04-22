@@ -292,6 +292,29 @@ public class QueryController : Controller
 }
 ```
 
+If you want to inspect or export the schema that your custom controller is serving, you can expose `schema.ToGraphQLSchemaString()` from a simple endpoint:
+
+```cs
+[Route("graphql-schema")]
+public class SchemaController : Controller
+{
+    private readonly SchemaProvider<DemoContext> _schemaProvider;
+
+    public SchemaController(SchemaProvider<DemoContext> schemaProvider)
+    {
+        _schemaProvider = schemaProvider;
+    }
+
+    [HttpGet]
+    public ContentResult Get()
+    {
+        return Content(_schemaProvider.ToGraphQLSchemaString(), "text/plain");
+    }
+}
+```
+
+This is useful for verifying that the schema registered in DI contains the fields you expect and for generating SDL for tooling.
+
 ### Executing a Query in azure functions (isolated)
 
 Here is an example of a function that receives a `HttpRequestData`, deserializes a `QueryRequest` from the body, and executes it against a schema that is created once and reused.
