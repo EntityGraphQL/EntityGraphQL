@@ -1,3 +1,9 @@
+# 6.0.0-beta4
+
+## Fixes
+
+- #498 - fix ExecutableDirectiveLocation naming regression introduced in beta3
+
 # 6.0.0-beta3
 
 ## Breaking Changes

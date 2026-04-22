@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Models;
-#if NETSTANDARD2_1
-using EntityGraphQL.Directives;
-#endif
 
 namespace EntityGraphQL.Schema;
 
@@ -324,11 +321,7 @@ public static class SchemaIntrospection
             .Select(directive => new Directive(directive.Name)
             {
                 Description = directive.Description,
-#if NETSTANDARD2_1
-                Locations = directive.Location.Select(i => Enum.GetName(typeof(ExecutableDirectiveLocation), i))!,
-#else
-                Locations = directive.Location.Select(i => Enum.GetName(i))!,
-#endif
+                Locations = directive.Location.Select(i => i.GetDescription())!,
                 Args = directive
                     .GetArguments(schema)
                     .Values.Select(arg => new InputValue(arg.Name, BuildType(schema, arg.Type, arg.Type.TypeDotnet, true)) { Description = arg.Description, DefaultValue = null })

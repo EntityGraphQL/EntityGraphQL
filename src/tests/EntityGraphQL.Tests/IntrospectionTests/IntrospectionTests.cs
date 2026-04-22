@@ -163,6 +163,35 @@ public class IntrospectionTests
     }
 
     [Fact]
+    public void TestDirectiveLocationsUseSpecUpperCaseNamesInIntrospection()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                    __schema {
+                        directives {
+                            name
+                            locations
+                        }
+                    }
+                }",
+        };
+
+        var res = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+        Assert.Null(res.Errors);
+
+        var directives = (IEnumerable<dynamic>)((dynamic)res.Data!["__schema"]!).directives;
+        var include = directives.Single(d => d.name == "include");
+        var skip = directives.Single(d => d.name == "skip");
+
+        Assert.Equal(new[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" }, ((IEnumerable<object>)include.locations).Cast<string>().ToArray());
+        Assert.Equal(new[] { "FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT" }, ((IEnumerable<object>)skip.locations).Cast<string>().ToArray());
+    }
+
+    [Fact]
     public void TestIntrospectionUsesSpecFieldNamesWhenCustomFieldNamerIsConfigured()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { FieldNamer = name => name });
