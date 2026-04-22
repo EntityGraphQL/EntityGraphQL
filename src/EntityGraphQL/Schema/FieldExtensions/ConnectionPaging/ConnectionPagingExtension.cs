@@ -212,18 +212,20 @@ public class ConnectionPagingExtension : BaseFieldExtension
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
-        BaseGraphQLField fieldNode,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        bool servicesPass,
-        bool withoutServiceFields,
-        ParameterReplacer parameterReplacer,
-        ParameterExpression? originalArgParam,
-        CompileContext compileContext
+        FieldExtensionExpressionContext context
     )
     {
+        var fieldNode = context.FieldNode;
+        var expression = context.Expression;
+        var argumentParam = context.ArgumentParameter;
+        var arguments = context.Arguments;
+        var fieldContext = context.Context;
+        var servicesPass = context.ServicesPass;
+        var withoutServiceFields = context.WithoutServiceFields;
+        var parameterReplacer = context.ParameterReplacer;
+        var originalArgParam = context.OriginalArgumentParameter;
+        var compileContext = context.CompileContext;
+
         // For fields WITHOUT services: skip rebuild in second pass (paging was done in first pass).
         // For service-backed paging fields, GraphQLObjectProjectionField returns early from GetFieldExpression
         // in the first pass before calling Field.GetExpression, so this extension is never reached then.
@@ -251,7 +253,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
             if (field.ExtractedFieldsFromServices != null)
             {
                 var anonElement = fieldNode.ParentNode?.NextFieldContext is ParameterExpression parentNextCtx ? compileContext.GetFieldContextReplacement(parentNextCtx) : null;
-                var replacementCtx = (Expression?)anonElement ?? context;
+                var replacementCtx = (Expression?)anonElement ?? fieldContext;
                 var expReplacer = new ExpressionReplacer(field.ExtractedFieldsFromServices, replacementCtx, false, false, null);
                 edgeExpression = expReplacer.Replace(edgeExpression);
                 if (field.FieldParam != null)
@@ -266,16 +268,19 @@ public class ConnectionPagingExtension : BaseFieldExtension
             {
                 var res = extension.GetExpressionAndArguments(
                     field,
-                    fieldNode,
-                    edgeExpression,
-                    argumentParam,
-                    arguments,
-                    context,
-                    servicesPass,
-                    withoutServiceFields,
-                    parameterReplacer,
-                    originalArgParam,
-                    compileContext
+                    new FieldExtensionExpressionContext
+                    {
+                        FieldNode = fieldNode,
+                        Expression = edgeExpression,
+                        ArgumentParameter = argumentParam,
+                        Arguments = arguments,
+                        Context = fieldContext,
+                        ServicesPass = servicesPass,
+                        WithoutServiceFields = withoutServiceFields,
+                        ParameterReplacer = parameterReplacer,
+                        OriginalArgumentParameter = originalArgParam,
+                        CompileContext = compileContext,
+                    }
                 );
                 (edgeExpression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
             }

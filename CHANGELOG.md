@@ -1,5 +1,12 @@
 # 6.0.0-beta4
 
+## Breaking Changes
+
+- Simplified `IFieldExtension` compilation hooks by replacing long positional parameter lists with context objects:
+  - `GetExpressionAndArguments()` now takes `FieldExtensionExpressionContext`
+  - `ProcessExpressionPreSelection()` now takes `FieldExtensionPreSelectionContext`
+  - `ProcessExpressionSelection()` now takes `FieldExtensionSelectionContext`
+
 ## Fixes
 
 - #498 - fix ExecutableDirectiveLocation naming regression introduced in beta3

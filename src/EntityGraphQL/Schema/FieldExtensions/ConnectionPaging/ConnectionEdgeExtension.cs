@@ -23,18 +23,20 @@ public class ConnectionEdgeExtension : BaseFieldExtension
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
-        BaseGraphQLField fieldNode,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        bool servicesPass,
-        bool withoutServiceFields,
-        ParameterReplacer parameterReplacer,
-        ParameterExpression? originalArgParam,
-        CompileContext compileContext
+        FieldExtensionExpressionContext context
     )
     {
+        var fieldNode = context.FieldNode;
+        var expression = context.Expression;
+        var argumentParam = context.ArgumentParameter;
+        var arguments = context.Arguments;
+        var fieldContext = context.Context;
+        var servicesPass = context.ServicesPass;
+        var withoutServiceFields = context.WithoutServiceFields;
+        var parameterReplacer = context.ParameterReplacer;
+        var originalArgParam = context.OriginalArgumentParameter;
+        var compileContext = context.CompileContext;
+
         // We know we need the arguments from the parent field as that is where they are defined
         if (fieldNode.ParentNode != null)
         {
@@ -95,16 +97,19 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         {
             var res = extension.GetExpressionAndArguments(
                 field,
-                fieldNode,
-                expression,
-                argumentParam,
-                arguments,
-                context,
-                servicesPass,
-                withoutServiceFields,
-                parameterReplacer,
-                originalArgParam,
-                compileContext
+                new FieldExtensionExpressionContext
+                {
+                    FieldNode = fieldNode,
+                    Expression = expression,
+                    ArgumentParameter = argumentParam,
+                    Arguments = arguments,
+                    Context = fieldContext,
+                    ServicesPass = servicesPass,
+                    WithoutServiceFields = withoutServiceFields,
+                    ParameterReplacer = parameterReplacer,
+                    OriginalArgumentParameter = originalArgParam,
+                    CompileContext = compileContext,
+                }
             );
             (expression, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }
@@ -193,14 +198,16 @@ public class ConnectionEdgeExtension : BaseFieldExtension
     }
 
     public override (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(
-        Expression baseExpression,
-        Dictionary<IFieldKey, CompiledField> selectionExpressions,
-        ParameterExpression? selectContextParam,
-        ParameterExpression? argumentParam,
-        bool servicesPass,
-        ParameterReplacer parameterReplacer
+        FieldExtensionSelectionContext context
     )
     {
+        var baseExpression = context.BaseExpression;
+        var selectionExpressions = context.SelectionExpressions;
+        var selectContextParam = context.SelectContextParameter;
+        var argumentParam = context.ArgumentParameter;
+        var servicesPass = context.ServicesPass;
+        var parameterReplacer = context.ParameterReplacer;
+
         if (argumentParam == null)
             throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "ConnectionEdgeExtension requires an argument parameter to be passed in");
 

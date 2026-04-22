@@ -127,18 +127,16 @@ public class SortExtension : BaseFieldExtension
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
-        BaseGraphQLField fieldNode,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        bool servicesPass,
-        bool withoutServiceFields,
-        ParameterReplacer parameterReplacer,
-        ParameterExpression? originalArgParam,
-        CompileContext compileContext
+        FieldExtensionExpressionContext context
     )
     {
+        var expression = context.Expression;
+        var argumentParam = context.ArgumentParameter;
+        var arguments = context.Arguments;
+        var servicesPass = context.ServicesPass;
+        var parameterReplacer = context.ParameterReplacer;
+        var originalArgParam = context.OriginalArgumentParameter;
+
         // things are sorted already and the field shape has changed
         if (servicesPass)
             return (expression, originalArgParam, argumentParam, arguments);

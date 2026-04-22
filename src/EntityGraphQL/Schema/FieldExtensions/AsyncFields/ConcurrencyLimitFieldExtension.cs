@@ -32,18 +32,16 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
-        BaseGraphQLField fieldNode,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        bool servicesPass,
-        bool withoutServiceFields,
-        ParameterReplacer parameterReplacer,
-        ParameterExpression? originalArgParam,
-        CompileContext compileContext
+        FieldExtensionExpressionContext context
     )
     {
+        var expression = context.Expression;
+        var argumentParam = context.ArgumentParameter;
+        var arguments = context.Arguments;
+        var servicesPass = context.ServicesPass;
+        var originalArgParam = context.OriginalArgumentParameter;
+        var compileContext = context.CompileContext;
+
         // Only apply concurrency control during the service pass for async expressions
         if (!servicesPass || !IsAsyncExpression(expression))
         {

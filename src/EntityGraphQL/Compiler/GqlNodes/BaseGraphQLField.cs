@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler;
 
@@ -244,7 +245,14 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             return (baseExpression, listTypeParam);
         foreach (var extension in Field.Extensions)
         {
-            (baseExpression, listTypeParam) = extension.ProcessExpressionPreSelection(baseExpression, listTypeParam, parameterReplacer);
+            (baseExpression, listTypeParam) = extension.ProcessExpressionPreSelection(
+                new FieldExtensionPreSelectionContext
+                {
+                    BaseExpression = baseExpression,
+                    ListTypeParameter = listTypeParam,
+                    ParameterReplacer = parameterReplacer,
+                }
+            );
         }
         return (baseExpression, listTypeParam);
     }
@@ -263,12 +271,15 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         foreach (var extension in Field.Extensions)
         {
             (baseExpression, selectionExpressions, selectContextParam) = extension.ProcessExpressionSelection(
-                baseExpression,
-                selectionExpressions,
-                selectContextParam,
-                argumentParam,
-                servicesPass,
-                parameterReplacer
+                new FieldExtensionSelectionContext
+                {
+                    BaseExpression = baseExpression,
+                    SelectionExpressions = selectionExpressions,
+                    SelectContextParameter = selectContextParam,
+                    ArgumentParameter = argumentParam,
+                    ServicesPass = servicesPass,
+                    ParameterReplacer = parameterReplacer,
+                }
             );
         }
         return (baseExpression, selectionExpressions, selectContextParam);

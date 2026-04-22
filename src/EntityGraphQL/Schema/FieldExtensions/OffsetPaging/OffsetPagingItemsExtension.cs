@@ -19,18 +19,20 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
-        BaseGraphQLField fieldNode,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        bool servicesPass,
-        bool withoutServiceFields,
-        ParameterReplacer parameterReplacer,
-        ParameterExpression? originalArgParam,
-        CompileContext compileContext
+        FieldExtensionExpressionContext context
     )
     {
+        var fieldNode = context.FieldNode;
+        var expression = context.Expression;
+        var argumentParam = context.ArgumentParameter;
+        var arguments = context.Arguments;
+        var fieldContext = context.Context;
+        var servicesPass = context.ServicesPass;
+        var withoutServiceFields = context.WithoutServiceFields;
+        var parameterReplacer = context.ParameterReplacer;
+        var originalArgParam = context.OriginalArgumentParameter;
+        var compileContext = context.CompileContext;
+
         // We know we need the arguments from the parent field as that is where they are defined
         if (fieldNode.ParentNode != null)
         {
@@ -89,16 +91,19 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         {
             var res = extension.GetExpressionAndArguments(
                 field,
-                fieldNode,
-                newItemsExp,
-                argumentParam,
-                arguments,
-                context,
-                servicesPass,
-                withoutServiceFields,
-                parameterReplacer,
-                originalArgParam,
-                compileContext
+                new FieldExtensionExpressionContext
+                {
+                    FieldNode = fieldNode,
+                    Expression = newItemsExp,
+                    ArgumentParameter = argumentParam,
+                    Arguments = arguments,
+                    Context = fieldContext,
+                    ServicesPass = servicesPass,
+                    WithoutServiceFields = withoutServiceFields,
+                    ParameterReplacer = parameterReplacer,
+                    OriginalArgumentParameter = originalArgParam,
+                    CompileContext = compileContext,
+                }
             );
             (newItemsExp, originalArgParam, argumentParam, arguments) = (res.Item1!, res.Item2, res.Item3!, res.Item4);
         }

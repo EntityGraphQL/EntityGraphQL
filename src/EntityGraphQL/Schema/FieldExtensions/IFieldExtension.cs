@@ -31,32 +31,12 @@ public interface IFieldExtension
     /// This should be thread safe
     /// </summary>
     /// <param name="field"></param>
-    /// <param name="expression">The current expression for the field</param>
-    /// <param name="argumentParam">The ParameterExpression used for accessing the arguments. Null if the field has no augments</param>
-    /// <param name="arguments">The value of the arguments. Null if field have no arguments</param>
-    /// <param name="context">The context of the schema</param>
-    /// <param name="servicesPass">True if we're in the services pass (second pass or single pass when ExecuteServiceFieldsSeparately=false).
-    /// When true, service dependencies are available and can be used safely.
-    /// When false, we're in the first pass building a DB-friendly expression without service dependencies.</param>
-    /// <param name="withoutServiceFields">True if we're building an expression without service fields (first pass of two-pass execution).
-    /// When true, extensions should NOT use expressions that contain service parameter references.
-    /// When false, service fields can be safely included in the expression.</param>
-    /// <param name="parameterReplacer"></param>
-    /// <param name="originalArgParam"></param>
-    /// <param name="compileContext"></param>
+    /// <param name="context">Request-scoped field compilation context. Contains the current expression,
+    /// argument parameter/value, field context, pass flags, and the active <see cref="CompileContext"/>.</param>
     /// <returns></returns>
     (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
-        BaseGraphQLField fieldNode,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        bool servicesPass,
-        bool withoutServiceFields,
-        ParameterReplacer parameterReplacer,
-        ParameterExpression? originalArgParam,
-        CompileContext compileContext
+        FieldExtensionExpressionContext context
     );
 
     /// <summary>
@@ -65,10 +45,10 @@ public interface IFieldExtension
     ///
     /// This should be thread safe
     /// </summary>
-    /// <param name="baseExpression">ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
-    /// <param name="listTypeParam">For ListSelection the expression for the context of the list selection about to happen</param>
+    /// <param name="context">Request-scoped pre-selection context. Contains the current base expression,
+    /// the selection context parameter, and the active <see cref="ParameterReplacer"/>.</param>
     /// <returns></returns>
-    (Expression, ParameterExpression?) ProcessExpressionPreSelection(Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer);
+    (Expression, ParameterExpression?) ProcessExpressionPreSelection(FieldExtensionPreSelectionContext context);
 
     /// <summary>
     /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
@@ -76,20 +56,10 @@ public interface IFieldExtension
     ///
     /// This should be thread safe
     /// </summary>
-    /// <param name="baseExpression">ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
-    /// <param name="selectionExpressions">ListSelection: The selection fields used in .Select(). ObjectProjection: The fields used in the new { field1 = ..., field2 = ... }</param>
-    /// <param name="selectContextParam"></param>
-    /// <param name="argumentParam"></param>
-    /// <param name="parameterReplacer"></param>
+    /// <param name="context">Request-scoped selection context. Contains the current base expression,
+    /// compiled child selections, selection/argument parameters, pass flags, and the active <see cref="ParameterReplacer"/>.</param>
     /// <returns></returns>
-    (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(
-        Expression baseExpression,
-        Dictionary<IFieldKey, CompiledField> selectionExpressions,
-        ParameterExpression? selectContextParam,
-        ParameterExpression? argumentParam,
-        bool servicesPass,
-        ParameterReplacer parameterReplacer
-    );
+    (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(FieldExtensionSelectionContext context);
 
     /// <summary>
     /// Called when the field is being finalized for execution

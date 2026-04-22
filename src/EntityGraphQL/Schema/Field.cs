@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Schema;
 
@@ -228,19 +229,20 @@ public class Field : BaseField
             {
                 if (result != null)
                 {
-                    (result, originalArgParam, newArgParam, argumentValue) = extension.GetExpressionAndArguments(
-                        this,
-                        fieldNode!,
-                        result!,
-                        newArgParam,
-                        argumentValue,
-                        context,
-                        servicesPass,
-                        withoutServiceFields,
-                        replacer,
-                        originalArgParam,
-                        compileContext
-                    );
+                    var extensionContext = new FieldExtensionExpressionContext
+                    {
+                        FieldNode = fieldNode!,
+                        Expression = result!,
+                        ArgumentParameter = newArgParam,
+                        Arguments = argumentValue,
+                        Context = context,
+                        ServicesPass = servicesPass,
+                        WithoutServiceFields = withoutServiceFields,
+                        ParameterReplacer = replacer,
+                        OriginalArgumentParameter = originalArgParam,
+                        CompileContext = compileContext,
+                    };
+                    (result, originalArgParam, newArgParam, argumentValue) = extension.GetExpressionAndArguments(this, extensionContext);
                 }
             }
         }

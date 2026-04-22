@@ -15,9 +15,9 @@ public abstract class BaseFieldExtension : IFieldExtension
     /// <param name="field"></param>
     public virtual void Configure(ISchemaProvider schema, IField field) { }
 
-    public virtual (Expression, ParameterExpression?) ProcessExpressionPreSelection(Expression baseExpression, ParameterExpression? listTypeParam, ParameterReplacer parameterReplacer)
+    public virtual (Expression, ParameterExpression?) ProcessExpressionPreSelection(FieldExtensionPreSelectionContext context)
     {
-        return (baseExpression, listTypeParam);
+        return (context.BaseExpression, context.ListTypeParameter);
     }
 
     public virtual Expression GetListExpressionForBulkResolve(Expression listExpression)
@@ -29,19 +29,13 @@ public abstract class BaseFieldExtension : IFieldExtension
     /// Called when the field is being finalized for execution but we have not yet created a new {} expression for the select.
     /// Not called for GraphQLFieldType.Scalar
     /// </summary>
-    /// <param name="baseExpression">Scalar: the expression. ListSelection: The expression used to add .Select() to. ObjectProjection: the base expression which fields are selected from</param>
-    /// <param name="selectionExpressions">Scalar: null. ListSelection: The selection fields used in .Select(). ObjectProjection: The fields used in the new { field1 = ..., field2 = ... }</param>
+    /// <param name="context">Request-scoped selection context.</param>
     /// <returns></returns>
     public virtual (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(
-        Expression baseExpression,
-        Dictionary<IFieldKey, CompiledField> selectionExpressions,
-        ParameterExpression? selectContextParam,
-        ParameterExpression? argumentParam,
-        bool servicesPass,
-        ParameterReplacer parameterReplacer
+        FieldExtensionSelectionContext context
     )
     {
-        return (baseExpression, selectionExpressions, selectContextParam);
+        return (context.BaseExpression, context.SelectionExpressions, context.SelectContextParameter);
     }
 
     /// <summary>
@@ -54,18 +48,9 @@ public abstract class BaseFieldExtension : IFieldExtension
 
     public virtual (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
         IField field,
-        BaseGraphQLField fieldNode,
-        Expression expression,
-        ParameterExpression? argumentParam,
-        dynamic? arguments,
-        Expression context,
-        bool servicesPass,
-        bool withoutServiceFields,
-        ParameterReplacer parameterReplacer,
-        ParameterExpression? originalArgParam,
-        CompileContext compileContext
+        FieldExtensionExpressionContext context
     )
     {
-        return (expression, originalArgParam, argumentParam, arguments);
+        return (context.Expression, context.OriginalArgumentParameter, context.ArgumentParameter, context.Arguments);
     }
 }
