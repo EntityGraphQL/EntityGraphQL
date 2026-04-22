@@ -1,14 +1,19 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
@@ -578,8 +583,10 @@ public class AddGraphQLSchemaLifetimeTests
 
         var schema1 = scope1.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
         var schema2 = scope2.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var schemaInterface = scope1.ServiceProvider.GetRequiredService<ISchemaProvider<SchemaLifetimeQuery>>();
 
         Assert.Same(schema1, schema2);
+        Assert.Same(schema1, schemaInterface);
     }
 
     [Fact]
@@ -599,9 +606,13 @@ public class AddGraphQLSchemaLifetimeTests
         var schema1a = scope1.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
         var schema1b = scope1.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
         var schema2 = scope2.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var schema1Interface = scope1.ServiceProvider.GetRequiredService<ISchemaProvider<SchemaLifetimeQuery>>();
+        var schema2Interface = scope2.ServiceProvider.GetRequiredService<ISchemaProvider<SchemaLifetimeQuery>>();
 
         Assert.Same(schema1a, schema1b);
+        Assert.Same(schema1a, schema1Interface);
         Assert.NotSame(schema1a, schema2);
+        Assert.Same(schema2, schema2Interface);
     }
 
     [Fact]
@@ -619,12 +630,90 @@ public class AddGraphQLSchemaLifetimeTests
 
         var schema1 = scope.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
         var schema2 = scope.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var schemaInterface1 = scope.ServiceProvider.GetRequiredService<ISchemaProvider<SchemaLifetimeQuery>>();
+        var schemaInterface2 = scope.ServiceProvider.GetRequiredService<ISchemaProvider<SchemaLifetimeQuery>>();
 
         Assert.NotSame(schema1, schema2);
+        Assert.NotSame(schemaInterface1, schemaInterface2);
+    }
+
+    [Fact]
+    public async Task AddGraphQLSchema_UsesRegisteredDocumentExecutor()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<SchemaLifetimeQuery>();
+        services.AddSingleton<TestDocumentExecutor>();
+        services.AddSingleton<IGraphQLDocumentExecutor>(sp => sp.GetRequiredService<TestDocumentExecutor>());
+        services.AddGraphQLSchema<SchemaLifetimeQuery>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var schema = scope.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var executor = scope.ServiceProvider.GetRequiredService<TestDocumentExecutor>();
+
+        var result = await schema.ExecuteRequestAsync(new QueryRequest { Query = "{ hello }" }, scope.ServiceProvider, null);
+
+        Assert.True(executor.Executed);
+        Assert.NotNull(result.Data);
+        Assert.Equal("custom", result.Data!["source"]);
+    }
+
+    [Fact]
+    public async Task MapGraphQL_UsesGenericSchemaInterfaceRegistration()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
+        builder.Services.AddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
+        builder.Services.AddScoped<SchemaLifetimeQuery>();
+        builder.Services.AddSingleton<ISchemaProvider<SchemaLifetimeQuery>>(_ =>
+        {
+            var schema = new InterfaceOnlySchemaProvider();
+            schema.PopulateFromContext();
+            return schema;
+        });
+
+        await using var app = builder.Build();
+        app.MapGraphQL<SchemaLifetimeQuery>();
+        await app.StartAsync();
+
+        var client = app.GetTestClient();
+        var response = await client.PostAsJsonAsync("/graphql", new { query = "{ hello }" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync());
+        Assert.NotNull(json);
+        Assert.Equal("world", json!["data"]!["hello"]!.GetValue<string>());
     }
 
     public class SchemaLifetimeQuery
     {
         public string Hello { get; set; } = "world";
     }
+
+    private class TestDocumentExecutor : IGraphQLDocumentExecutor
+    {
+        public bool Executed { get; private set; }
+
+        public Task<QueryResult> ExecuteAsync<TContext>(
+            GraphQLDocument document,
+            TContext? context,
+            IServiceProvider? serviceProvider,
+            QueryVariables? variables,
+            string? operationName,
+            QueryRequestContext requestContext,
+            ExecutionOptions options,
+            CancellationToken cancellationToken
+        )
+        {
+            Executed = true;
+            var result = new QueryResult();
+            result.SetData(new Dictionary<string, object?> { ["source"] = "custom" });
+            return Task.FromResult(result);
+        }
+    }
+
+    private class InterfaceOnlySchemaProvider : SchemaProvider<SchemaLifetimeQuery> { }
 }

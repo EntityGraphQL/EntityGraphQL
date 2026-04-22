@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Directives;
 
@@ -41,6 +44,7 @@ public interface ISchemaProvider
     Type SubscriptionType { get; }
     Func<string, string> SchemaFieldNamer { get; }
     IGqlAuthorizationService AuthorizationService { get; set; }
+    IGraphQLDocumentExecutor DocumentExecutor { get; set; }
     string QueryContextName { get; }
     EqlMethodProvider MethodProvider { get; }
 
@@ -113,4 +117,13 @@ public interface ISchemaProvider
     ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext);
     IEnumerable<GraphQLError> GenerateErrors(Exception exception, string? fieldName = null);
     string AllowedExceptionMessage(Exception exception, string? fieldName = null);
+}
+
+public interface ISchemaProvider<TContextType> : ISchemaProvider
+{
+    QueryResult ExecuteRequest(QueryRequest gql, IServiceProvider serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null);
+    Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, IServiceProvider serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null);
+    Task<QueryResult> ExecuteRequestAsync(QueryRequest gql, IServiceProvider serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options, CancellationToken cancellationToken);
+    QueryResult ExecuteRequestWithContext(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null);
+    Task<QueryResult> ExecuteRequestWithContextAsync(QueryRequest gql, TContextType context, IServiceProvider? serviceProvider, ClaimsPrincipal? user, ExecutionOptions? options = null);
 }

@@ -23,6 +23,7 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
             isDevelopment = false;
 
         var schema = new SchemaProvider<TSchemaContext>(authorizationService, schemaOptions.FieldNamer, introspectionEnabled: schemaOptions.IntrospectionEnabled, isDevelopment: isDevelopment);
+        schema.DocumentExecutor = serviceProvider.GetRequiredService<IGraphQLDocumentExecutor>();
 
         foreach (var allowedException in schemaOptions.AllowedExceptions)
         {
@@ -68,11 +69,13 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
         // They used IGraphQLRequestDeserializer/IGraphQLResponseSerializer to override the default JSON serialization
         serviceCollection.TryAddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
         serviceCollection.TryAddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
+        serviceCollection.TryAddSingleton<IGraphQLDocumentExecutor, DefaultGraphQLDocumentExecutor>();
 
         var options = new AddGraphQLOptions<TSchemaContext>(null);
         configure(options);
 
         serviceCollection.Add(new ServiceDescriptor(typeof(SchemaProvider<TSchemaContext>), sp => BuildSchema(sp, options), options.SchemaLifetime));
+        serviceCollection.Add(new ServiceDescriptor(typeof(ISchemaProvider<TSchemaContext>), sp => sp.GetRequiredService<SchemaProvider<TSchemaContext>>(), options.SchemaLifetime));
 
         return serviceCollection;
     }

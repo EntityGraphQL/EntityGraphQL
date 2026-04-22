@@ -24,13 +24,14 @@ namespace EntityGraphQL.Schema;
 /// This allows your internal model to change over time while not break your external API. You can create new versions when needed.
 /// </summary>
 /// <typeparam name="TContextType">Base Query object context. Ex. DbContext</typeparam>
-public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
+public class SchemaProvider<TContextType> : ISchemaProvider<TContextType>, IDisposable
 {
     public Type QueryContextType => queryType.TypeDotnet;
     public Type MutationType => mutationType.SchemaType.TypeDotnet;
     public Type SubscriptionType => subscriptionType.SchemaType.TypeDotnet;
     public Func<string, string> SchemaFieldNamer { get; }
     public IGqlAuthorizationService AuthorizationService { get; set; }
+    public IGraphQLDocumentExecutor DocumentExecutor { get; set; }
     public EqlMethodProvider MethodProvider { get; set; }
     private readonly Dictionary<string, ISchemaType> schemaTypes = [];
     private readonly Dictionary<string, IDirectiveProcessor> directives = [];
@@ -73,6 +74,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     )
     {
         AuthorizationService = authorizationService ?? new RoleBasedAuthorization();
+        DocumentExecutor = new DefaultGraphQLDocumentExecutor();
         SchemaFieldNamer = fieldNamer ?? SchemaProviderOptions.DefaultFieldNamer;
         MethodProvider = new EqlMethodProvider();
         this.logger = logger;
@@ -532,7 +534,8 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
             try
             {
-                result = await compiledQuery.ExecuteQueryAsync(
+                result = await DocumentExecutor.ExecuteAsync(
+                    compiledQuery,
                     overwriteContext,
                     serviceProvider,
                     gql.Variables,

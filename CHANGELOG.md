@@ -10,6 +10,7 @@
 ## Changes
 
 - #513 - `AddGraphQLSchema()` now supports configuring the registered `SchemaProvider<TContext>` lifetime via `AddGraphQLOptions.SchemaLifetime`. The default remains singleton, with scoped/transient lifetimes available for request-specific schema construction.
+- Added `IGraphQLDocumentExecutor` as the stage-2 execution boundary after parsing/validation. `SchemaProvider<TContext>` now delegates final `GraphQLDocument` execution through this abstraction, and ASP.NET now resolves `ISchemaProvider<TContext>` instead of the concrete `SchemaProvider<TContext>` in endpoint/websocket handlers.
 
 ## Fixes
 
