@@ -44,7 +44,7 @@ public class ParameterReplacer : ExpressionVisitor
         finished = false;
         this.replaceWholeExpression = replaceWholeExpression;
         this.possibleNextContextTypes = possibleNextContextTypes;
-        cache = [];
+        cache.Clear();
         return Visit(node);
     }
 
@@ -67,7 +67,7 @@ public class ParameterReplacer : ExpressionVisitor
         hasNewFieldNameForType = newFieldNameForType != null;
         replaceWholeExpression = false;
         possibleNextContextTypes = null;
-        cache = [];
+        cache.Clear();
         return Visit(node);
     }
 
