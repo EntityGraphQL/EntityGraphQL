@@ -51,6 +51,62 @@ This leaves introspection available to your own developers while hiding it from 
 
 You can use `schema.ToGraphQLSchemaString()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools. If you want to expose that SDL from a custom endpoint or controller, see the custom controller example in [Getting Started](./getting-started#executing-a-query-in-a-custom-controller).
 
+## GraphQL IDEs
+
+EntityGraphQL does not ship its own browser IDE, but any GraphQL IDE can point at your `MapGraphQL()` endpoint as long as introspection is enabled and the tool is configured to call the same HTTP endpoint.
+
+See the full [tooling example](https://github.com/EntityGraphQL/EntityGraphQL/tree/master/src/examples/tooling) on GitHub. It hosts:
+
+- `EntityGraphQL` at `/api/graphql`
+- the `GraphiQL` app at `/graphiql/`
+- the `Hot Chocolate Nitro` app at `/nitro/`
+
+### GraphiQL
+
+The example project serves a dedicated GraphiQL app from static assets and points it at the EntityGraphQL endpoint:
+
+```cs
+app.UseStaticFiles();
+app.MapGraphQL<MyContext>("/api/graphql");
+
+// GraphiQL app served from wwwroot/graphiql/
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/graphiql/");
+    return Task.CompletedTask;
+});
+```
+
+See `src/examples/tooling/wwwroot/graphiql/` for the hosted GraphiQL app files.
+
+### Hot Chocolate Nitro
+
+The same example project hosts Nitro on a separate route and points it at the existing EntityGraphQL endpoint:
+
+```cs
+using EntityGraphQL.AspNet;
+using HotChocolate.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddGraphQLSchema<MyContext>();
+
+var app = builder.Build();
+
+app.MapGraphQL<MyContext>("/graphql");
+
+app.MapNitroApp("/nitro")
+    .WithOptions(new GraphQLToolOptions
+    {
+        GraphQLEndpoint = "/api/graphql",
+        IncludeCookies = true,
+    });
+
+app.Run();
+```
+
+For Nitro, use a relative `GraphQLEndpoint` when the UI and API are served from the same ASP.NET application. If the UI is hosted elsewhere, use the full absolute URL of the EntityGraphQL endpoint instead.
+
 ## Query Information & Monitoring
 
 EntityGraphQL can provide detailed information about executed queries through the `QueryInfo` feature. This is useful for:

@@ -10,6 +10,7 @@
 ## Changes
 
 - #513 - `AddGraphQLSchema()` now supports configuring the registered `SchemaProvider<TContext>` lifetime via `AddGraphQLOptions.SchemaLifetime`. The default remains singleton, with scoped/transient lifetimes available for request-specific schema construction.
+- #508 - Added a `src/examples/tooling` example showing GraphiQL and Hot Chocolate Nitro hosted against an `EntityGraphQL.AspNet` `/graphql` endpoint.
 
 ## Fixes
 
