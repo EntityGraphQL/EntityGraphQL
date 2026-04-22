@@ -1,6 +1,7 @@
 using System;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EntityGraphQL.AspNet;
 
@@ -41,4 +42,10 @@ public class AddGraphQLOptions<TSchemaContext>
     /// Or use this to configure the whole schema if AutoBuildSchemaFromContext is false.
     /// </summary>
     public Action<SchemaProvider<TSchemaContext>>? ConfigureSchema { get; set; }
+
+    /// <summary>
+    /// The DI lifetime used when registering <see cref="SchemaProvider{TSchemaContext}"/>. Defaults to <see cref="ServiceLifetime.Singleton"/>.
+    /// Use <see cref="ServiceLifetime.Scoped"/> or <see cref="ServiceLifetime.Transient"/> when the schema must be rebuilt from scoped/request-specific state.
+    /// </summary>
+    public ServiceLifetime SchemaLifetime { get; set; } = ServiceLifetime.Singleton;
 }

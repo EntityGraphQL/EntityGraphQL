@@ -4,13 +4,6 @@ using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Xunit;
 
 namespace EntityGraphQL.AspNet.Tests;
 
@@ -559,5 +552,71 @@ public class RawTcpTest : IClassFixture<CustomWebApplicationFactory<Program>>
 
         string json = await resp.Content.ReadAsStringAsync();
         Assert.Contains("\"hello\":\"world\"", json);
+    }
+}
+
+public class AddGraphQLSchemaLifetimeTests
+{
+    [Fact]
+    public void AddGraphQLSchema_DefaultsToSingletonLifetime()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<SchemaLifetimeQuery>();
+        services.AddGraphQLSchema<SchemaLifetimeQuery>();
+
+        using var provider = services.BuildServiceProvider();
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+
+        var schema1 = scope1.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var schema2 = scope2.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+
+        Assert.Same(schema1, schema2);
+    }
+
+    [Fact]
+    public void AddGraphQLSchema_CanRegisterScopedLifetime()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<SchemaLifetimeQuery>();
+        services.AddGraphQLSchema<SchemaLifetimeQuery>(options =>
+        {
+            options.SchemaLifetime = ServiceLifetime.Scoped;
+        });
+
+        using var provider = services.BuildServiceProvider();
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+
+        var schema1a = scope1.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var schema1b = scope1.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var schema2 = scope2.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+
+        Assert.Same(schema1a, schema1b);
+        Assert.NotSame(schema1a, schema2);
+    }
+
+    [Fact]
+    public void AddGraphQLSchema_CanRegisterTransientLifetime()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<SchemaLifetimeQuery>();
+        services.AddGraphQLSchema<SchemaLifetimeQuery>(options =>
+        {
+            options.SchemaLifetime = ServiceLifetime.Transient;
+        });
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var schema1 = scope.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var schema2 = scope.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+
+        Assert.NotSame(schema1, schema2);
+    }
+
+    public class SchemaLifetimeQuery
+    {
+        public string Hello { get; set; } = "world";
     }
 }

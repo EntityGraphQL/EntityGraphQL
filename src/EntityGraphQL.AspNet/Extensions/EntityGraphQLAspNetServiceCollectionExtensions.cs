@@ -10,6 +10,34 @@ namespace EntityGraphQL.AspNet;
 
 public static class EntityGraphQLAspNetServiceCollectionExtensions
 {
+    private static SchemaProvider<TSchemaContext> BuildSchema<TSchemaContext>(IServiceProvider serviceProvider, AddGraphQLOptions<TSchemaContext> options)
+    {
+        var authService = serviceProvider.GetService<IAuthorizationService>();
+        var webHostEnvironment = serviceProvider.GetService<IWebHostEnvironment>();
+        var schemaOptions = options.Schema;
+        var authorizationService = schemaOptions.AuthorizationService ?? (authService != null ? new PolicyOrRoleBasedAuthorization(authService) : null);
+        var isDevelopment = schemaOptions.IsDevelopment;
+
+        // Preserve the existing ASP.NET behavior: non-Development environments default to production-safe behavior.
+        if (webHostEnvironment != null && !webHostEnvironment.IsEnvironment("Development"))
+            isDevelopment = false;
+
+        var schema = new SchemaProvider<TSchemaContext>(authorizationService, schemaOptions.FieldNamer, introspectionEnabled: schemaOptions.IntrospectionEnabled, isDevelopment: isDevelopment);
+
+        foreach (var allowedException in schemaOptions.AllowedExceptions)
+        {
+            if (!schema.AllowedExceptions.Contains(allowedException))
+                schema.AllowedExceptions.Add(allowedException);
+        }
+
+        options.Builder.PreBuildSchemaFromContext?.Invoke(schema);
+        if (options.AutoBuildSchemaFromContext)
+            schema.PopulateFromContext(options.Builder);
+        options.ConfigureSchema?.Invoke(schema);
+
+        return schema;
+    }
+
     /// <summary>
     /// Adds a SchemaProvider&lt;TSchemaContext&gt; as a singleton to the service collection.
     /// </summary>
@@ -40,43 +68,11 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
         // They used IGraphQLRequestDeserializer/IGraphQLResponseSerializer to override the default JSON serialization
         serviceCollection.TryAddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
         serviceCollection.TryAddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
-        var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var authService = serviceProvider.GetService<IAuthorizationService>();
-        var webHostEnvironment = serviceProvider.GetService<IWebHostEnvironment>();
-
-        var options = new AddGraphQLOptions<TSchemaContext>(authService);
+        var options = new AddGraphQLOptions<TSchemaContext>(null);
         configure(options);
 
-        // Apply environment-based defaults if not explicitly set
-        var schemaOptions = options.Schema;
-
-        // If user hasn't explicitly set IsDevelopment, detect from environment
-        // We check if it's still the default value (true) and the environment is not Development
-        if (webHostEnvironment != null && !webHostEnvironment.IsEnvironment("Development"))
-        {
-            schemaOptions.IsDevelopment = false;
-        }
-
-        var schema = new SchemaProvider<TSchemaContext>(
-            schemaOptions.AuthorizationService,
-            schemaOptions.FieldNamer,
-            introspectionEnabled: schemaOptions.IntrospectionEnabled,
-            isDevelopment: schemaOptions.IsDevelopment
-        );
-
-        // Apply allowed exceptions
-        foreach (var allowedException in schemaOptions.AllowedExceptions)
-        {
-            if (!schema.AllowedExceptions.Contains(allowedException))
-                schema.AllowedExceptions.Add(allowedException);
-        }
-
-        options.Builder.PreBuildSchemaFromContext?.Invoke(schema);
-        if (options.AutoBuildSchemaFromContext)
-            schema.PopulateFromContext(options.Builder);
-        options.ConfigureSchema?.Invoke(schema);
-        serviceCollection.AddSingleton(schema);
+        serviceCollection.Add(new ServiceDescriptor(typeof(SchemaProvider<TSchemaContext>), sp => BuildSchema(sp, options), options.SchemaLifetime));
 
         return serviceCollection;
     }

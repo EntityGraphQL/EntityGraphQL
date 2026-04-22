@@ -7,6 +7,10 @@
   - `ProcessExpressionPreSelection()` now takes `FieldExtensionPreSelectionContext`
   - `ProcessExpressionSelection()` now takes `FieldExtensionSelectionContext`
 
+## Changes
+
+- #513 - `AddGraphQLSchema()` now supports configuring the registered `SchemaProvider<TContext>` lifetime via `AddGraphQLOptions.SchemaLifetime`. The default remains singleton, with scoped/transient lifetimes available for request-specific schema construction.
+
 ## Fixes
 
 - #498 - fix ExecutableDirectiveLocation naming regression introduced in beta3
