@@ -254,8 +254,7 @@ public class GraphQLWebSocketServerTests
     public async Task TestMutationOverWebsocket()
     {
         var (server, socket, httpContext) = Setup();
-        httpContext
-            .Object.RequestServices.GetRequiredService<SchemaProvider<TestQueryContext>>()
+        ((SchemaProvider<TestQueryContext>)httpContext.Object.RequestServices.GetRequiredService<ISchemaProvider<TestQueryContext>>())
             .Mutation()
             .Add(
                 "postMessage",
@@ -300,7 +299,7 @@ public class GraphQLWebSocketServerTests
         schema.Subscription().AddFrom<TestSubscription>();
         var httpContext = new Mock<HttpContext>();
         var servicesMock = new Mock<IServiceProvider>();
-        servicesMock.Setup(sp => sp.GetService(typeof(SchemaProvider<TestQueryContext>))).Returns(schema);
+        servicesMock.Setup(sp => sp.GetService(typeof(ISchemaProvider<TestQueryContext>))).Returns(schema);
         servicesMock.Setup(sp => sp.GetService(typeof(TestQueryContext))).Returns(schemaContext);
         servicesMock.Setup(sp => sp.GetService(typeof(TestChatService))).Returns(chatService);
         httpContext.Setup(c => c.RequestServices).Returns(servicesMock.Object);

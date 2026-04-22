@@ -191,12 +191,12 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
             await CloseConnectionAsync((WebSocketCloseStatus)4400, "Invalid subscribe message, missing payload field.");
         else
         {
-            var schema = Context.RequestServices.GetService<SchemaProvider<TQueryType>>();
+            var schema = Context.RequestServices.GetService<ISchemaProvider<TQueryType>>();
             if (schema == null)
             {
                 await CloseConnectionAsync(
                     (WebSocketCloseStatus)4400,
-                    $"No SchemaProvider<{typeof(TQueryType).Name}> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<{typeof(TQueryType).Name}>()."
+                    $"No ISchemaProvider<{typeof(TQueryType).Name}> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<{typeof(TQueryType).Name}>()."
                 );
                 return;
             }

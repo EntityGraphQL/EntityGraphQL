@@ -78,9 +78,9 @@ public static class EntityGraphQLEndpointRouteExtensions
                 }
 
                 var schema =
-                    context.RequestServices.GetService<SchemaProvider<TQueryType>>()
+                    context.RequestServices.GetService<ISchemaProvider<TQueryType>>()
                     ?? throw new InvalidOperationException(
-                        "No SchemaProvider<TQueryType> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<TQueryType>()."
+                        "No ISchemaProvider<TQueryType> found in the service collection. Make sure you set up your Startup.ConfigureServices() to call AddGraphQLSchema<TQueryType>()."
                     );
                 var requestedType = sorted
                     .Where(t => t != null)
