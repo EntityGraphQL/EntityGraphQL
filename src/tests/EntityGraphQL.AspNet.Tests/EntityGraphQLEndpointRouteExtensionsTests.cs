@@ -335,7 +335,7 @@ public class CustomWebApplicationFactory<TEntry> : WebApplicationFactory<TEntry>
         realBuilder.Services.AddGraphQLValidator();
         realBuilder.Services.AddGraphQLSchema<TestQueryType>(configure =>
         {
-            configure.ConfigureSchema = schema =>
+            configure.ConfigureSchema(schema =>
             {
                 schema
                     .Mutation()
@@ -353,7 +353,7 @@ public class CustomWebApplicationFactory<TEntry> : WebApplicationFactory<TEntry>
                         }
                     )
                     .IsNullable(false);
-            };
+            });
         });
         realBuilder.Services.AddScoped<TestQueryType>();
 
@@ -623,8 +623,65 @@ public class AddGraphQLSchemaLifetimeTests
         Assert.NotSame(schema1, schema2);
     }
 
+    [Fact]
+    public void AddGraphQLSchema_ConfigureSchemaReceivesServiceProvider()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<SchemaLifetimeQuery>();
+        services.AddSingleton<SchemaConfigDependency>();
+        services.AddGraphQLSchema<SchemaLifetimeQuery>(options =>
+        {
+            options.ConfigureSchema(
+                (schema, serviceProvider) =>
+                {
+                    var dependency = serviceProvider.GetRequiredService<SchemaConfigDependency>();
+                    schema.Query().ReplaceField("hello", _ => dependency.Value, "Configured from DI");
+                }
+            );
+        });
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var schema = scope.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var result = schema.ExecuteRequest(new QueryRequest { Query = "{ hello }" }, scope.ServiceProvider, null);
+
+        Assert.NotNull(result.Data);
+        Assert.Equal("configured-from-services", result.Data!["hello"]);
+    }
+
+    [Fact]
+    public void ConfigureGraphQLSchema_CanBeChainedAfterAddGraphQLSchema()
+    {
+        var services = new ServiceCollection();
+        services
+            .AddScoped<SchemaLifetimeQuery>()
+            .AddGraphQLSchema<SchemaLifetimeQuery>(options =>
+            {
+                options.Schema.IntrospectionEnabled = false;
+            })
+            .ConfigureGraphQLSchema<SchemaLifetimeQuery>(schema =>
+            {
+                schema.Query().ReplaceField("hello", _ => "configured-in-chain", "Configured after registration");
+            });
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        var schema = scope.ServiceProvider.GetRequiredService<SchemaProvider<SchemaLifetimeQuery>>();
+        var result = schema.ExecuteRequest(new QueryRequest { Query = "{ hello }" }, scope.ServiceProvider, null);
+
+        Assert.NotNull(result.Data);
+        Assert.Equal("configured-in-chain", result.Data!["hello"]);
+    }
+
     public class SchemaLifetimeQuery
     {
         public string Hello { get; set; } = "world";
+    }
+
+    private class SchemaConfigDependency
+    {
+        public string Value => "configured-from-services";
     }
 }

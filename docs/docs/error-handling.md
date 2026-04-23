@@ -243,15 +243,7 @@ In **development mode**, the raw message is forwarded as-is:
 
 #### How `IsDevelopment` is set
 
-**ASP.NET (recommended)** — `AddGraphQLSchema` auto-detects `IWebHostEnvironment`. When the environment is `"Development"`, messages are disclosed; every other named environment (Staging, Production, etc.) masks them. You never need to set this manually in typical setups:
-
-```cs
-// Program.cs — detection is automatic
-builder.Services.AddGraphQLSchema<MyContext>(options =>
-{
-    options.ConfigureSchema = schema => { /* ... */ };
-});
-```
+**ASP.NET (recommended)** — `AddGraphQLSchema` auto-detects `IWebHostEnvironment`. When the environment is `"Development"`, messages are disclosed; every other named environment (Staging, Production, etc.) masks them. You never need to set this manually in typical setups.
 
 To override the auto-detection — for example to enable development messages in a staging environment during an incident — set `IsDevelopment` explicitly:
 

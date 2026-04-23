@@ -4,9 +4,9 @@ using EntityGraphQL.AspNet;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddGraphQLValidator();
-builder.Services.AddGraphQLSchema<TestQueryType>(configure =>
-{
-    configure.ConfigureSchema = schema =>
+builder
+    .Services.AddGraphQLSchema<TestQueryType>()
+    .ConfigureGraphQLSchema<TestQueryType>(schema =>
     {
         schema
             .Mutation()
@@ -23,8 +23,7 @@ builder.Services.AddGraphQLSchema<TestQueryType>(configure =>
                 }
             )
             .IsNullable(false);
-    };
-});
+    });
 builder.Services.AddScoped<TestQueryType>();
 
 var app = builder.Build();

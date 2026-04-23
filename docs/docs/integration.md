@@ -38,12 +38,13 @@ Rather than a blanket disable, you can restrict introspection to authenticated o
 ```cs
 builder.Services.AddGraphQLSchema<MyContext>(options =>
 {
-    options.ConfigureSchema = schema =>
-    {
-        // require any authenticated user for introspection
-        schema.Query().GetField("__schema", null)?.RequireAuthorization();
-        schema.Query().GetField("__type", null)?.RequireAuthorization();
-    };
+    options.Schema.IntrospectionEnabled = true;
+})
+.ConfigureGraphQLSchema<MyContext>(schema =>
+{
+    // require any authenticated user for introspection
+    schema.Query().GetField("__schema", null)?.RequireAuthorization();
+    schema.Query().GetField("__type", null)?.RequireAuthorization();
 });
 ```
 

@@ -76,6 +76,73 @@ services.AddGraphQLSchema<DemoContext>(options => {
     options.Schema.IntrospectionEnabled = true;
     options.Schema.AuthorizationService = new CustomAuthService();
     options.Schema.IsDevelopment = false;
+})
+.ConfigureGraphQLSchema<DemoContext>(schema =>
+{
+    // Schema-level concerns (types, fields, directives, auth rules, etc.)
+});
+```
+
+### `AddGraphQLSchema()` now returns a builder
+
+When using `EntityGraphQL.AspNet`, `AddGraphQLSchema()` now returns a dedicated `GraphQLSchemaBuilder<TContext>` instead of `IServiceCollection`.
+
+This enables a more ASP.NET-like fluent setup where service registration concerns stay in the `AddGraphQLSchema()` options callback, and schema-shape concerns are chained with `ConfigureGraphQLSchema(...)`.
+
+**In 6.x:**
+
+```cs
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.Schema.IntrospectionEnabled = false;
+})
+.ConfigureGraphQLSchema<DemoContext>(schema => {
+    schema.AddType<MyType>("MyType", "...");
+});
+```
+
+If schema setup needs DI services at build time:
+
+```cs
+services.AddGraphQLSchema<DemoContext>()
+    .ConfigureGraphQLSchema<DemoContext>((schema, services) => {
+        var metadata = services.GetRequiredService<IMetadataService>();
+        // use metadata while configuring the schema
+    });
+```
+
+### `AddGraphQLOptions.ConfigureSchema` is now method-based
+
+`AddGraphQLOptions<TContext>` no longer exposes settable schema-configuration delegate properties. Instead it now provides overloaded `ConfigureSchema(...)` methods.
+
+If you configure `AddGraphQLOptions<TContext>` directly, update:
+
+**Before (5.x):**
+
+```cs
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.ConfigureSchema = schema => {
+        schema.AddType<MyType>("MyType", "...");
+    };
+});
+```
+
+**After (6.x):**
+
+```cs
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.ConfigureSchema(schema => {
+        schema.AddType<MyType>("MyType", "...");
+    });
+});
+```
+
+And if schema setup needs DI services:
+
+```cs
+services.AddGraphQLSchema<DemoContext>(options => {
+    options.ConfigureSchema((schema, services) => {
+        var metadata = services.GetRequiredService<IMetadataService>();
+    });
 });
 ```
 
@@ -126,42 +193,24 @@ schema.AddCustomTypeConverter(new MyConverter());
 **After (6.x):**
 
 ```cs
-// From-to converter (bidirectional)
-schema.AddTypeConverter<SourceType, TargetType>(
-    source => ConvertTo(source),
-    target => ConvertFrom(target)
+// From-to converter
+schema.AddCustomTypeConverter<SourceType, TargetType>(
+    (source, schema) => ConvertTo(source)
 );
 
-// To-only converter (one direction)
-schema.AddTypeConverter<SourceType, TargetType>(
-    source => ConvertTo(source)
+// To-only converter
+schema.AddCustomTypeConverter<TargetType>(
+    (value, schema) => ConvertToTarget(value)
 );
 
-// From-only converter (for input types)
-schema.AddInputTypeConverter<SourceType, TargetType>(
-    target => ConvertFrom(target)
+// From-only converter
+schema.AddCustomTypeConverter<SourceType>(
+    (value, toType, schema) => ConvertFrom(value, toType),
+    typeof(TargetType)
 );
 ```
 
 See the updated documentation for more flexible converting methods available.
-
-## `ExecutableDirectiveLocation` Enum Renamed
-
-Fields in the `ExecutableDirectiveLocation` enum have been renamed to follow C# naming conventions (PascalCase instead of SCREAMING_SNAKE_CASE).
-
-**Before (5.x):**
-
-```cs
-ExecutableDirectiveLocation.QUERY
-ExecutableDirectiveLocation.FIELD
-```
-
-**After (6.x):**
-
-```cs
-ExecutableDirectiveLocation.Query
-ExecutableDirectiveLocation.Field
-```
 
 ## Removed Obsolete Methods
 
@@ -244,7 +293,54 @@ The authorization system has been refactored to use a keyed data structure for b
 
 ## `IFieldExtension.GetExpressionAndArguments` Signature Change
 
-The method signature has changed to take the current GraphQL node instead of the parent node.
+The field extension API changed across the 6.0 betas and the final shape uses context objects instead of long positional parameter lists.
+
+### Before (5.x / early 6.0 betas)
+
+Field extensions received long method signatures and `GetExpressionAndArguments()` previously changed to take the current field node instead of the parent node.
+
+### After (final 6.x API)
+
+`IFieldExtension` compilation hooks now use context objects:
+
+- `GetExpressionAndArguments()` takes `FieldExtensionExpressionContext`
+- `ProcessExpressionPreSelection()` takes `FieldExtensionPreSelectionContext`
+- `ProcessExpressionSelection()` takes `FieldExtensionSelectionContext`
+
+This is a breaking change for custom field extensions.
+
+## `ExecutableDirectiveLocation` enum and introspection naming
+
+`ExecutableDirectiveLocation` enum values were renamed to C#-style `PascalCase` names.
+
+**Before (5.x):**
+
+```cs
+ExecutableDirectiveLocation.QUERY
+ExecutableDirectiveLocation.FIELD
+```
+
+**After (6.x):**
+
+```cs
+ExecutableDirectiveLocation.Query
+ExecutableDirectiveLocation.Field
+```
+
+Introspection output still follows the GraphQL spec names (`QUERY`, `FIELD`, etc.), but C# enum references must use the new names.
+
+## ASP.NET schema lifetime
+
+`AddGraphQLSchema()` in `EntityGraphQL.AspNet` now supports configuring the registered schema lifetime via `options.SchemaLifetime`.
+
+This is useful when schema construction depends on scoped/request-specific services.
+
+```cs
+services.AddGraphQLSchema<DemoContext>(options =>
+{
+    options.SchemaLifetime = ServiceLifetime.Scoped;
+});
+```
 
 ## Target Framework Changes
 

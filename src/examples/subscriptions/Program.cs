@@ -13,10 +13,7 @@ builder.Services.AddDbContext<ChatContext>(opt => opt.UseSqlite(connectionString
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<ChatEventService>();
 
-builder.Services.AddGraphQLSchema<ChatContext>(options =>
-{
-    options.ConfigureSchema = ChatGraphQLSchema.ConfigureSchema;
-});
+builder.Services.AddGraphQLSchema<ChatContext>().ConfigureGraphQLSchema<ChatContext>(ChatGraphQLSchema.ConfigureSchema);
 
 var app = builder.Build();
 

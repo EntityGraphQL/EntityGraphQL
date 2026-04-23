@@ -12,6 +12,8 @@ namespace EntityGraphQL.AspNet;
 /// <typeparam name="TSchemaContext">The type of the schema context</typeparam>
 public class AddGraphQLOptions<TSchemaContext>
 {
+    private Action<SchemaProvider<TSchemaContext>, IServiceProvider>? configureSchema;
+
     public AddGraphQLOptions(IAuthorizationService? authService)
     {
         // Default for asp.net if IAuthorizationService available
@@ -38,10 +40,25 @@ public class AddGraphQLOptions<TSchemaContext>
     public bool AutoBuildSchemaFromContext { get; set; } = true;
 
     /// <summary>
-    /// Called after the context has been reflected into a schema to allow further customisation.
+    /// Register a callback that is called after the context has been reflected into a schema to allow further customisation.
     /// Or use this to configure the whole schema if AutoBuildSchemaFromContext is false.
     /// </summary>
-    public Action<SchemaProvider<TSchemaContext>>? ConfigureSchema { get; set; }
+    public void ConfigureSchema(Action<SchemaProvider<TSchemaContext>> configure)
+    {
+        configureSchema = (schema, _) => configure(schema);
+    }
+
+    /// <summary>
+    /// Register a callback that is called after the context has been reflected into a schema to allow further customisation with access
+    /// to the active <see cref="IServiceProvider"/> used to build the schema.
+    /// Or use this to configure the whole schema if AutoBuildSchemaFromContext is false.
+    /// </summary>
+    public void ConfigureSchema(Action<SchemaProvider<TSchemaContext>, IServiceProvider> configure)
+    {
+        configureSchema = configure;
+    }
+
+    internal Action<SchemaProvider<TSchemaContext>, IServiceProvider>? GetConfigureSchema() => configureSchema;
 
     /// <summary>
     /// The DI lifetime used when registering <see cref="SchemaProvider{TSchemaContext}"/>. Defaults to <see cref="ServiceLifetime.Singleton"/>.

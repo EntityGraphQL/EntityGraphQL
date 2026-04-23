@@ -2,9 +2,9 @@ name: Build & package .NET
 
 on:
   push:
-    branches: [master, release/**]
+    branches: [main, release/**]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   build:

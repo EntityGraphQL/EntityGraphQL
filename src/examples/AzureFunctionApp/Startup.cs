@@ -26,10 +26,10 @@ public class Startup : FunctionsStartup
                     // add in needed mappings for our context
                     schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
                 };
-                options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
                 // below this will generate the field names as they are from the reflected dotnet types - i.e matching the case
                 // builder.FieldNamer = name => name;
             })
+            .ConfigureGraphQLSchema<DemoContext>(GraphQLSchema.ConfigureSchema)
             .AddGraphQLValidator();
     }
 }

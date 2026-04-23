@@ -76,11 +76,12 @@ Setting up our application - register our schema, enable web sockets and GraphQL
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddGraphQLSchema<ChatContext>(options =>
 {
-    options.ConfigureSchema = (schema) => {
-        schema.Mutation().AddFrom<ChatMutations>();
-        // highlight-next-line
-        schema.Subscription().AddFrom<ChatSubscriptions>();
-    }
+    // options for adding the schema
+})
+.ConfigureGraphQLSchema<ChatContext>(schema => {
+    schema.Mutation().AddFrom<ChatMutations>();
+    // highlight-next-line
+    schema.Subscription().AddFrom<ChatSubscriptions>();
 });
 
 var app = builder.Build();

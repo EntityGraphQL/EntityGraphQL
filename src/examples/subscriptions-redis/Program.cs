@@ -24,10 +24,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Conn
 builder.Services.AddSingleton<ChatService>();
 
 // --- GraphQL ---
-builder.Services.AddGraphQLSchema<ChatContext>(options =>
-{
-    options.ConfigureSchema = ChatGraphQLSchema.ConfigureSchema;
-});
+builder.Services.AddGraphQLSchema<ChatContext>().ConfigureGraphQLSchema<ChatContext>(ChatGraphQLSchema.ConfigureSchema);
 
 var app = builder.Build();
 

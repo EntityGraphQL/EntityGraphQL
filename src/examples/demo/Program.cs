@@ -40,9 +40,8 @@ builder
             // Add custom scalar types before reflection
             schema.AddScalarType<KeyValuePair<string, string>>("StringKeyValuePair", "Represents a pair of strings");
         };
-
-        options.ConfigureSchema = GraphQLSchema.ConfigureSchema;
     })
+    .ConfigureGraphQLSchema<DemoContext>(GraphQLSchema.ConfigureSchema)
     .AddGraphQLValidator(); // Add validation support for mutations
 
 var app = builder.Build();

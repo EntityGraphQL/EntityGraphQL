@@ -1,3 +1,15 @@
+# 6.0.0-beta5
+
+## Breaking Changes
+
+- `AddGraphQLOptions<TContext>` now exposes overloaded `ConfigureSchema(...)` methods instead of settable schema-configuration delegate properties. Use `options.ConfigureSchema(schema => { ... })` for the common case, or `options.ConfigureSchema((schema, services) => { ... })` when schema setup needs the active `IServiceProvider`.
+- `AddGraphQLSchema()` in `EntityGraphQL.AspNet` now returns a dedicated `GraphQLSchemaBuilder<TContext>` instead of `IServiceCollection`. Schema-shape customization should now be chained with `ConfigureGraphQLSchema(...)`, for example:
+  - `services.AddGraphQLSchema<MyContext>(options => { ... }).ConfigureGraphQLSchema<MyContext>(schema => { ... });`
+
+## Changes
+
+- #508 - Added a `src/examples/tooling` example showing GraphiQL and Hot Chocolate Nitro hosted against an `EntityGraphQL.AspNet` `/api/graphql` endpoint.
+
 # 6.0.0-beta4
 
 ## Breaking Changes
@@ -10,7 +22,6 @@
 ## Changes
 
 - #513 - `AddGraphQLSchema()` now supports configuring the registered `SchemaProvider<TContext>` lifetime via `AddGraphQLOptions.SchemaLifetime`. The default remains singleton, with scoped/transient lifetimes available for request-specific schema construction.
-- #508 - Added a `src/examples/tooling` example showing GraphiQL and Hot Chocolate Nitro hosted against an `EntityGraphQL.AspNet` `/graphql` endpoint.
 
 ## Fixes
 

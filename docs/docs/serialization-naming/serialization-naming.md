@@ -38,9 +38,9 @@ Then make sure you follow your naming policy when adding fields to the schema.
 ```cs
 services.AddGraphQLSchema<DemoContext>(options => {
     options.Schema.FieldNamer = name => name; // use the dotnet name as is
-    options.ConfigureSchema = schema => {
-        schema.Query().AddField("SomeField", ...)
-    };
+})
+.ConfigureGraphQLSchema<DemoContext>(schema => {
+    schema.Query().AddField("SomeField", ...)
 });
 ```
 

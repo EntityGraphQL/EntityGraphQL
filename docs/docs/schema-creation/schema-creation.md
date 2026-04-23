@@ -24,23 +24,25 @@ services.AddGraphQLSchema<DemoContext>(options => {
     // Configure the schema provider settings
     options.Schema.FieldNamer = name => name; // Override default camelCase naming
     options.Schema.IntrospectionEnabled = true;
-
-    options.ConfigureSchema = (schema) => {
-        // configure schema here
-    };
+})
+.ConfigureGraphQLSchema<DemoContext>(schema => {
+    // configure schema here
 });
 
 // Create a blank schema with the base query type. Schema has no types or fields yet.
 services.AddGraphQLSchema<DemoContext>(options =>
 {
     options.AutoBuildSchemaFromContext = false;
-    options.ConfigureSchema = (schema) => {
-        // configure schema here
-    };
+})
+.ConfigureGraphQLSchema<DemoContext>(schema =>
+{
+    // configure schema here
 });
 ```
 
-If you need to create a schema outside of ASP.NET.
+When using ASP.NET, `AddGraphQLSchema()` is for hosting and builder/provider options, while `ConfigureGraphQLSchema()` is the fluent hook for schema-level concerns.
+
+If you need to create a schema outside of ASP.NET, configure it directly as before:
 
 ```cs
 // Create a schema auto-populated from the base query type. Schema has types and fields built from DemoContext. See optional arguments for customizing the behavior.

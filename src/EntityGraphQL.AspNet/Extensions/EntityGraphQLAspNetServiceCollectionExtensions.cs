@@ -33,7 +33,7 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
         options.Builder.PreBuildSchemaFromContext?.Invoke(schema);
         if (options.AutoBuildSchemaFromContext)
             schema.PopulateFromContext(options.Builder);
-        options.ConfigureSchema?.Invoke(schema);
+        options.GetConfigureSchema()?.Invoke(schema, serviceProvider);
 
         return schema;
     }
@@ -41,31 +41,19 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
     /// <summary>
     /// Adds a SchemaProvider&lt;TSchemaContext&gt; as a singleton to the service collection.
     /// </summary>
-    /// <param name="serviceCollection"></param>
-    /// <param name="configure">Function to further configure your schema</param>
-    /// <typeparam name="TSchemaContext"></typeparam>
-    /// <returns></returns>
-    public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<SchemaProvider<TSchemaContext>>? configure = null)
+    public static GraphQLSchemaBuilder<TSchemaContext> AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<SchemaProvider<TSchemaContext>>? configure = null)
     {
-        serviceCollection.AddGraphQLSchema<TSchemaContext>(options =>
-        {
-            options.ConfigureSchema = configure;
-        });
-
-        return serviceCollection;
+        var builder = serviceCollection.AddGraphQLSchema((Action<AddGraphQLOptions<TSchemaContext>>)(_ => { }));
+        if (configure != null)
+            builder.ConfigureGraphQLSchema(configure);
+        return builder;
     }
 
     /// <summary>
     /// Adds a SchemaProvider&lt;TSchemaContext&gt; as a singleton to the service collection.
     /// </summary>
-    /// <typeparam name="TSchemaContext">Context type to build the schema on</typeparam>
-    /// <param name="serviceCollection"></param>
-    /// <param name="configure">Callback to configure the AddGraphQLOptions</param>
-    /// <returns></returns>
-    public static IServiceCollection AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<AddGraphQLOptions<TSchemaContext>> configure)
+    public static GraphQLSchemaBuilder<TSchemaContext> AddGraphQLSchema<TSchemaContext>(this IServiceCollection serviceCollection, Action<AddGraphQLOptions<TSchemaContext>> configure)
     {
-        // We don't want the DI of JsonSerializerOptions as they may not be set up correctly for the dynamic types
-        // They used IGraphQLRequestDeserializer/IGraphQLResponseSerializer to override the default JSON serialization
         serviceCollection.TryAddSingleton<IGraphQLRequestDeserializer>(new DefaultGraphQLRequestDeserializer());
         serviceCollection.TryAddSingleton<IGraphQLResponseSerializer>(new DefaultGraphQLResponseSerializer());
 
@@ -74,14 +62,39 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
 
         serviceCollection.Add(new ServiceDescriptor(typeof(SchemaProvider<TSchemaContext>), sp => BuildSchema(sp, options), options.SchemaLifetime));
 
-        return serviceCollection;
+        return new GraphQLSchemaBuilder<TSchemaContext>(serviceCollection, options);
+    }
+
+    /// <summary>
+    /// Configure schema-level concerns such as adding types, fields, directives, or authorization rules.
+    /// </summary>
+    public static GraphQLSchemaBuilder<TSchemaContext> ConfigureGraphQLSchema<TSchemaContext>(this GraphQLSchemaBuilder<TSchemaContext> builder, Action<SchemaProvider<TSchemaContext>> configure)
+    {
+        builder.Options.ConfigureSchema(configure);
+        return builder;
+    }
+
+    /// <summary>
+    /// Configure schema-level concerns with access to the active <see cref="IServiceProvider"/> used to build the schema.
+    /// </summary>
+    public static GraphQLSchemaBuilder<TSchemaContext> ConfigureGraphQLSchema<TSchemaContext>(
+        this GraphQLSchemaBuilder<TSchemaContext> builder,
+        Action<SchemaProvider<TSchemaContext>, IServiceProvider> configure
+    )
+    {
+        builder.Options.ConfigureSchema(configure);
+        return builder;
+    }
+
+    public static GraphQLSchemaBuilder<TSchemaContext> AddGraphQLValidator<TSchemaContext>(this GraphQLSchemaBuilder<TSchemaContext> builder)
+    {
+        builder.Services.AddGraphQLValidator();
+        return builder;
     }
 
     /// <summary>
     /// Registers the default IGraphQLValidator implementation to use as a service in your method fields to report a collection of errors
     /// </summary>
-    /// <param name="serviceCollection"></param>
-    /// <returns></returns>
     public static IServiceCollection AddGraphQLValidator(this IServiceCollection serviceCollection)
     {
         serviceCollection.TryAddTransient<IGraphQLValidator, GraphQLValidator>();
