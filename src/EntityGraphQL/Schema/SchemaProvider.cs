@@ -572,7 +572,12 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         {
             AggregateException aggregateException => aggregateException.InnerExceptions.SelectMany(ie => GenerateErrors(ie, fieldName)),
             EntityGraphQLFieldException fieldException => [new GraphQLError(AllowedExceptionMessage(fieldException, fieldName), null, null)],
-            EntityGraphQLException graphqlException => graphqlException.Messages.Select(m => new GraphQLError(m, graphqlException.Path, (IDictionary<string, object>?)graphqlException.Extensions)),
+            EntityGraphQLException graphqlException => graphqlException.Messages.Select(m => new GraphQLError(
+                m,
+                graphqlException.Path,
+                (IDictionary<string, object>?)graphqlException.Extensions,
+                graphqlException.Location != null ? [graphqlException.Location] : null
+            )),
             TargetInvocationException targetInvocationException => GenerateErrors(targetInvocationException.InnerException!),
             _ => [new GraphQLError(AllowedExceptionMessage(exception, fieldName), null, null)],
         };

@@ -985,7 +985,7 @@ public static class GraphQLParser
     private static EntityGraphQLException CreateParseException(GraphQLParseContext parseContext, string message, int position)
     {
         var (line, column) = GetLineAndColumn(parseContext.Source, position);
-        return new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"{message} (line {line}, column {column})");
+        return new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"{message} (line {line}, column {column})", null, null, null, new GraphQLSourceLocation(position, line, column));
     }
 
     private static (int line, int column) GetLineAndColumn(ReadOnlySpan<char> source, int position)

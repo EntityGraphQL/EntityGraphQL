@@ -189,7 +189,7 @@ public abstract class BaseField : IField
     public IField AddDirective(ISchemaDirective directive)
     {
         if (!directive.Location.Any(x => x == TypeSystemDirectiveLocation.FieldDefinition))
-            throw new InvalidOperationException($"{directive.GetType().Name} not valid on FIELD_DEFINITION");
+            throw new EntityGraphQLSchemaException($"{directive.GetType().Name} not valid on FIELD_DEFINITION");
 
         Directives.Add(directive);
         return this;

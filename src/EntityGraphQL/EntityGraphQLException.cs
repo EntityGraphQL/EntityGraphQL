@@ -14,24 +14,34 @@ public class EntityGraphQLException : Exception
     public Dictionary<string, object> Extensions { get; } = new();
     public GraphQLErrorCategory Category { get; }
     public List<string> Path { get; set; } = new();
+    public GraphQLSourceLocation? Location { get; }
 
-    public EntityGraphQLException(string message, IDictionary<string, object>? extensions = null, Exception? innerException = null)
-        : this(GraphQLErrorCategory.ExecutionError, [message], extensions, null, innerException) { }
+    public EntityGraphQLException(string message, IDictionary<string, object>? extensions = null, Exception? innerException = null, GraphQLSourceLocation? location = null)
+        : this(GraphQLErrorCategory.ExecutionError, [message], extensions, null, innerException, location) { }
 
-    public EntityGraphQLException(GraphQLErrorCategory category, string message, IDictionary<string, object>? extensions = null, IEnumerable<string>? path = null, Exception? innerException = null)
-        : this(category, [message], extensions, path, innerException) { }
+    public EntityGraphQLException(
+        GraphQLErrorCategory category,
+        string message,
+        IDictionary<string, object>? extensions = null,
+        IEnumerable<string>? path = null,
+        Exception? innerException = null,
+        GraphQLSourceLocation? location = null
+    )
+        : this(category, [message], extensions, path, innerException, location) { }
 
     public EntityGraphQLException(
         GraphQLErrorCategory category,
         IEnumerable<string> messages,
         IDictionary<string, object>? extensions = null,
         IEnumerable<string>? path = null,
-        Exception? innerException = null
+        Exception? innerException = null,
+        GraphQLSourceLocation? location = null
     )
         : base(messages.First(), innerException)
     {
         Category = category;
         Messages = messages.ToHashSet();
+        Location = location;
         if (path != null)
             Path = path.ToList();
         if (extensions != null)

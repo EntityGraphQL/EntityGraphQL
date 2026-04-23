@@ -9,6 +9,7 @@
 ## Changes
 
 - #508 - Added a `src/examples/tooling` example showing GraphiQL and Hot Chocolate Nitro hosted against an `EntityGraphQL.AspNet` `/api/graphql` endpoint.
+- Query/document errors now preserve structured source locations in addition to the existing message text, and `GraphQLError` responses now emit `locations` metadata when available. Also normalized invalid field-directive registration to throw `EntityGraphQLSchemaException` instead of `InvalidOperationException` on the public schema API surface.
 
 # 6.0.0-beta4
 
