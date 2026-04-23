@@ -66,12 +66,34 @@ public class CompileAllStagesBenchmarks : BaseBenchmark
             }
         }";
 
+    private readonly string queryWithVars =
+        @"query($id: ID!) {
+            movie(id: $id) {
+                id name released
+                director {
+                    id name dob
+                    directorOf {
+                        id name released
+                    }
+                }
+                actors {
+                    id name dob
+                }
+            }
+        }";
+
     private readonly QueryRequest gql;
+    private readonly QueryRequest gqlWithVars;
     private readonly BenchmarkContext context;
 
     public CompileAllStagesBenchmarks()
     {
         gql = new QueryRequest { Query = query };
+        gqlWithVars = new QueryRequest
+        {
+            Query = queryWithVars,
+            Variables = new QueryVariables { { "id", "077b3041-307a-42ba-9ffe-1121fcfc918b" } },
+        };
         context = GetContext();
     }
 
@@ -131,5 +153,28 @@ public class CompileAllStagesBenchmarks : BaseBenchmark
                 CacheCompiledDelegates = true,
             }
         );
+    }
+
+    // Variable-based variants exercise the OpVariableParameter reflection path:
+    // RuntimeTypeCache.CreateInstance<IArgumentsTracker> and GetPublicInstanceField
+
+    [Benchmark]
+    public void CompileNoCache_WithVariables()
+    {
+        Schema.ExecuteRequestWithContext(gqlWithVars, context, null, null, new ExecutionOptions {
+#if DEBUG
+                NoExecution = true,
+#endif
+                EnableQueryCache = false });
+    }
+
+    [Benchmark]
+    public void CompileDocCache_WithVariables()
+    {
+        Schema.ExecuteRequestWithContext(gqlWithVars, context, null, null, new ExecutionOptions {
+#if DEBUG
+                NoExecution = true,
+#endif
+                EnableQueryCache = true });
     }
 }
