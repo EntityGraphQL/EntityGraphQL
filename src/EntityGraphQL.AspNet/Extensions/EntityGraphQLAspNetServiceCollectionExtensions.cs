@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.AspNet;
 
@@ -22,7 +23,8 @@ public static class EntityGraphQLAspNetServiceCollectionExtensions
         if (webHostEnvironment != null && !webHostEnvironment.IsEnvironment("Development"))
             isDevelopment = false;
 
-        var schema = new SchemaProvider<TSchemaContext>(authorizationService, schemaOptions.FieldNamer, introspectionEnabled: schemaOptions.IntrospectionEnabled, isDevelopment: isDevelopment);
+        var logger = serviceProvider.GetService<ILogger<SchemaProvider<TSchemaContext>>>();
+        var schema = new SchemaProvider<TSchemaContext>(authorizationService, schemaOptions.FieldNamer, logger, introspectionEnabled: schemaOptions.IntrospectionEnabled, isDevelopment: isDevelopment);
 
         foreach (var allowedException in schemaOptions.AllowedExceptions)
         {

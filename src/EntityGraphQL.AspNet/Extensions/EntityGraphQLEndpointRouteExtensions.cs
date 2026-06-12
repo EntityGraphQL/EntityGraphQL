@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EntityGraphQL.AspNet;
 
@@ -12,6 +14,18 @@ public static class EntityGraphQLEndpointRouteExtensions
 {
     private const string APP_JSON_TYPE_START = "application/json";
     private const string APP_GQL_TYPE_START = "application/graphql-response+json";
+
+    private static readonly Action<ILogger, Exception> logResponseError = LoggerMessage.Define(
+        LogLevel.Error,
+        new EventId(1, nameof(MapGraphQL)),
+        "Error executing or serializing the GraphQL response"
+    );
+
+    private static readonly Action<ILogger, int, string, Exception?> logRequestRejected = LoggerMessage.Define<int, string>(
+        LogLevel.Debug,
+        new EventId(2, nameof(MapGraphQL)),
+        "GraphQL request rejected with status {StatusCode}: {Reason}"
+    );
 
     /// <summary>
     /// Add the GraphQL endpoint to the route builder
@@ -35,6 +49,8 @@ public static class EntityGraphQLEndpointRouteExtensions
             path,
             async context =>
             {
+                var logger = context.RequestServices.GetService<ILoggerFactory>()?.CreateLogger(typeof(EntityGraphQLEndpointRouteExtensions)) ?? NullLogger.Instance;
+
                 var acceptValues = context.Request.GetTypedHeaders().Accept;
                 var sorted = acceptValues.OrderByDescending(h => h.Quality ?? 1.0).ToList();
 
@@ -48,12 +64,14 @@ public static class EntityGraphQLEndpointRouteExtensions
                     && !sorted.Any(h => h.MediaType.StartsWith("application/*", StringComparison.InvariantCulture) == true)
                 )
                 {
+                    logRequestRejected(logger, StatusCodes.Status406NotAcceptable, "Accept header does not allow a JSON GraphQL response", null);
                     context.Response.StatusCode = StatusCodes.Status406NotAcceptable;
                     return;
                 }
                 // checking for ContentType == null is technically a breaking change so only do it for the followSpec case until 6.0
                 if (context.Request.ContentType == null || context.Request.ContentType?.StartsWith(APP_JSON_TYPE_START, StringComparison.InvariantCulture) == false)
                 {
+                    logRequestRejected(logger, StatusCodes.Status415UnsupportedMediaType, $"Unsupported Content-Type '{context.Request.ContentType}'", null);
                     context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                     return;
                 }
@@ -61,6 +79,7 @@ public static class EntityGraphQLEndpointRouteExtensions
 
                 if (!isChunked && (context.Request.ContentLength == null || context.Request.ContentLength == 0))
                 {
+                    logRequestRejected(logger, StatusCodes.Status400BadRequest, "Request body is empty", null);
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     return;
                 }
@@ -71,8 +90,9 @@ public static class EntityGraphQLEndpointRouteExtensions
                 {
                     query = await deserializer.DeserializeAsync(context.Request.Body);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    logRequestRejected(logger, StatusCodes.Status400BadRequest, "Failed to deserialize the GraphQL request body", ex);
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     return;
                 }
@@ -101,10 +121,16 @@ public static class EntityGraphQLEndpointRouteExtensions
                     var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
                     await serializer.SerializeAsync(context.Response.Body, gqlResult);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // something went very wrong
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    // Something went very wrong executing the query or serializing the response.
+                    // Surface it via logging so it is not silently swallowed.
+                    logResponseError(logger, ex);
+
+                    // Only set the status code if the response has not started; once serialization has
+                    // begun writing to the body the headers are already sent and setting the status throws.
+                    if (!context.Response.HasStarted)
+                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     return;
                 }
             }
