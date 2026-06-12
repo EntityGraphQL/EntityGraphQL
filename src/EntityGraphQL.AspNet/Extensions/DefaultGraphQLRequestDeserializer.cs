@@ -15,14 +15,20 @@ public class DefaultGraphQLRequestDeserializer : IGraphQLRequestDeserializer
 
     public DefaultGraphQLRequestDeserializer(JsonSerializerOptions? jsonOptions = null)
     {
-        if (jsonOptions != null)
-            this.jsonOptions = jsonOptions;
-        else
-        {
-            this.jsonOptions = new JsonSerializerOptions { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            this.jsonOptions.Converters.Add(new JsonStringEnumConverter());
-            this.jsonOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
-        }
+        this.jsonOptions = jsonOptions ?? CreateDefaultOptions();
+    }
+
+    /// <summary>
+    /// Builds the default <see cref="JsonSerializerOptions"/> used to deserialize GraphQL requests.
+    /// Use this as a starting point when you only need to tweak the defaults rather than reproducing
+    /// every setting from scratch.
+    /// </summary>
+    public static JsonSerializerOptions CreateDefaultOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web) { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        options.Converters.Add(new JsonStringEnumConverter());
+        options.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+        return options;
     }
 
     public async Task<QueryRequest> DeserializeAsync(Stream body)

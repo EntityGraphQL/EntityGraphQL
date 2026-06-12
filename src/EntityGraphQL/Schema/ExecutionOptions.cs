@@ -89,7 +89,7 @@ public class ExecutionOptions
     /// Null or 0 means unlimited. Recommended production value: a few hundred to a few thousand depending on schema.
     /// Protects against batched-alias and fragment-spread DoS attacks where the same field is selected many times.
     /// </summary>
-    public int? MaxQueryNodes { get; set; }
+    public int? MaxFieldSelections { get; set; }
 
     /// <summary>
     /// Maximum number of aliased field selections in a GraphQL query. An alias is any selection whose response name
@@ -143,7 +143,7 @@ public class ExecutionOptions
     /// Return null to disable per-user partitioning for the current request (request then hits the shared
     /// partition).
     /// </summary>
-    public Func<ClaimsPrincipal?, string?>? UserKeySelector { get; set; }
+    public Func<ClaimsPrincipal?, string?>? RateLimitUserKeySelector { get; set; }
 
 #if DEBUG
     /// <summary>

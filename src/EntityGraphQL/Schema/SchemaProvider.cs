@@ -528,7 +528,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             var fieldRateLimiter = options.FieldRateLimitService ?? (IFieldRateLimitService?)serviceProvider?.GetService(typeof(IFieldRateLimitService));
             AggregateFieldRateLimitLease? leases = null;
             if (fieldRateLimiter != null)
-                leases = await FieldRateLimitExecutor.AcquireAsync(compiledQuery, gql.OperationName, fieldRateLimiter, user, options.UserKeySelector, cancellationToken);
+                leases = await FieldRateLimitExecutor.AcquireAsync(compiledQuery, gql.OperationName, fieldRateLimiter, user, options.RateLimitUserKeySelector, cancellationToken);
 
             try
             {

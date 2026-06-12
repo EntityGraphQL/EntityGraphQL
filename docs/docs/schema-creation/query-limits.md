@@ -13,7 +13,7 @@ These guards protect against common GraphQL DoS vectors: deeply nested queries, 
 | Option | Purpose | Default |
 |---|---|---|
 | `MaxQueryDepth` | Hard cap on nesting depth. Fragment spreads and inline fragments do **not** add to depth. | `null` (unlimited) |
-| `MaxQueryNodes` | Hard cap on total selected fields after fragment expansion. Defeats alias/spread amplification. | `null` (unlimited) |
+| `MaxFieldSelections` | Hard cap on total selected fields after fragment expansion. Defeats alias/spread amplification. | `null` (unlimited) |
 | `MaxFieldAliases` | Hard cap on aliased selections (where response name differs from the schema field name). | `null` (unlimited) |
 | `MaxQueryComplexity` | Hard cap on total cost computed by `IQueryComplexityAnalyzer`. | `null` (unlimited) |
 | `QueryComplexityAnalyzer` | Override the default analyzer with your own. | `DefaultQueryComplexityAnalyzer` |
@@ -26,7 +26,7 @@ A limit of `null` or `0` means the check is skipped. When any guard fires, the r
 var options = new ExecutionOptions
 {
     MaxQueryDepth = 10,
-    MaxQueryNodes = 500,
+    MaxFieldSelections = 500,
     MaxFieldAliases = 30,
     MaxQueryComplexity = 1000,
 };
@@ -54,11 +54,11 @@ Depth counts how many levels of selection sets you traverse from the root. Fragm
 
 ## Node count
 
-`MaxQueryNodes` counts every field selection after fragment / inline-fragment expansion. This is the backstop for the alias and fragment-spread batching attacks — even if each individual field passes auth and schema checks, a query that selects 100,000 fields is rejected here.
+`MaxFieldSelections` counts every field selection after fragment / inline-fragment expansion. This is the backstop for the alias and fragment-spread batching attacks — even if each individual field passes auth and schema checks, a query that selects 100,000 fields is rejected here.
 
 ## Alias count
 
-An alias is any selection where the response name differs from the schema field name (`{ a: totalPeople }`). `MaxFieldAliases` lets you reject batched-alias attacks with a tighter limit than `MaxQueryNodes` since most legitimate queries need very few aliases.
+An alias is any selection where the response name differs from the schema field name (`{ a: totalPeople }`). `MaxFieldAliases` lets you reject batched-alias attacks with a tighter limit than `MaxFieldSelections` since most legitimate queries need very few aliases.
 
 ## Complexity
 
@@ -248,12 +248,12 @@ For policies whose natural unit is "queries per window" rather than "invocations
 
 ### User-specific partitioning
 
-When a field is tagged `userSpecific: true`, the service partitions by user. Default key selector is `ClaimsPrincipal.Identity?.Name`. Override via `ExecutionOptions.UserKeySelector` to use an API-key header or a custom claim:
+When a field is tagged `userSpecific: true`, the service partitions by user. Default key selector is `ClaimsPrincipal.Identity?.Name`. Override via `ExecutionOptions.RateLimitUserKeySelector` to use an API-key header or a custom claim:
 
 ```cs
 var options = new ExecutionOptions
 {
-    UserKeySelector = user => user?.FindFirst("api-key")?.Value,
+    RateLimitUserKeySelector = user => user?.FindFirst("api-key")?.Value,
 };
 ```
 

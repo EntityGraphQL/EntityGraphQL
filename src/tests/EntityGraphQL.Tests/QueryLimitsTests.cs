@@ -42,17 +42,17 @@ public class QueryLimitsTests
     }
 
     [Fact]
-    public void MaxQueryNodes_CountsLeafSelections()
+    public void MaxFieldSelections_CountsLeafSelections()
     {
         var schema = BuildSchema();
         var data = new TestDataContext();
         // 6 fields: projects + id + name + tasks + id + name
         var gql = new QueryRequest { Query = @"{ projects { id name tasks { id name } } }" };
 
-        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryNodes = 6 });
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxFieldSelections = 6 });
         Assert.Null(pass.Errors);
 
-        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryNodes = 5 });
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxFieldSelections = 5 });
         Assert.NotNull(fail.Errors);
         Assert.Contains(fail.Errors!, e => e.Message.Contains("maximum allowed node count"));
     }
@@ -202,9 +202,9 @@ public class QueryLimitsTests
             }";
         var gql = new QueryRequest { Query = query };
         // 3 nodes: projects + id + name. Inline fragment contributes zero nodes itself.
-        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryNodes = 3 });
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxFieldSelections = 3 });
         Assert.Null(pass.Errors);
-        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryNodes = 2 });
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxFieldSelections = 2 });
         Assert.NotNull(fail.Errors);
     }
 
@@ -265,11 +265,11 @@ public class QueryLimitsTests
 
         var deepMutation = new QueryRequest { Query = "mutation { expensiveMutation }" };
 
-        // MaxQueryNodes — expensiveMutation is 1 node
-        var pass = schema.ExecuteRequestWithContext(deepMutation, data, null, null, new ExecutionOptions { MaxQueryNodes = 1 });
+        // MaxFieldSelections — expensiveMutation is 1 node
+        var pass = schema.ExecuteRequestWithContext(deepMutation, data, null, null, new ExecutionOptions { MaxFieldSelections = 1 });
         Assert.Null(pass.Errors);
 
-        var fail = schema.ExecuteRequestWithContext(deepMutation, data, null, null, new ExecutionOptions { MaxQueryNodes = 0 });
+        var fail = schema.ExecuteRequestWithContext(deepMutation, data, null, null, new ExecutionOptions { MaxFieldSelections = 0 });
         // 0 means unlimited — should pass
         Assert.Null(fail.Errors);
 
@@ -351,7 +351,7 @@ public class QueryLimitsTests
         // With @skip(if: true) it costs 0, so limit=1 passes.
         var gql = new QueryRequest { Query = "{ totalPeople @skip(if: true) }" };
 
-        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxQueryNodes = 1 });
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxFieldSelections = 1 });
         Assert.Null(pass.Errors);
     }
 
@@ -364,7 +364,7 @@ public class QueryLimitsTests
 
         var gql = new QueryRequest { Query = "{ totalPeople @include(if: false) }" };
 
-        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxQueryNodes = 1 });
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxFieldSelections = 1 });
         Assert.Null(pass.Errors);
     }
 
@@ -382,7 +382,7 @@ public class QueryLimitsTests
             Query = "query Q($s: Boolean!) { totalPeople @skip(if: $s) }",
             Variables = new QueryVariables { { "s", true } },
         };
-        var passWhenSkipped = schema.ExecuteRequestWithContext(skipped, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxQueryNodes = 1 });
+        var passWhenSkipped = schema.ExecuteRequestWithContext(skipped, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1, MaxFieldSelections = 1 });
         Assert.Null(passWhenSkipped.Errors);
 
         var included = new QueryRequest

@@ -1,3 +1,11 @@
+# 6.0.0-beta6
+
+## Breaking Changes
+
+- #515 - `DefaultGraphQLResponseSerializer` and `DefaultGraphQLRequestDeserializer` default `JsonSerializerOptions` now use `JsonSerializerDefaults.Web`. For the request deserializer this enables case-insensitive property matching and reading numbers from JSON strings. The response serializer's output is unchanged (it was already camelCase).
+- `ExecutionOptions.MaxQueryNodes` renamed to `MaxFieldSelections` — it counts field selections (the GraphQL spec term) after fragment expansion, not AST or result nodes.
+- `ExecutionOptions.UserKeySelector` renamed to `RateLimitUserKeySelector` to reflect that it only affects per-field rate limiters tagged `userSpecific: true`.
+
 # 6.0.0-beta5
 
 ## Breaking Changes
@@ -10,8 +18,6 @@
 
 - #508 - Added a `src/examples/tooling` example showing GraphiQL and Hot Chocolate Nitro hosted against an `EntityGraphQL.AspNet` `/api/graphql` endpoint.
 - Query/document errors now preserve structured source locations in addition to the existing message text, and `GraphQLError` responses now emit `locations` metadata when available. Also normalized invalid field-directive registration to throw `EntityGraphQLSchemaException` instead of `InvalidOperationException` on the public schema API surface.
-- #515 - The `MapGraphQL` endpoint no longer silently swallows exceptions. Response execution/serialization failures (HTTP 500) are now logged at `Error` and request rejections (406/415/400, including request-body deserialization failures) are logged at `Debug` via the standard `ILogger` infrastructure, so serialization issues like graph-cycle exceptions from `RuntimeTypeJsonConverter` are diagnosable. The `SchemaProvider<TContext>` logger is now wired up from DI in `EntityGraphQL.AspNet`, so query execution errors are logged as well.
-- #515 - `DefaultGraphQLResponseSerializer` now exposes its default `JsonSerializerOptions` via the static `DefaultGraphQLResponseSerializer.CreateDefaultOptions()`, so the defaults can be tweaked (e.g. removing `RuntimeTypeJsonConverter`) without reproducing every setting by hand. The default options now also use `JsonSerializerDefaults.Web`.
 
 # 6.0.0-beta4
 

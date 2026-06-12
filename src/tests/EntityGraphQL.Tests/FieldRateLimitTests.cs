@@ -99,7 +99,7 @@ public class FieldRateLimitTests
             data,
             null,
             user,
-            new ExecutionOptions { FieldRateLimitService = limiter, UserKeySelector = p => p?.FindFirst("api-key")?.Value }
+            new ExecutionOptions { FieldRateLimitService = limiter, RateLimitUserKeySelector = p => p?.FindFirst("api-key")?.Value }
         );
         Assert.Equal("deadbeef", limiter.Requests[0].UserKey);
     }

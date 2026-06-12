@@ -17,7 +17,7 @@ internal static class QueryLimitsValidator
     internal static void Validate(GraphQLDocument document, string? operationName, QueryVariables? variables, ExecutionOptions options)
     {
         var depthLimit = Nz(options.MaxQueryDepth);
-        var nodeLimit = Nz(options.MaxQueryNodes);
+        var nodeLimit = Nz(options.MaxFieldSelections);
         var aliasLimit = Nz(options.MaxFieldAliases);
         var complexityLimit = Nz(options.MaxQueryComplexity);
 
