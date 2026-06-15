@@ -94,7 +94,12 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
             var listContextType = listContext.Type;
             if (listContextType.IsAwaitableGenericType())
                 listContextType = listContextType.GetGenericArguments()[0];
-            nextFieldContext = Expression.Parameter(listContextType.GetEnumerableOrArrayType()!, $"{nextFieldContext.Name}2");
+            // GetEnumerableOrArrayType() returns null for a type that is enumerable but not itself generic/array
+            // (e.g. a CLR type mapped to a list GraphQL type via AddTypeMapping, like NpgsqlPolygon -> [Point!]!).
+            // In that case the element type has not changed from parse time, so fall back to the original
+            // element parameter type rather than passing null to Expression.Parameter.
+            var elementType = listContextType.GetEnumerableOrArrayType() ?? nextFieldContext.Type;
+            nextFieldContext = Expression.Parameter(elementType, $"{nextFieldContext.Name}2");
             // Store replacement so child paging extensions (e.g. ConnectionEdgeExtension) can get
             // the correct anonymous-type element parameter when building service expressions.
             if (NextFieldContext is ParameterExpression origNextCtx)

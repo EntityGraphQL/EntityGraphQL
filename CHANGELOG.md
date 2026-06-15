@@ -1,3 +1,9 @@
+# 6.0.0-beta7
+
+## Bug Fixes
+
+- Fixed `ArgumentNullException` ("Value cannot be null. (Parameter 'type')") when a service-resolved field on a parent type was queried together with a child collection field whose type uses `AddTypeMapping` to map a CLR type to a GraphQL list type (e.g. `AddTypeMapping<NpgsqlPolygon>("[Point!]!")`). The two-pass execution failed to infer the list element type for a non-generic CLR type that implements `IEnumerable<T>`.
+
 # 6.0.0-beta6
 
 ## Breaking Changes
