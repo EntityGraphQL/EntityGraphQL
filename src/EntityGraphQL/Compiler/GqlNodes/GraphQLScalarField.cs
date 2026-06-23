@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler;
@@ -33,6 +34,26 @@ public class GraphQLScalarField : BaseGraphQLField
         ParameterReplacer replacer
     )
     {
+        // A scalar field whose resolver reduces a collection using a service (e.g. db.Movies.Sum(m => svc.Score(m.Id)))
+        // can't run in one pass against EF (the service isn't translatable). Split it: pass 1 materializes a
+        // DB-translatable projection of the element values the service needs; pass 2 runs the reduction in memory.
+        if (HasServices && Field?.ResolveExpression != null && Field.FieldParam != null && AggregateReductionSplit.TryCreate(Field.ResolveExpression, Field.Services, out var split))
+        {
+            if (withoutServiceFields)
+            {
+                var deps = split!.BuildDepsProjection();
+                if (schemaContext != null)
+                    deps = replacer.Replace(deps, Field.FieldParam, schemaContext);
+                var depsElementType = deps.Type.GetEnumerableOrArrayType()!;
+                return Expression.Call(typeof(System.Linq.Enumerable), nameof(System.Linq.Enumerable.ToList), [depsElementType], deps);
+            }
+            if (contextChanged && replacementNextFieldContext != null)
+            {
+                compileContext.AddServices(Field.Services);
+                return ProcessScalarExpression(split!.BuildReduce(replacementNextFieldContext), replacer);
+            }
+        }
+
         if (HasServices && withoutServiceFields)
             return null;
 

@@ -1,3 +1,16 @@
+# 6.0.0-beta8
+
+## New Features
+
+- Added the `UseAggregate()` field extension for exposing aggregate data over a collection field — `count` plus `min`/`max`/`sum`/`average` over its fields, computed over the whole collection and translated to a single SQL query under EF. The shape is function-first: `{ count, min { fieldA }, max { fieldA }, sum { fieldA }, average { fieldA } }`. `min`/`max` apply to any orderable field (numbers, dates, strings); `sum`/`average` to numerics (`short`, `int`, `long`, `float`, `double`, `decimal` and nullable forms). Aggregates over an empty set return `null`.
+  - Placement is controlled by `AggregatePlacement` and defaults to `Auto`: a paged field attaches an `aggregate` field to the paging result (`PagingWrapper`), otherwise the field is wrapped as `{ items, aggregate }` (`OwnWrapper`), which handles every field uniformly including service-backed resolvers and custom arguments. An additive sibling `{field}Aggregate` field (`SiblingField`) is available as an opt-in so aggregates can be added to an existing field without a breaking shape change; it carries the source field's arguments (filter and custom resolver arguments) but cannot be used on a service-backed collection resolver.
+  - Pass a field selection to restrict the aggregatable fields, e.g. `UseAggregate((Person p) => new { p.Height, p.Age })`.
+- A scalar field whose resolver reduces a collection using a service (e.g. `(db, svc) => db.People.Sum(p => svc.Score(p.Id))`) now executes via the two-pass model — the element values the service needs are projected and materialized in the first (DB) pass, and the reduction runs in memory in the second — instead of failing to translate under EF.
+
+## Current Limitations
+
+- A field on the element type whose value is resolved by a service (e.g. `person.score` via `Resolve<Service>(...)`) cannot yet be aggregated via `UseAggregate` — those fields are excluded from the generated aggregate types. The engine support for service-backed reductions exists (see above), but wiring it into the nested aggregate leaves is still to come.
+
 # 6.0.0-beta7
 
 ## Bug Fixes

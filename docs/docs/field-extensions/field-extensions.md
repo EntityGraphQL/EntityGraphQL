@@ -9,8 +9,11 @@ The following highlights the provided field extensions in EntityGraphQL availabl
 - [Paging](./paging)
   - [`UseConnectionPaging`](./paging#connection-paging-model) for paging collections
   - [`UseOffsetPaging`](./paging#offset-paging) for paging collections
+- [`UseAggregate`](./aggregate) to expose aggregate data (`count` plus `min`/`max`/`sum`/`average`) over collections
 - [Creating](./custom-extensions) your own Field Extensions
 
 When combining multiple extensions together on a single field _order matters_. The correct order is for the provided extensions is
 
-> Filter -> Sort -> Paging
+> Filter -> Sort -> Paging -> Aggregate
+
+`UseAggregate` goes last because by default it adapts to the shape produced by the extensions before it: if the field is paged it attaches an `aggregate` field to the paging result, otherwise it wraps the field as `{ items, aggregate }`. An additive, non-breaking sibling `{field}Aggregate` field is also available as an opt-in. See [`UseAggregate`](./aggregate) for the placement options.
