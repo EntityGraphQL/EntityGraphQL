@@ -24,7 +24,6 @@ public static class BulkAggregateReducer
         var keysParam = fetch.Parameters[0];
         var dictType = fetch.Body.Type; // IDictionary<TKey, TResult>
         var keyType = dictType.GetGenericArguments()[0];
-        var valueType = dictType.GetGenericArguments()[1];
 
         // dict = fetch(keys.Distinct(), svc) — the service param stays and is injected by the framework
         var distinctKeys = Expression.Call(typeof(Enumerable), nameof(Enumerable.Distinct), [keyType], materializedKeys);
@@ -34,8 +33,18 @@ public static class BulkAggregateReducer
         // values = keys.Select(k => dict[k]) — nullable for Min/Max/Average so an empty set yields null (not throw)
         var kParam = Expression.Parameter(keyType, "k");
         Expression lookup = Expression.Property(dictVar, "Item", kParam);
-        if (method != nameof(Enumerable.Sum) && valueType.IsValueType && Nullable.GetUnderlyingType(valueType) == null)
-            lookup = Expression.Convert(lookup, typeof(Nullable<>).MakeGenericType(valueType));
+
+        // Sum/Average have no overload for some numeric types (e.g. short) - widen to one that does (as the
+        // non-bulk aggregate path does). Min/Max are generic and need no widening.
+        if (method is nameof(Enumerable.Sum) or nameof(Enumerable.Average))
+        {
+            var nonNull = Nullable.GetUnderlyingType(lookup.Type) ?? lookup.Type;
+            if (nonNull == typeof(short))
+                lookup = Expression.Convert(lookup, Nullable.GetUnderlyingType(lookup.Type) != null ? typeof(int?) : typeof(int));
+        }
+
+        if (method != nameof(Enumerable.Sum) && lookup.Type.IsValueType && Nullable.GetUnderlyingType(lookup.Type) == null)
+            lookup = Expression.Convert(lookup, typeof(Nullable<>).MakeGenericType(lookup.Type));
 
         var values = Expression.Call(typeof(Enumerable), nameof(Enumerable.Select), [keyType, lookup.Type], materializedKeys, Expression.Lambda(lookup, kParam));
 

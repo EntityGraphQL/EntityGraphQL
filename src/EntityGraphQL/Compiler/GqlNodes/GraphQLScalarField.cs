@@ -41,11 +41,15 @@ public class GraphQLScalarField : BaseGraphQLField
         // Applied to root fields (the general capability) and to aggregate leaves (nested, built with the deps
         // projection). We must NOT hijack an ordinary nested service field that merely reduces a sub-collection
         // (e.g. p => p.Tasks.Sum(t => svc.Score(t.Id))) — its ExtractedFieldsFromServices isn't a deps projection.
+        // Only fields WITHOUT arguments: this path returns before Field.GetExpression, which is what rebinds the
+        // field's argument parameter to the per-execution one. Aggregate leaves never have arguments; a root
+        // reduction WITH arguments falls through to the previous behavior (single-pass, in-memory only).
         var isAggregateReductionLeaf = Field is Schema.Field { IsAggregateReductionLeaf: true };
         if (
             HasServices
             && Field?.ResolveExpression != null
             && Field.FieldParam != null
+            && Field.ArgumentsParameter == null
             && (IsRootField || isAggregateReductionLeaf)
             && AggregateReductionSplit.TryCreate(Field.ResolveExpression, Field.Services, out var split)
         )

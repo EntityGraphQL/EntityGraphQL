@@ -77,7 +77,7 @@ schema.ReplaceField("people", ctx => ctx.People, "People")
     .UseAggregate((Person p) => p.Height);
 ```
 
-The generated `{Element}Aggregate` type is built and reused per element type, so apply a consistent selection when aggregating the same type from multiple fields.
+The generated `{Element}Aggregate` type is built once per element type and reused — the **first** `UseAggregate` configured for an element type determines its exposed fields; a later `UseAggregate` on another field of the same element type reuses that type and its selection is ignored. Apply a consistent selection when aggregating the same type from multiple fields.
 
 ## Placement
 

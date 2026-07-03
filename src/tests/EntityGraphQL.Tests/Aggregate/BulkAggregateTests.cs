@@ -55,4 +55,37 @@ public class BulkAggregateTests
         Assert.Equal(0, svc.PerElementCalls);
         Assert.True(svc.BulkCalls > 0);
     }
+
+    public class ShortBulkService
+    {
+        public short GetLevel(int id) => (short)id;
+
+        public IDictionary<int, short> GetLevels(IEnumerable<int> ids) => ids.ToDictionary(id => id, id => (short)id);
+    }
+
+    [Fact]
+    public void BulkFieldWithShortValues()
+    {
+        // Sum/Average have no short overload - the bulk reducer must widen the dictionary values (short -> int)
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Type<Person>()
+            .AddField("level", "bulk level")
+            .Resolve<ShortBulkService>((p, svc) => svc.GetLevel(p.Id))
+            .ResolveBulk<ShortBulkService, int, short>(p => p.Id, (ids, svc) => svc.GetLevels(ids));
+        schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate(AggregatePlacement.SiblingField);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(new ShortBulkService());
+        var data = new TestDataContext { People = [new Person { Id = 3 }, new Person { Id = 7 }] };
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ peopleAggregate { sum { level } average { level } min { level } max { level } } }" }, data, services.BuildServiceProvider(), null);
+
+        Assert.Null(result.Errors);
+        dynamic agg = result.Data!["peopleAggregate"]!;
+        Assert.Equal(10, (int)agg.sum.level);
+        Assert.Equal(5.0, (double)agg.average.level);
+        Assert.Equal((short)3, (short)agg.min.level);
+        Assert.Equal((short)7, (short)agg.max.level);
+    }
 }

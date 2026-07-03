@@ -98,12 +98,11 @@ public class AggregateExtension : BaseFieldExtension
             field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()
             ?? throw new EntityGraphQLSchemaException($"Could not determine element type for field {field.Name} to use {nameof(AggregateExtension)}");
 
-        var isQueryable = field.ResolveExpression.Type.IsGenericTypeQueryable();
         var elementSchemaType = field.ReturnType.SchemaType;
-        var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, isQueryable, GetAllowedFieldNames(schema));
+        var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, GetAllowedFieldNames(schema));
 
         if (effectivePlacement == AggregatePlacement.OwnWrapper)
-            ConfigureOwnWrapper(schema, field, elementSchemaType, elementType, aggregateType, isQueryable);
+            ConfigureOwnWrapper(schema, field, elementSchemaType, elementType, aggregateType);
         else
             AddSiblingField(schema, field, aggregateType);
     }
@@ -112,7 +111,7 @@ public class AggregateExtension : BaseFieldExtension
     /// Replace the field's return type with a "{Element}WithAggregate" wrapper { items, aggregate }. Both children
     /// resolve the collection identity, so any filter/sort extension already on the field applies to both.
     /// </summary>
-    private static void ConfigureOwnWrapper(ISchemaProvider schema, IField field, ISchemaType elementSchemaType, Type elementType, ISchemaType aggregateType, bool isQueryable)
+    private static void ConfigureOwnWrapper(ISchemaProvider schema, IField field, ISchemaType elementSchemaType, Type elementType, ISchemaType aggregateType)
     {
         var wrapperName = $"{elementSchemaType.Name}WithAggregate";
         ISchemaType wrapperType;
@@ -124,7 +123,8 @@ public class AggregateExtension : BaseFieldExtension
         {
             var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
             wrapperType = schema.AddType(markerType, wrapperName, $"A collection of {elementSchemaType.Name} with aggregate data");
-            var collType = (isQueryable ? typeof(IQueryable<>) : typeof(IEnumerable<>)).MakeGenericType(elementType);
+            // IEnumerable always - the wrapper type is cached per element type and must bind List and IQueryable sources alike
+            var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
 
             var itemsParam = Expression.Parameter(collType, "c");
             var itemsReturn = new GqlTypeInfo(() => elementSchemaType, collType) { IsList = true };
@@ -168,10 +168,9 @@ public class AggregateExtension : BaseFieldExtension
 
         var elementType =
             original.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLSchemaException($"Could not determine element type for field {field.Name} to use {nameof(AggregateExtension)}");
-        var isQueryable = original.Type.IsGenericTypeQueryable();
         var elementSchemaType = schema.GetSchemaType(elementType, null);
 
-        var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, isQueryable, allowedFieldNames);
+        var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, allowedFieldNames);
 
         // add an "aggregate" field onto the paging wrapper type (OffsetPage/Connection)
         var wrapperType = field.ReturnType.SchemaType;
@@ -179,7 +178,8 @@ public class AggregateExtension : BaseFieldExtension
         if (wrapperType.HasField(aggFieldName, null))
             return;
 
-        var collType = (isQueryable ? typeof(IQueryable<>) : typeof(IEnumerable<>)).MakeGenericType(elementType);
+        // IEnumerable always - see GetOrCreateAggregateType
+        var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
         var identityParam = Expression.Parameter(collType, "c");
         var returnType = new GqlTypeInfo(() => aggregateType, aggregateType.TypeDotnet) { IsList = false };
 
@@ -249,7 +249,7 @@ public class AggregateExtension : BaseFieldExtension
     ///   sum/average: {Element}{Func}Aggregate { ...numeric fields }
     /// Each leaf field resolves an aggregate call over the collection (which is the field's context).
     /// </summary>
-    private static ISchemaType GetOrCreateAggregateType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, bool isQueryable, HashSet<string>? allowedFieldNames)
+    private static ISchemaType GetOrCreateAggregateType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
     {
         var aggTypeName = $"{elementSchemaType.Name}Aggregate";
         if (schema.HasType(aggTypeName))
@@ -257,8 +257,11 @@ public class AggregateExtension : BaseFieldExtension
 
         var markerType = typeof(Aggregation<>).MakeGenericType(elementType);
         var aggType = schema.AddType(markerType, aggTypeName, $"Aggregate data over a collection of {elementSchemaType.Name}");
-        var methodClass = isQueryable ? typeof(System.Linq.Queryable) : typeof(System.Linq.Enumerable);
-        var collType = (isQueryable ? typeof(IQueryable<>) : typeof(IEnumerable<>)).MakeGenericType(elementType);
+        // Always IEnumerable/Enumerable: the aggregate type is cached per element type but may be attached to
+        // several fields whose collections differ (List vs IQueryable). IEnumerable params bind both (IQueryable
+        // is IEnumerable), and EF translates the Enumerable calls in the projection.
+        var methodClass = typeof(System.Linq.Enumerable);
+        var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
 
         // count
         var countParam = Expression.Parameter(collType, "c");
@@ -371,13 +374,7 @@ public class AggregateExtension : BaseFieldExtension
                 // instead of calling the per-element fallback once per row.
                 var dataSelector = bulk.DataSelector;
                 var keyType = dataSelector.ReturnType;
-                var keysProjection = Expression.Call(
-                    methodClass,
-                    nameof(Enumerable.Select),
-                    [elementType, keyType],
-                    collParam,
-                    methodClass == typeof(Queryable) ? Expression.Quote(dataSelector) : (Expression)dataSelector
-                );
+                var keysProjection = Expression.Call(methodClass, nameof(Enumerable.Select), [elementType, keyType], collParam, dataSelector);
                 var keysList = Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [keyType], keysProjection);
                 var extracted = new GraphQLExtractedField(schema, depsName, [keysList], collParam);
 
