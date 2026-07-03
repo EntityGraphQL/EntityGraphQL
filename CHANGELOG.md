@@ -6,10 +6,8 @@
   - Placement is controlled by `AggregatePlacement` and defaults to `Auto`: a paged field attaches an `aggregate` field to the paging result (`PagingWrapper`), otherwise the field is wrapped as `{ items, aggregate }` (`OwnWrapper`), which handles every field uniformly including service-backed resolvers and custom arguments. An additive sibling `{field}Aggregate` field (`SiblingField`) is available as an opt-in so aggregates can be added to an existing field without a breaking shape change; it carries the source field's arguments (filter and custom resolver arguments) but cannot be used on a service-backed collection resolver.
   - Pass a field selection to restrict the aggregatable fields, e.g. `UseAggregate((Person p) => new { p.Height, p.Age })`.
 - A scalar field whose resolver reduces a collection using a service (e.g. `(db, svc) => db.People.Sum(p => svc.Score(p.Id))`) now executes via the two-pass model — the element values the service needs are projected and materialized in the first (DB) pass, and the reduction runs in memory in the second — instead of failing to translate under EF.
-
-## Current Limitations
-
-- A field on the element type whose value is resolved by a service (e.g. `person.score` via `Resolve<Service>(...)`) cannot yet be aggregated via `UseAggregate` — those fields are excluded from the generated aggregate types. The engine support for service-backed reductions exists (see above), but wiring it into the nested aggregate leaves is still to come.
+- `UseAggregate` can aggregate a service-backed element field (e.g. `person.score` resolved via `Resolve<Service>(...)`). The per-element service values are projected/materialized in the first pass and reduced in memory in the second, so `aggregate { sum { score } }` works under EF.
+- Aggregating a **bulk-resolved** element field (`ResolveBulk`) uses the bulk loader: the keys are projected/materialized in the first pass and all values are fetched in a single bulk call in the second, then reduced in memory — so it doesn't fall back to one service call per element. (Sync, no-argument bulk resolvers; async/argument bulk resolvers use the per-element fallback.)
 
 # 6.0.0-beta7
 

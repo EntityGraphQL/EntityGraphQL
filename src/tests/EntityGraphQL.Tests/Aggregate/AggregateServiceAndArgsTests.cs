@@ -31,15 +31,14 @@ public class AggregateServiceAndArgsTests
     }
 
     [Fact]
-    public void ServiceComputedFieldsAreNotAggregatable()
+    public void ServiceComputedFieldsAreAggregatable()
     {
-        // a service-backed FIELD on the element type can't be aggregated (its value isn't a projectable member),
-        // but plain scalar fields on the same type still are.
+        // a service-backed FIELD on the element type is aggregatable (computed via the two-pass reduction)
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Type<Person>().AddField("score", "service score").Resolve<ScoreService>((p, svc) => svc.Score(p.Id));
         schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate();
 
-        Assert.False(schema.Type("PersonSumAggregate").HasField("score", null));
+        Assert.True(schema.Type("PersonSumAggregate").HasField("score", null));
         Assert.True(schema.Type("PersonSumAggregate").HasField("id", null));
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -37,20 +38,49 @@ public class GraphQLScalarField : BaseGraphQLField
         // A scalar field whose resolver reduces a collection using a service (e.g. db.Movies.Sum(m => svc.Score(m.Id)))
         // can't run in one pass against EF (the service isn't translatable). Split it: pass 1 materializes a
         // DB-translatable projection of the element values the service needs; pass 2 runs the reduction in memory.
-        if (HasServices && Field?.ResolveExpression != null && Field.FieldParam != null && AggregateReductionSplit.TryCreate(Field.ResolveExpression, Field.Services, out var split))
+        // Applied to root fields (the general capability) and to aggregate leaves (nested, built with the deps
+        // projection). We must NOT hijack an ordinary nested service field that merely reduces a sub-collection
+        // (e.g. p => p.Tasks.Sum(t => svc.Score(t.Id))) — its ExtractedFieldsFromServices isn't a deps projection.
+        var isAggregateReductionLeaf = Field is Schema.Field { IsAggregateReductionLeaf: true };
+        if (
+            HasServices
+            && Field?.ResolveExpression != null
+            && Field.FieldParam != null
+            && (IsRootField || isAggregateReductionLeaf)
+            && AggregateReductionSplit.TryCreate(Field.ResolveExpression, Field.Services, out var split)
+        )
         {
             if (withoutServiceFields)
             {
-                var deps = split!.BuildDepsProjection();
-                if (schemaContext != null)
-                    deps = replacer.Replace(deps, Field.FieldParam, schemaContext);
-                var depsElementType = deps.Type.GetEnumerableOrArrayType()!;
-                return Expression.Call(typeof(System.Linq.Enumerable), nameof(System.Linq.Enumerable.ToList), [depsElementType], deps);
+                // Root field: the deps projection IS the pass-1 result (becomes the materialized runningContext).
+                if (IsRootField)
+                {
+                    var deps = split!.BuildDepsProjection();
+                    if (schemaContext != null)
+                        deps = replacer.Replace(deps, Field.FieldParam, schemaContext);
+                    var depsElementType = deps.Type.GetEnumerableOrArrayType()!;
+                    return Expression.Call(typeof(System.Linq.Enumerable), nameof(System.Linq.Enumerable.ToList), [depsElementType], deps);
+                }
+                // Nested field: omit in pass 1 (like any service field) - the parent projection captures the
+                // deps projection from ExtractedFieldsFromServices into its materialized anon.
+                return null;
             }
             if (contextChanged && replacementNextFieldContext != null)
             {
                 compileContext.AddServices(Field.Services);
-                return ProcessScalarExpression(split!.BuildReduce(replacementNextFieldContext), replacer);
+                // Root: reduce over the materialized deps list (the runningContext). Nested: reduce over the
+                // materialized deps member captured in the parent's anon (egql__... from ExtractedFieldsFromServices).
+                var materializedDeps = IsRootField
+                    ? replacementNextFieldContext
+                    : Field.ExtractedFieldsFromServices?.FirstOrDefault()?.GetNodeExpression(replacementNextFieldContext, possibleNextContextTypes);
+                if (materializedDeps != null)
+                {
+                    // A bulk-resolved element field: fetch the values for all keys in one call, then reduce the
+                    // dictionary in memory (instead of the per-element fallback). Only sync, no-arg bulk here.
+                    if (!IsRootField && Field is Schema.Field { AggregateBulkResolver: { IsAsync: false, BulkArgParam: null } bulk })
+                        return ProcessScalarExpression(BulkAggregateReducer.Build(materializedDeps, bulk.FieldExpression, split!.Method), replacer);
+                    return ProcessScalarExpression(split!.BuildReduce(materializedDeps), replacer);
+                }
             }
         }
 

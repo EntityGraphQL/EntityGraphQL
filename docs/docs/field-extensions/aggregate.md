@@ -209,6 +209,25 @@ schema.Query()
 
 `SiblingField` is a separate field and would invoke the service a second time, so it cannot be used with a service-backed collection resolver and throws at schema-build time. (A paged field that merely has service-backed fields in its element selection works with every mode — only the collection *resolver* itself needs the wrapper modes.)
 
+### Aggregating a service-backed field
+
+A field on the element type whose value is resolved by a service can also be aggregated:
+
+```cs
+schema.Type<Person>().AddField("score", "computed score").Resolve<ScoreService>((p, svc) => svc.Score(p.Id));
+schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate();
+```
+
+```graphql
+{
+  people { aggregate { sum { score } max { score } average { score } } }
+}
+```
+
+The per-element values the service needs are projected and materialized in the first (DB) pass, then the reduction runs in memory with the service in the second pass — so this works under EF even though the service itself isn't translatable to SQL.
+
+If the field uses a bulk resolver (`ResolveBulk`), aggregation keeps the bulk optimization: the keys are materialized in the first pass and all values are fetched in a single bulk call in the second pass, then reduced — rather than one service call per element. (Applies to sync, no-argument bulk resolvers; async or argument-taking bulk resolvers fall back to the per-element resolver.)
+
 ## Ordering with other extensions
 
 When combining with filter, sort and paging, the order matters: `Filter -> Sort -> Paging -> Aggregate`. `UseAggregate()` must come last so it can attach to the paging wrapper (for `Auto`/`PagingWrapper`) and so its aggregate respects the filter.

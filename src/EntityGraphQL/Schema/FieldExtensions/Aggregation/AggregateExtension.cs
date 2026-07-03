@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 
@@ -282,7 +283,6 @@ public class AggregateExtension : BaseFieldExtension
                 !f.Name.StartsWith("__", StringComparison.Ordinal)
                 && !f.ReturnType.IsList
                 && !f.Arguments.Any()
-                && f.Services.Count == 0
                 && f.ResolveExpression != null
                 && f.FieldParam != null
                 && (allowedFieldNames == null || allowedFieldNames.Contains(f.Name))
@@ -359,18 +359,53 @@ public class AggregateExtension : BaseFieldExtension
                 ? Expression.Call(methodClass, func.Name, [elementType, selectorBody.Type], collParam, selector)
                 : Expression.Call(methodClass, func.Name, [elementType], collParam, selector);
 
-            funcType.AddField(
-                new Field(
-                    schema,
-                    funcType,
-                    elementField.Name,
-                    Expression.Lambda(aggCall, collParam),
-                    $"{func.Name} of {elementField.Name}",
-                    (Dictionary<string, ArgType>?)null,
-                    SchemaBuilder.MakeGraphQlType(schema, false, aggCall.Type, null, elementField.Name, funcType),
-                    null
-                )
-            );
+            var leafResolve = Expression.Lambda(aggCall, collParam);
+            var leafReturnType = SchemaBuilder.MakeGraphQlType(schema, false, aggCall.Type, null, elementField.Name, funcType);
+
+            var depsName = $"egql__agg_{elementSchemaType.Name}_{elementField.Name}";
+
+            if (elementField.BulkResolver is { IsAsync: false, BulkArgParam: null } bulk && AggregateReductionSplit.TryCreate(aggCall, elementField.Services, out _))
+            {
+                // Bulk-resolved element field. Materialize just the bulk keys (dataSelector) in pass 1; pass 2
+                // fetches all values in a single bulk call and reduces the dictionary (see BulkAggregateReducer),
+                // instead of calling the per-element fallback once per row.
+                var dataSelector = bulk.DataSelector;
+                var keyType = dataSelector.ReturnType;
+                var keysProjection = Expression.Call(
+                    methodClass,
+                    nameof(Enumerable.Select),
+                    [elementType, keyType],
+                    collParam,
+                    methodClass == typeof(Queryable) ? Expression.Quote(dataSelector) : (Expression)dataSelector
+                );
+                var keysList = Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [keyType], keysProjection);
+                var extracted = new GraphQLExtractedField(schema, depsName, [keysList], collParam);
+
+                // include the fallback service (referenced by leafResolve, matched by TryCreate) and the bulk
+                // fetch's service param (used by the pass-2 fetch) so both are injected
+                var services = elementField.Services.Append(bulk.FieldExpression.Parameters[bulk.FieldExpression.Parameters.Count - 1]);
+                var bulkLeaf = new Field(schema, funcType, elementField.Name, null, $"{func.Name} of {elementField.Name}", (Dictionary<string, ArgType>?)null, leafReturnType, null);
+                bulkLeaf.SetServiceResolve(leafResolve, services, [extracted], bulk);
+                funcType.AddField(bulkLeaf);
+            }
+            else if (elementField.Services.Count > 0 && AggregateReductionSplit.TryCreate(aggCall, elementField.Services, out var split))
+            {
+                // Service-backed element field (e.g. svc.Score(p.Id)). Build a service field whose dependency is
+                // the DB-translatable deps projection (materialized): the two-pass model projects/materializes
+                // the deps in pass 1, then reduces in memory with the service in pass 2.
+                var depsProjection = split!.BuildDepsProjection();
+                var depsElementType = depsProjection.Type.GetEnumerableOrArrayType()!;
+                var depsList = Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [depsElementType], depsProjection);
+                var extracted = new GraphQLExtractedField(schema, depsName, [depsList], collParam);
+
+                var serviceLeaf = new Field(schema, funcType, elementField.Name, null, $"{func.Name} of {elementField.Name}", (Dictionary<string, ArgType>?)null, leafReturnType, null);
+                serviceLeaf.SetServiceResolve(leafResolve, elementField.Services, [extracted]);
+                funcType.AddField(serviceLeaf);
+            }
+            else
+            {
+                funcType.AddField(new Field(schema, funcType, elementField.Name, leafResolve, $"{func.Name} of {elementField.Name}", (Dictionary<string, ArgType>?)null, leafReturnType, null));
+            }
         }
 
         return funcType;

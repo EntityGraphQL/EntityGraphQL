@@ -28,6 +28,39 @@ public class Field : BaseField
         }
     }
 
+    /// <summary>
+    /// Set a service-backed resolve on a field constructed without one. Used to build fields programmatically
+    /// (e.g. aggregate leaves that reduce a collection using a service). <paramref name="services"/> are the
+    /// free service parameters in the resolve body. When <paramref name="extractedFields"/> is supplied it is
+    /// used verbatim as the service dependencies (the default extractor mis-handles a reduction over the
+    /// context, so callers that build a reduction provide the deps projection explicitly).
+    /// </summary>
+    internal void SetServiceResolve(LambdaExpression resolve, IEnumerable<ParameterExpression> services, List<GraphQLExtractedField>? extractedFields = null, IBulkFieldResolver? aggregateBulkResolver = null)
+    {
+        Services.AddRange(services);
+        ProcessResolveExpression(resolve, extractedFields == null, false);
+        if (extractedFields != null)
+            ExtractedFieldsFromServices = extractedFields;
+        // NOTE: deliberately NOT set as BulkResolver — that would make the normal bulk loader machinery try to
+        // resolve it. The aggregate reduces the bulk dictionary itself in pass 2 (see GraphQLScalarField).
+        AggregateBulkResolver = aggregateBulkResolver;
+        IsAggregateReductionLeaf = true;
+    }
+
+    /// <summary>
+    /// True when this field is an aggregate leaf built by <see cref="Schema.FieldExtensions.AggregateExtension"/>
+    /// that reduces a collection using a service. Gates the nested reduction two-pass handling in
+    /// <see cref="Compiler.GraphQLScalarField"/> so it never hijacks an ordinary service field that happens to
+    /// reduce a sub-collection (e.g. <c>p => p.Tasks.Sum(t =&gt; svc.Score(t.Id))</c>).
+    /// </summary>
+    internal bool IsAggregateReductionLeaf { get; private set; }
+
+    /// <summary>
+    /// The bulk resolver of the element field this aggregate leaf reduces, when aggregating a bulk-resolved field.
+    /// Used by <see cref="Compiler.GraphQLScalarField"/> to fetch all values in one call and reduce in memory.
+    /// </summary>
+    internal IBulkFieldResolver? AggregateBulkResolver { get; private set; }
+
     protected void ProcessResolveExpression(LambdaExpression resolve, bool withServices, bool hasArguments)
     {
         ResolveExpression = resolve.Body;
