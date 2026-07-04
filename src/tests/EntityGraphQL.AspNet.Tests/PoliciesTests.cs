@@ -236,6 +236,82 @@ public class PoliciesTests
         Assert.Null(result.Errors);
     }
 
+    // ── fail-closed behaviour ──────────────────────────────────────────────────
+
+    private static RequiredAuthorization PolicyAuth(params string[] policies)
+    {
+        var required = new RequiredAuthorization();
+        required.SetData(PolicyOrRoleBasedAuthorization.PoliciesKey, [[.. policies]]);
+        return required;
+    }
+
+    [Fact]
+    public void PolicyRequired_NoAuthService_FailsClosed()
+    {
+        // a policy is required but no IAuthorizationService is available - must deny rather than fall through
+        var auth = new PolicyOrRoleBasedAuthorization(null);
+        var required = PolicyAuth("admin");
+
+        var user = new ClaimsPrincipal(new ClaimsIdentity([], "authed"));
+        Assert.False(auth.IsAuthorized(user, required));
+    }
+
+    [Fact]
+    public void PolicyRequired_NullUser_FailsClosed()
+    {
+        static bool adminPolicy(ClaimsPrincipal u) => true;
+        var authService = new DummyAuthService(new Dictionary<string, Func<ClaimsPrincipal, bool>> { { "admin", adminPolicy } });
+        var auth = new PolicyOrRoleBasedAuthorization(authService);
+        var required = PolicyAuth("admin");
+
+        Assert.False(auth.IsAuthorized(null, required));
+    }
+
+    [Fact]
+    public void PolicyRequired_AuthServiceGrants_Allows()
+    {
+        static bool adminPolicy(ClaimsPrincipal u) => true;
+        var authService = new DummyAuthService(new Dictionary<string, Func<ClaimsPrincipal, bool>> { { "admin", adminPolicy } });
+        var auth = new PolicyOrRoleBasedAuthorization(authService);
+        var required = PolicyAuth("admin");
+
+        var user = new ClaimsPrincipal(new ClaimsIdentity([], "authed"));
+        Assert.True(auth.IsAuthorized(user, required));
+    }
+
+    [Fact]
+    public void NullRequiredAuth_IsOpen_EvenWithoutAuthService()
+    {
+        var auth = new PolicyOrRoleBasedAuthorization(null);
+        Assert.True(auth.IsAuthorized(null, null));
+    }
+
+    [Fact]
+    public void BareAuthorize_ProducesPresentAuth_AndRequiresAuthentication()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IAuthorizationService, DummyAuthService>();
+        var services = serviceCollection.BuildServiceProvider();
+
+        var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+        );
+
+        // a bare [Authorize] must still produce a RequiredAuthorization so it is enforced
+        var secretAuth = schema.Type<Task>().GetField("secret", null).RequiredAuthorization;
+        Assert.NotNull(secretAuth);
+
+        var gql = new QueryRequest { Query = @"{ tasks { id secret } }" };
+
+        var anon = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, null);
+        Assert.NotNull(anon.Errors);
+        Assert.Contains(anon.Errors!, e => e.Message.Contains("secret"));
+
+        var authed = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "someone")], "authed"));
+        var pass = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, authed);
+        Assert.Null(pass.Errors);
+    }
+
     internal class PolicyDataContext
     {
         public IEnumerable<Project> Projects { get; set; } = new List<Project>();
@@ -258,6 +334,11 @@ public class PoliciesTests
         public string? Name { get; set; }
         public bool IsActive { get; set; }
         public Project? Project { get; set; }
+
+        // bare [Authorize] with no roles or policy - requires an authenticated user only
+        [Authorize]
+        [GraphQLField("secret")]
+        public string GetSecret() => "shh";
     }
 }
 

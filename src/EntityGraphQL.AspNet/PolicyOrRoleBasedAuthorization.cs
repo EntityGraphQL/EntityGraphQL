@@ -31,39 +31,41 @@ public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
     /// <returns></returns>
     public override bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuthorization)
     {
-        // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-        if (requiredAuthorization != null && requiredAuthorization.Any())
+        // A null requiredAuthorization means the field/type has no authorization requirement - open access.
+        if (requiredAuthorization == null)
+            return true;
+
+        // check policies if any are required
+        var policies = requiredAuthorization.GetPolicies();
+        if (policies != null && policies.Any())
         {
-            // check policies if we have any
-            var policies = requiredAuthorization.GetPolicies();
-            if (policies != null && authService != null && user != null)
+            // a policy is required but we cannot evaluate it (no authorization service registered or no user) -
+            // fail closed rather than silently granting access
+            if (authService == null || user == null)
+                return false;
+
+            foreach (var policy in policies)
             {
-                var allPoliciesValid = true;
-                foreach (var policy in policies)
-                {
-                    // each policy now is an OR
-                    var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);
-                    allPoliciesValid = allPoliciesValid && hasValidPolicy;
-                    if (!allPoliciesValid)
-                        break;
-                }
-                if (!allPoliciesValid)
+                // each policy entry is an OR-set - at least one must succeed; all entries must pass (AND)
+                var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);
+                if (!hasValidPolicy)
                     return false;
             }
-
-            // check roles
-            return base.IsAuthorized(user, requiredAuthorization);
         }
-        return true;
+
+        // check roles and that the user is authenticated
+        return base.IsAuthorized(user, requiredAuthorization);
     }
 
     private static RequiredAuthorization? GetRequiredAuth(RequiredAuthorization? requiredAuth, ICustomAttributeProvider thing)
     {
-        var attributes = thing.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>();
+        var attributes = thing.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().ToList();
         var requiredRoles = attributes.Where(c => !string.IsNullOrEmpty(c.Roles)).Select(c => c.Roles!.Split(",").ToList()).ToList();
         var requiredPolicies = attributes.Where(c => !string.IsNullOrEmpty(c.Policy)).Select(c => c.Policy!.Split(",").ToList()).ToList();
 
-        if (requiredRoles.Count > 0 || requiredPolicies.Count > 0)
+        // A bare [Authorize] (no roles or policy) still requires an authenticated user - build a present but
+        // possibly-empty RequiredAuthorization whenever any [Authorize] attribute exists so it fails closed.
+        if (requiredRoles.Count > 0 || requiredPolicies.Count > 0 || attributes.Count > 0)
         {
             var newAuth = new RequiredAuthorization();
             foreach (var roles in requiredRoles)

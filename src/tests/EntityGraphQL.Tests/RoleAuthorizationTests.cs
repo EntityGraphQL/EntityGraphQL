@@ -383,6 +383,73 @@ public class RoleAuthorizationTests
         Assert.Null(pass.Errors);
     }
 
+    // ── fail-closed: a bare [GraphQLAuthorize] means "any authenticated user" ──────────────
+
+    [Fact]
+    public void BareAuthorize_ProducesPresentRequiredAuthorization()
+    {
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        // a bare [GraphQLAuthorize] (no roles) must still produce a RequiredAuthorization so it is enforced
+        var auth = schema.Type<Task>().GetField("secret", null).RequiredAuthorization;
+        Assert.NotNull(auth);
+        // no roles required - just authentication
+        Assert.True(auth!.GetRoles() == null || !auth.GetRoles()!.Any());
+    }
+
+    [Fact]
+    public void BareAuthorize_BlocksAnonymous_AllowsAuthenticated()
+    {
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        var gql = new QueryRequest { Query = @"{ tasks { id secret } }" };
+
+        // anonymous (no user) is denied
+        var anon = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, null);
+        Assert.NotNull(anon.Errors);
+        Assert.Contains(anon.Errors!, e => e.Message.Contains("secret"));
+
+        // an unauthenticated identity is denied (IsAuthenticated == false)
+        var notAuthed = new ClaimsPrincipal(new ClaimsIdentity());
+        var notAuthedResult = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, notAuthed);
+        Assert.NotNull(notAuthedResult.Errors);
+        Assert.Contains(notAuthedResult.Errors!, e => e.Message.Contains("secret"));
+
+        // any authenticated user (no particular role) is allowed
+        var authed = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "someone")], "authed"));
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, authed);
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void IsAuthorized_NullRequiredAuth_IsOpen()
+    {
+        var auth = new RoleBasedAuthorization();
+        Assert.True(auth.IsAuthorized(null, null));
+        Assert.True(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([], "authed")), null));
+    }
+
+    [Fact]
+    public void IsAuthorized_PresentEmptyAuth_RequiresAuthentication()
+    {
+        var auth = new RoleBasedAuthorization();
+        var required = new RequiredAuthorization(); // present but empty
+
+        Assert.False(auth.IsAuthorized(null, required));
+        Assert.False(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity()), required)); // not authenticated
+        Assert.True(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([], "authed")), required));
+    }
+
+    [Fact]
+    public void IsAuthorized_RoleAuth_RequiresRoleAndAuthentication()
+    {
+        var auth = new RoleBasedAuthorization();
+        var required = new RequiredAuthorization();
+        required.RequiresAnyRole("admin");
+
+        Assert.False(auth.IsAuthorized(null, required));
+        Assert.False(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "user")], "authed")), required));
+        Assert.True(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed")), required));
+    }
+
     internal class RolesDataContext
     {
         public IEnumerable<Project> Projects { get; set; } = new List<Project>();
@@ -412,6 +479,10 @@ public class RoleAuthorizationTests
         {
             return "This is a description";
         }
+
+        // bare [GraphQLAuthorize] with no roles - requires an authenticated user only
+        [GraphQLAuthorize]
+        public string Secret { get; set; } = "shh";
     }
 
     internal class RolesMutations

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -21,80 +22,67 @@ public class RoleBasedAuthorization : IGqlAuthorizationService
     /// <returns></returns>
     public virtual bool IsAuthorized(ClaimsPrincipal? user, RequiredAuthorization? requiredAuthorization)
     {
-        // if the list is empty it means identity.IsAuthenticated needs to be true, if full it requires certain authorization
-        if (requiredAuthorization != null && requiredAuthorization.Any())
+        // A null requiredAuthorization means the field/type has no authorization requirement - open access.
+        if (requiredAuthorization == null)
+            return true;
+
+        // Authorization IS required. At a minimum the user must be authenticated - an empty (but present)
+        // RequiredAuthorization (e.g. a bare [GraphQLAuthorize]) means "any authenticated user".
+        if (user?.Identity?.IsAuthenticated != true)
+            return false;
+
+        // Then satisfy any role requirements. Each entry is an AND of an OR-set of roles.
+        var roles = requiredAuthorization.GetRoles();
+        if (roles != null)
         {
-            // check roles if any are defined
-            var roles = requiredAuthorization.GetRoles();
-            if (roles != null)
+            foreach (var role in roles)
             {
-                var allRolesValid = true;
-                foreach (var role in roles)
-                {
-                    // each role now is an OR
-                    var hasValidRole = role.Any(r => user?.IsInRole(r) == true);
-                    allRolesValid = allRolesValid && hasValidRole;
-                    if (!allRolesValid)
-                        break;
-                }
-                if (!allRolesValid)
+                if (!role.Any(r => user.IsInRole(r)))
                     return false;
             }
-
-            return true;
         }
+
         return true;
     }
 
     public virtual RequiredAuthorization? GetRequiredAuthFromExpression(LambdaExpression fieldSelection)
     {
-        RequiredAuthorization? requiredAuth = null;
         if (fieldSelection.Body.NodeType == ExpressionType.MemberAccess)
         {
             var attributes = ((MemberExpression)fieldSelection.Body).Member.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-            var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
-            if (requiredRoles.Count > 0)
-            {
-                requiredAuth = new RequiredAuthorization();
-                foreach (var roles in requiredRoles)
-                {
-                    requiredAuth.RequiresAnyRole(roles!.ToArray());
-                }
-            }
+            return BuildRequiredAuth(attributes);
         }
-
-        return requiredAuth;
+        return null;
     }
 
     public virtual RequiredAuthorization? GetRequiredAuthFromMember(MemberInfo field)
     {
         var attributes = field.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-        var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
-        if (requiredRoles.Count > 0)
-        {
-            var auth = new RequiredAuthorization();
-            foreach (var roles in requiredRoles)
-            {
-                auth.RequiresAnyRole(roles!.ToArray());
-            }
-            return auth;
-        }
-        return null;
+        return BuildRequiredAuth(attributes);
     }
 
     public virtual RequiredAuthorization? GetRequiredAuthFromType(Type type)
     {
         var attributes = type.GetCustomAttributes(typeof(GraphQLAuthorizeAttribute), true).Cast<GraphQLAuthorizeAttribute>();
-        var requiredRoles = attributes.Select(c => c.Roles).Where(r => r != null).ToList();
-        if (requiredRoles.Count > 0)
+        return BuildRequiredAuth(attributes);
+    }
+
+    /// <summary>
+    /// Builds a RequiredAuthorization from any GraphQLAuthorize attributes present. Returns null when there are
+    /// none (open access). When at least one attribute is present the result is non-null so authorization is
+    /// enforced even for a bare [GraphQLAuthorize] with no roles (meaning "any authenticated user").
+    /// </summary>
+    protected static RequiredAuthorization? BuildRequiredAuth(IEnumerable<GraphQLAuthorizeAttribute> attributes)
+    {
+        var attributeList = attributes.ToList();
+        if (attributeList.Count == 0)
+            return null;
+
+        var auth = new RequiredAuthorization();
+        foreach (var roles in attributeList.Select(c => c.Roles).Where(r => r != null))
         {
-            var auth = new RequiredAuthorization();
-            foreach (var roles in requiredRoles)
-            {
-                auth.RequiresAnyRole(roles!.ToArray());
-            }
-            return auth;
+            auth.RequiresAnyRole(roles!.ToArray());
         }
-        return null;
+        return auth;
     }
 }

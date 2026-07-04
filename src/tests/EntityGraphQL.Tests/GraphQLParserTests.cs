@@ -1,3 +1,4 @@
+using System.Text;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Schema;
 using Xunit;
@@ -6,6 +7,42 @@ namespace EntityGraphQL.Tests;
 
 public class GraphQLParserTests
 {
+    [Fact]
+    public void DeeplyNestedSelectionSet_ThrowsDocumentError_NotStackOverflow()
+    {
+        // A maliciously deep query must fail gracefully during parse (before any stack overflow) rather than
+        // being caught only by the post-parse MaxQueryDepth check.
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+
+        // Person.Manager is self-referential so we can nest arbitrarily deep with real fields
+        var sb = new StringBuilder("{ people ");
+        const int depth = 700;
+        for (var i = 0; i < depth; i++)
+            sb.Append("{ manager ");
+        sb.Append("{ id }");
+        for (var i = 0; i < depth; i++)
+            sb.Append(" }");
+        sb.Append(" }");
+
+        var ex = Assert.Throws<EntityGraphQLException>(() => GraphQLParser.Parse(sb.ToString(), schema));
+        Assert.Contains("maximum nesting depth", ex.Message);
+    }
+
+    [Fact]
+    public void DeeplyNestedListValue_ThrowsDocumentError_NotStackOverflow()
+    {
+        // Deeply nested input/argument values recurse through ParseValue and must also be depth-capped.
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("echo", new { list = new int[0] }, (ctx, args) => args.list, "Echo a list");
+
+        const int depth = 700;
+        var value = new string('[', depth) + new string(']', depth);
+        var query = "{ echo(list: " + value + ") }";
+
+        var ex = Assert.Throws<EntityGraphQLException>(() => GraphQLParser.Parse(query, schema));
+        Assert.Contains("maximum nesting depth", ex.Message);
+    }
+
     [Fact]
     public void TestFourDigitUnicodeEscapeInString()
     {

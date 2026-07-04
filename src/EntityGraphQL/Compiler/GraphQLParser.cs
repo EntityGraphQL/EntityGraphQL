@@ -18,6 +18,14 @@ public static class GraphQLParser
     private static readonly Dictionary<string, object?> EmptyArguments = new();
     private static readonly Dictionary<string, ArgType> EmptyVariableDefinitions = new();
 
+    /// <summary>
+    /// Hard limit on parse recursion depth (nested selection sets + nested argument/input values). This is a
+    /// safety backstop against a maliciously deep document exhausting the stack during parsing - it runs before
+    /// (and independently of) the configurable <see cref="ExecutionOptions.MaxQueryDepth"/> which is applied after
+    /// the document is parsed. Set well above any legitimate query so it never interferes with real usage.
+    /// </summary>
+    private const int MaxParseDepth = 500;
+
     public static GraphQLDocument Parse(QueryRequest request, ISchemaProvider schemaProvide)
     {
         return Parse(request.Query, schemaProvide, request.Variables ?? new QueryVariables());
@@ -248,6 +256,7 @@ public static class GraphQLParser
 
     private static void ParseSelectionSet(GraphQLParseContext parseContext, IGraphQLNode node, ref SpanReader reader)
     {
+        CheckDepth(ref parseContext, ref reader);
         reader.SkipIgnored();
         reader.Expect('{', parseContext, "Expected '{' to start selection set.");
 
@@ -519,8 +528,10 @@ public static class GraphQLParser
             case '"':
                 return ParseStringValue(parseContext, ref reader);
             case '[':
+                CheckDepth(ref parseContext, ref reader);
                 return ParseListValue(parseContext, ref reader);
             case '{':
+                CheckDepth(ref parseContext, ref reader);
                 return ParseObjectValue(parseContext, ref reader);
             case '-':
                 return ParseNumberValue(parseContext, ref reader);
@@ -979,6 +990,16 @@ public static class GraphQLParser
             reader.Advance();
 
         return reader.GetString(start, reader.Position - start);
+    }
+
+    /// <summary>
+    /// Increments the current parse recursion depth and throws if it exceeds <see cref="MaxParseDepth"/>. The
+    /// context is passed by ref so the increment flows into the caller's subsequent (deeper) recursive calls.
+    /// </summary>
+    private static void CheckDepth(ref GraphQLParseContext parseContext, ref SpanReader reader)
+    {
+        if (++parseContext.Depth > MaxParseDepth)
+            throw CreateParseException(parseContext, $"Query exceeds the maximum nesting depth of {MaxParseDepth}.", reader.Position);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1559,6 +1580,13 @@ internal ref struct GraphQLParseContext
     public QueryVariables QueryVariables { get; }
     public ExecutableGraphQLStatement? CurrentOperation { get; set; }
     public bool InFragment { get; set; }
+
+    /// <summary>
+    /// Current recursion depth while parsing (selection sets and nested argument/input values). The context is a
+    /// value type passed by value, so incrementing it flows down into deeper recursive calls (reflecting the true
+    /// call-stack depth) without needing to be decremented on the way back up.
+    /// </summary>
+    public int Depth { get; set; }
 
     public GraphQLParseContext(ReadOnlySpan<char> query, QueryVariables queryVariables)
     {
