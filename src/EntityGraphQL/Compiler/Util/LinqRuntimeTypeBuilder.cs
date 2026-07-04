@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
+using System.Text;
 #if NET9_0_OR_GREATER
 using System.Threading;
 #endif
@@ -26,24 +26,22 @@ public static class LinqRuntimeTypeBuilder
     private static readonly object lockObj = new();
 #endif
 
-    // We build a key based on all the selected fields so we can cache the anonymous types we built
-    // Type names can't be > 1024 length, so we store them against a shorter Guid string
-    // Key: concatenated field names + field types
-    // Value: (ClassName, Type)
-    private static readonly Dictionary<int, (string ClassName, Type Type)> typesByFullName = [];
+    // We build a key based on all the selected fields so we can cache the anonymous types we built.
+    // The key must be a full, collision-free description (field names + assembly-qualified field types +
+    // parent type) - a hash key could collide and hand a query a type with the wrong fields/parent.
+    // Type names can't be > 1024 length, so the CLR type name itself uses a Guid instead of this key.
+    private static readonly Dictionary<string, Type> builtTypes = [];
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetTypeKey(IReadOnlyDictionary<string, Type> fields, Type? parentType)
+    private static string GetTypeKey(IReadOnlyDictionary<string, Type> fields, Type? parentType)
     {
-        var hash = new HashCode();
-        foreach (var field in fields.OrderBy(f => f.Key))
+        var key = new StringBuilder();
+        foreach (var field in fields.OrderBy(f => f.Key, StringComparer.Ordinal))
         {
-            hash.Add(field.Key);
-            hash.Add(field.Value);
+            key.Append(field.Key).Append(':').Append(field.Value.AssemblyQualifiedName ?? field.Value.ToString()).Append(';');
         }
         if (parentType != null)
-            hash.Add(parentType.Name);
-        return hash.ToHashCode();
+            key.Append('|').Append(parentType.AssemblyQualifiedName ?? parentType.ToString());
+        return key.ToString();
     }
 
     /// <summary>
@@ -64,12 +62,12 @@ public static class LinqRuntimeTypeBuilder
             throw new ArgumentNullException(nameof(fields));
 #endif
 
-        var typeHashCode = GetTypeKey(fields, parentType);
+        var typeKey = GetTypeKey(fields, parentType);
         lock (lockObj)
         {
-            if (typesByFullName.TryGetValue(typeHashCode, out var typeInfo))
+            if (builtTypes.TryGetValue(typeKey, out var existingType))
             {
-                return typeInfo.Type;
+                return existingType;
             }
 
             var className = $"{DynamicTypePrefix}{description}_{Guid.NewGuid()}";
@@ -83,8 +81,9 @@ public static class LinqRuntimeTypeBuilder
                 typeBuilder.DefineField(field.Key, field.Value, FieldAttributes.Public);
             }
 
-            typesByFullName[typeHashCode] = (className, typeBuilder.CreateTypeInfo()!.AsType());
-            return typesByFullName[typeHashCode].Type;
+            var newType = typeBuilder.CreateTypeInfo()!.AsType();
+            builtTypes[typeKey] = newType;
+            return newType;
         }
     }
 }
