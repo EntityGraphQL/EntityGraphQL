@@ -236,27 +236,9 @@ public class ConnectionEdgeExtension : BaseFieldExtension
             Expression.Lambda(Expression.MemberInit(Expression.New(edgeType), new List<MemberBinding> { Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression) }), firstSelectParam)
         );
 
-        var idxParam = Expression.Parameter(typeof(int), "cursor_idx");
-        var offsetParam = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(false));
-        // now select with cursor
-        baseExpression = Expression.Call(
-            typeof(Enumerable),
-            "Select",
-            [edgeType, edgeType],
-            baseExpression,
-            Expression.Lambda(
-                Expression.MemberInit(
-                    Expression.New(edgeType),
-                    new List<MemberBinding>
-                    {
-                        Expression.Bind(edgeType.GetProperty("Node")!, Expression.PropertyOrField(edgeParam, "Node")),
-                        Expression.Bind(edgeType.GetProperty("Cursor")!, Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetCursor), null, argumentParam, idxParam, offsetParam)),
-                    }
-                ),
-                edgeParam,
-                idxParam
-            )
-        );
+        // assign cursors while enumerating (in memory - this is what executes the DB query above).
+        // ApplyCursors computes the argument-dependent cursor base once per request rather than per row.
+        baseExpression = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.ApplyCursors), [anonType], baseExpression, argumentParam);
 
         nodeField.Expression = Expression.PropertyOrField(edgeParam, "Node");
         if (selectionExpressions.Any(f => f.Key.Name == "cursor"))

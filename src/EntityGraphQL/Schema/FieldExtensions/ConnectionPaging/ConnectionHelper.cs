@@ -65,6 +65,15 @@ public static class ConnectionHelper
     /// </summary>
     public static string GetCursor(dynamic arguments, int idx, int? offset = null)
     {
+        return SerializeCursor(GetCursorIndex(arguments, idx, offset));
+    }
+
+    /// <summary>
+    /// The row index a cursor represents. Every branch is linear in idx, so the value at idx 0 is a per-request
+    /// base the per-row cursors can be derived from (see <see cref="ApplyCursors{TEntity}"/>).
+    /// </summary>
+    public static int GetCursorIndex(dynamic arguments, int idx, int? offset = null)
+    {
         var index = idx + 1;
         if (arguments.AfterNum != null)
             index += arguments.AfterNum;
@@ -79,7 +88,23 @@ public static class ConnectionHelper
         if (offset < 0)
             index = idx + 1;
 
-        return SerializeCursor(index);
+        return index;
+    }
+
+    /// <summary>
+    /// Used at runtime: enumerates the page (executing the DB query for an IQueryable source) and assigns each
+    /// edge its cursor. The dynamic argument math runs once per request here, not once per row.
+    /// </summary>
+    public static System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> ApplyCursors<TEntity>(System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> edges, dynamic arguments)
+    {
+        int? offset = GetSkipNumber(arguments, false);
+        int baseIndex = GetCursorIndex(arguments, 0, offset);
+        var i = 0;
+        foreach (var edge in edges)
+        {
+            edge.Cursor = SerializeCursor(baseIndex + i++);
+            yield return edge;
+        }
     }
 
     /// <summary>
@@ -99,6 +124,34 @@ public static class ConnectionHelper
             return c;
         }
         return 0;
+    }
+
+    /// <summary>
+    /// Used at runtime: answers pageInfo.hasNextPage with a cheap EXISTS query (skip past the current page,
+    /// Any()) instead of a full COUNT when nothing else in the selection needs the total. Only used for
+    /// forward paging (first/after) - see ConnectionPagingExtension.
+    /// </summary>
+    public static bool PageHasNext<TSource>(System.Linq.IQueryable<TSource> source, dynamic arguments)
+    {
+        int? first = arguments.First;
+        if (first == null)
+            return false; // no page size = the whole remaining collection was returned
+        string? after = arguments.After;
+        int skip = (DeserializeCursor(after) ?? 0) + first.Value;
+        return System.Linq.Queryable.Any(System.Linq.Queryable.Skip(source, skip));
+    }
+
+    /// <summary>
+    /// Used at runtime - see the IQueryable overload.
+    /// </summary>
+    public static bool PageHasNext<TSource>(System.Collections.Generic.IEnumerable<TSource> source, dynamic arguments)
+    {
+        int? first = arguments.First;
+        if (first == null)
+            return false;
+        string? after = arguments.After;
+        int skip = (DeserializeCursor(after) ?? 0) + first.Value;
+        return System.Linq.Enumerable.Any(System.Linq.Enumerable.Skip(source, skip));
     }
 
     /// <summary>

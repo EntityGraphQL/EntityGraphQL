@@ -190,15 +190,31 @@ public class ConnectionPagingExtension : BaseFieldExtension
 
     private MemberInitExpression BuildConnectionExpression(BaseGraphQLField? fieldNode, dynamic? arguments, Expression resolve, ParameterExpression argumentParam)
     {
-        // Check if we need to compute totalCount:
+        // Check if we need to compute totalCount (a full COUNT query):
         // 1. totalCount field is selected
-        // 2. pageInfo field is selected (all pageInfo fields depend on totalCount)
-        // 3. 'last' argument is used (skip calculation needs totalCount when last is used without before)
-        var needsCount = fieldNode?.QueryFields?.Any(f => f.Field?.Name == "totalCount" || f.Field?.Name == "pageInfo") ?? true;
+        // 2. 'last' argument is used (skip calculation needs totalCount)
+        // 3. pageInfo is selected and needs it: endCursor/startCursor derive from the total, and backwards
+        //    paging (before/last) needs it for hasNextPage/hasPreviousPage. The common forward-paging
+        //    pageInfo { hasNextPage hasPreviousPage } selection does NOT - hasNextPage is answered with a
+        //    cheap EXISTS query (skip past the current page, Any()) and hasPreviousPage from the arguments.
+        var totalSelected = fieldNode?.QueryFields?.Any(f => f.Field?.Name == "totalCount") ?? true;
+        var pageInfoNode = fieldNode?.QueryFields?.FirstOrDefault(f => f.Field?.Name == "pageInfo");
+        var forwardPagingOnly = arguments?.Last == null && arguments?.Before == null;
+        var pageInfoAvoidsCount =
+            pageInfoNode?.QueryFields?.Count > 0 && pageInfoNode.QueryFields.All(f => f.Field?.Name == "hasNextPage" || f.Field?.Name == "hasPreviousPage") && forwardPagingOnly;
 
-        // Also need count if 'last' argument is provided (for skip/cursor calculations)
-        if (!needsCount && arguments?.Last != null)
-            needsCount = true;
+        var needsCount = totalSelected || arguments?.Last != null || (pageInfoNode != null && !pageInfoAvoidsCount);
+
+        if (!needsCount && pageInfoNode?.QueryFields?.Any(f => f.Field?.Name == "hasNextPage") == true)
+        {
+            var sourceType = isQueryable ? typeof(IQueryable<>) : typeof(System.Collections.Generic.IEnumerable<>);
+            var pageHasNext = typeof(ConnectionHelper)
+                .GetMethods()
+                .First(m => m.Name == nameof(ConnectionHelper.PageHasNext) && m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == sourceType)
+                .MakeGenericMethod(listType!);
+            var hasNextExp = Expression.Convert(Expression.Call(pageHasNext, resolve, argumentParam), typeof(bool?));
+            return Expression.MemberInit(Expression.New(returnType!.GetConstructor([argumentParam.Type, typeof(bool?)])!, argumentParam, hasNextExp));
+        }
 
         var bindings = new List<MemberBinding>();
         if (needsCount)

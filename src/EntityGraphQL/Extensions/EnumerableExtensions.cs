@@ -27,6 +27,17 @@ public static class EnumerableExtensions
         return Enumerable.Skip(source, count.Value);
     }
 
+    /// <summary>
+    /// True if there are any items after the current page (skip + take). Used by the paging extensions to
+    /// answer hasNextPage without counting the whole collection when the total is not requested.
+    /// </summary>
+    public static bool PageHasNext<TSource>(this IEnumerable<TSource> source, int? skip, int? take)
+    {
+        if (!take.HasValue)
+            return false; // no take = the page is the whole remaining collection
+        return Enumerable.Any(Enumerable.Skip(source, (skip ?? 0) + take.Value));
+    }
+
     public static IEnumerable<TSource> WhereWhen<TSource>(this IEnumerable<TSource> source, Expression<Func<TSource, bool>> wherePredicate, bool applyPredicate)
     {
         if (applyPredicate)

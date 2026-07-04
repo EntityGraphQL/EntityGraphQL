@@ -10,6 +10,20 @@ The API user will just have to keep asking for more items until it doesn't get a
 
 Note: When using one of the below field extensions with any of the other field extensions, make sure the paging one is added last. Filter -> Sort -> Paging.
 
+:::warning Order your collection
+Both paging extensions page with `Skip`/`Take`. Against a database an **unordered** query has no guaranteed row order, so consecutive pages can skip or repeat items. Always give the field's collection an explicit, stable order (e.g. `db.Movies.OrderBy(m => m.Id)`) — or expose sorting with `UseSort()` and a default sort.
+:::
+
+## Paging & EF query performance
+
+Both extensions are designed to be Entity Framework friendly:
+
+- The page query only selects the columns the GraphQL query asks for, with a parameterized `LIMIT`/`OFFSET` — it never fetches whole entities.
+- A `COUNT(*)` query only runs when the selection needs the total — `totalCount`/`totalItems`, `pageInfo { endCursor startCursor }`, backwards paging (`last`/`before`) or when using the `last` argument.
+- `hasNextPage` on its own (the common infinite-scroll selection, e.g. `pageInfo { hasNextPage }` or `hasNextPage` with `items`) does **not** count the collection — it is answered with a cheap `EXISTS` query that skips past the current page and checks for any row.
+
+So a typical page fetch is one SQL query, or two (page + `COUNT`/`EXISTS`) when page metadata is selected.
+
 ## Connection Paging Model
 
 Quickly you'll see the above lacks useful metadata - are there more items? What is the total items? etc. GraphQL doesn't have requirements on a particular way to do this, although the community (e.g. [Relay](https://relay.dev/graphql/connections.htm)) have landed on the [Connection Model](https://graphql.org/learn/pagination/). EntityGraphQL contains an easy field extension method to implement this in your schema - `UseConnectionPaging()`. This can only be applied to fields that return a collection type.
@@ -123,6 +137,11 @@ If either `first` or `last` arguments are greater then the `maxPageSize` value a
 The `Cursor` in the connection paging model is built on the row index of the item. As suggested in the [connection model](https://graphql.org/learn/pagination/#complete-connection-model) the row index is encoded.
 
 > As a reminder that the cursors are opaque and that their format should not be relied upon, we suggest base64 encoding them.
+
+Because cursors are positional (an encoded row index), not keyset-based, two things follow:
+
+- `after: <cursor>` translates to a SQL `OFFSET`, so the cost of fetching a page grows with how deep into the collection it is — the same characteristics as offset paging, just behind a cursor-shaped API.
+- Cursors are only stable while the underlying collection (and its ordering) doesn't change. Items inserted or deleted before the cursor's position shift the rows, so a page fetched later may skip or repeat items. If you need cursor stability under concurrent writes, implement keyset ("seek") pagination in your own field expressions using the [Custom Paging](#custom-paging) approach with a stable sort key.
 
 ## Offset Paging
 

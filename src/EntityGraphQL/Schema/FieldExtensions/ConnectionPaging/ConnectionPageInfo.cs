@@ -7,11 +7,16 @@ public class ConnectionPageInfo
 {
     private readonly int totalCount;
     private readonly dynamic arguments;
+    private readonly bool? hasNextPageOverride;
 
     public ConnectionPageInfo(int totalCount, dynamic arguments)
+        : this(totalCount, (object)arguments, null) { }
+
+    public ConnectionPageInfo(int totalCount, dynamic arguments, bool? hasNextPageOverride)
     {
         this.totalCount = totalCount;
         this.arguments = arguments;
+        this.hasNextPageOverride = hasNextPageOverride;
     }
 
     [Description("Last cursor in the page. Use this as the next from argument")]
@@ -46,7 +51,7 @@ public class ConnectionPageInfo
     }
 
     [Description("If there is more data after this page")]
-    public bool HasNextPage => arguments.First != null ? ((arguments.AfterNum ?? 0) + arguments.First) < totalCount : arguments.BeforeNum < totalCount;
+    public bool HasNextPage => hasNextPageOverride ?? (arguments.First != null ? ((arguments.AfterNum ?? 0) + arguments.First) < totalCount : arguments.BeforeNum < totalCount);
 
     [Description("If there is data previous to this page")]
     public bool HasPreviousPage => (arguments.AfterNum ?? 0) > 0 || (arguments.BeforeNum ?? totalCount) - (arguments.Last ?? totalCount) > 1;

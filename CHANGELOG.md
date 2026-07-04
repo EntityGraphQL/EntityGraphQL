@@ -9,6 +9,11 @@
 - `UseAggregate` can aggregate a service-backed element field (e.g. `person.score` resolved via `Resolve<Service>(...)`). The per-element service values are projected/materialized in the first pass and reduced in memory in the second, so `aggregate { sum { score } }` works under EF.
 - Aggregating a **bulk-resolved** element field (`ResolveBulk`) uses the bulk loader: the keys are projected/materialized in the first pass and all values are fetched in a single bulk call in the second, then reduced in memory — so it doesn't fall back to one service call per element. (Sync, no-argument bulk resolvers; async/argument bulk resolvers use the per-element fallback.)
 
+## Changes
+
+- Paging performance: `hasNextPage` no longer runs a `COUNT(*)` query when the total isn't otherwise needed. `UseOffsetPaging` (when `totalItems` isn't selected) and `UseConnectionPaging` (forward paging with a `pageInfo` selection of only `hasNextPage`/`hasPreviousPage`) answer it with a cheap `EXISTS` query — skip past the current page and check for any row. Selections needing the total (`totalCount`/`totalItems`, `endCursor`/`startCursor`, or the `last`/`before` arguments) behave as before.
+- Connection paging cursor assignment no longer evaluates the (dynamic) cursor arguments per row — the cursor base is computed once per request (`ConnectionHelper.ApplyCursors`) and each edge's cursor derived from it while enumerating.
+
 # 6.0.0-beta7
 
 ## Bug Fixes

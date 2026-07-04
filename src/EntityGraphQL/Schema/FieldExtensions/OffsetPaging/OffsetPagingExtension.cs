@@ -142,14 +142,37 @@ public class OffsetPagingExtension : BaseFieldExtension
 
     private MemberInitExpression BuildTotalCountExpression(BaseGraphQLField? fieldNode, Type returnType, Expression resolve, ParameterExpression argumentParam)
     {
-        var needsCount = fieldNode?.QueryFields?.Any(f => f.Field?.Name == "totalItems" || f.Field?.Name == "hasNextPage") ?? true;
+        // A COUNT query is only needed when the total itself is requested. hasNextPage alone is answered with a
+        // cheap EXISTS query (skip past the current page, Any()) instead of counting the whole collection.
+        var needsTotal = fieldNode?.QueryFields?.Any(f => f.Field?.Name == "totalItems") ?? true;
+        var needsHasNext = !needsTotal && (fieldNode?.QueryFields?.Any(f => f.Field?.Name == "hasNextPage") ?? false);
 
-        var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [listType!], resolve);
+        var skipExp = Expression.PropertyOrField(argumentParam!, "skip");
+        var takeExp = Expression.PropertyOrField(argumentParam!, "take");
 
-        var expression = Expression.MemberInit(
-            Expression.New(returnType.GetConstructor([typeof(int?), typeof(int?)])!, Expression.PropertyOrField(argumentParam!, "skip"), Expression.PropertyOrField(argumentParam!, "take")),
-            needsCount ? [Expression.Bind(returnType.GetProperty("TotalItems")!, totalCountExp)] : []
-        );
+        if (needsHasNext)
+        {
+            var hasNextExp = Expression.Call(
+                isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
+                nameof(EnumerableExtensions.PageHasNext),
+                [listType!],
+                resolve,
+                skipExp,
+                takeExp
+            );
+            return Expression.MemberInit(
+                Expression.New(returnType.GetConstructor([typeof(int?), typeof(int?), typeof(bool?)])!, skipExp, takeExp, Expression.Convert(hasNextExp, typeof(bool?)))
+            );
+        }
+
+        var bindings = new List<MemberBinding>();
+        if (needsTotal)
+        {
+            var totalCountExp = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [listType!], resolve);
+            bindings.Add(Expression.Bind(returnType.GetProperty("TotalItems")!, totalCountExp));
+        }
+
+        var expression = Expression.MemberInit(Expression.New(returnType.GetConstructor([typeof(int?), typeof(int?)])!, skipExp, takeExp), bindings);
         return expression;
     }
 

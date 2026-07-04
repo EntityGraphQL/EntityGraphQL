@@ -3,9 +3,22 @@ using System.ComponentModel;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
-public class Connection<TEntity>(dynamic arguments)
+public class Connection<TEntity>
 {
-    private readonly dynamic arguments = arguments;
+    private readonly dynamic arguments;
+
+    // set when pageInfo.hasNextPage is requested without anything needing the total -
+    // answered with a cheap EXISTS query instead of a full COUNT
+    private readonly bool? hasNextPageOverride;
+
+    public Connection(dynamic arguments)
+        : this((object)arguments, null) { }
+
+    public Connection(dynamic arguments, bool? hasNextPageOverride)
+    {
+        this.arguments = arguments;
+        this.hasNextPageOverride = hasNextPageOverride;
+    }
 
     [Description("Edge information about each node in the collection")]
     public IEnumerable<ConnectionEdge<TEntity>> Edges { get; set; } = new List<ConnectionEdge<TEntity>>();
@@ -30,7 +43,7 @@ public class Connection<TEntity>(dynamic arguments)
     [Description("Information about this page of data")]
     public ConnectionPageInfo PageInfo
     {
-        get => pageInfo ??= new ConnectionPageInfo(TotalCount, arguments);
+        get => pageInfo ??= new ConnectionPageInfo(TotalCount, arguments, hasNextPageOverride);
         set => pageInfo = value;
     }
 }
