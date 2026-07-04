@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler.EntityQuery.Grammar;
 
@@ -30,6 +32,24 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
                 return MakeConstantFromIdentity(context, schema, name, requestContext);
             }
         }
+
+        // the context is the underlying collection of a paged field (see below). The Page/Connection wrapper
+        // fields only exist in the GraphQL schema - map them onto the collection
+        if (compileContext.PagedFieldExpressions.Contains(context))
+        {
+            if (string.Equals(name, "items", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "edges", StringComparison.OrdinalIgnoreCase))
+                return context; // identity - the collection is the items
+            if (string.Equals(name, "totalItems", StringComparison.OrdinalIgnoreCase) || string.Equals(name, "totalCount", StringComparison.OrdinalIgnoreCase))
+            {
+                var elementType = context.Type.GetEnumerableOrArrayType()!;
+                return Expression.Call(context.Type.IsGenericTypeQueryable() ? typeof(Queryable) : typeof(Enumerable), nameof(Enumerable.Count), [elementType], context);
+            }
+            throw new EntityGraphQLException(
+                GraphQLErrorCategory.DocumentError,
+                $"Field '{name}' is not supported on a paged field within a filter. The paged field resolves to its underlying collection - use it directly (e.g. field.count()) or via items/edges/totalItems/totalCount."
+            );
+        }
+
         // we have a schema we follow it for fields etc
         var schemaType = schema.GetSchemaType(context.Type, false, requestContext);
 
@@ -43,6 +63,22 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
             return Expression.Constant(Enum.Parse(schemaType.TypeDotnet, name));
         }
         var gqlField = schemaType.GetField(name, requestContext);
+
+        // A paged field's resolve is the Page/Connection wrapper object which only exists for the GraphQL
+        // schema - it cannot execute inside a filter (or translate to SQL). Within a filter the field means
+        // the underlying collection, so use the pre-paging resolve expression and remember it so a following
+        // items/edges/totalItems/totalCount access can be mapped (above). See GitHub issue #378.
+        var pagingExt = gqlField.Extensions.FirstOrDefault(e => e is OffsetPagingExtension or ConnectionPagingExtension);
+        if (pagingExt != null && gqlField.FieldParam != null)
+        {
+            var original = pagingExt is OffsetPagingExtension offset ? offset.OriginalFieldExpression : ((ConnectionPagingExtension)pagingExt).OriginalFieldExpression;
+            if (original != null)
+            {
+                var collection = new Util.ParameterReplacer().Replace(original, gqlField.FieldParam, context);
+                compileContext.PagedFieldExpressions.Add(collection);
+                return collection;
+            }
+        }
 
         var isServiceField = gqlField.Services.Count > 0;
 

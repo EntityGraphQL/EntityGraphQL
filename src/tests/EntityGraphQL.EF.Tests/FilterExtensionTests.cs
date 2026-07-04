@@ -34,4 +34,33 @@ public class FilterExtensionTests
         var person = Enumerable.First(people);
         Assert.Equal(33, person.id);
     }
+
+    [Fact]
+    public void GitHubIssue378_FilterOnPagedChildFieldTranslatesToSql()
+    {
+        // filtering by a paged child field ("movies.items.count() > 0") - the filter resolves the paged
+        // field to its underlying collection so it executes against EF (sqlite throws if untranslatable)
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        schema.Type<Actor>().GetField("movies", null).UseOffsetPaging();
+        schema.Query().ReplaceField("actors", db => db.Actors, "Get all actors").UseFilter();
+
+        using var factory = new TestDbContextFactory();
+        var data = factory.CreateContext();
+        var movie = new Movie("A movie");
+        data.Add(new Actor("With movies") { Id = 1, Movies = [movie] });
+        data.Add(new Actor("Without movies") { Id = 2 });
+        data.SaveChanges();
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"{ actors(filter: ""movies.items.count() > 0"") { id name } }" },
+            data,
+            null,
+            null
+        );
+
+        Assert.Null(result.Errors);
+        dynamic actors = ((IDictionary<string, object>)result.Data!)["actors"]!;
+        Assert.Equal(1, Enumerable.Count(actors));
+        Assert.Equal(1, Enumerable.First(actors).id);
+    }
 }

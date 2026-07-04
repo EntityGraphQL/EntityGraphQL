@@ -1,3 +1,35 @@
+# 6.0.0
+
+6.0.0 includes everything from the `6.0.0-beta1` – `6.0.0-beta8` releases — see the beta sections below for full details and the complete list of breaking changes. A summary of the big items:
+
+## Highlights
+
+- **Partial results & spec compliance** (beta1) — top-level fields execute independently; if one fails you get the successful fields' data plus error details for the failed ones, and `data` is `null` when an error prevents a valid response, per the GraphQL spec. `MapGraphQL` follows the [GraphQL-over-HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md) by default.
+- **New async model & cancellation** (beta1) — `.ResolveAsync<>()` for async fields, end-to-end `CancellationToken` support (passed through `ExecuteRequestAsync` and into your resolvers), and async subscription setup (`Task<IObservable<T>>`).
+- **Query protection** (beta3) — opt-in pre-execution guards (`MaxQueryDepth`, `MaxFieldSelections`, `MaxFieldAliases`, `MaxQueryComplexity`), per-field complexity scoring via `field.SetComplexity(...)`, and per-field rate limiting via `field.AddRateLimit(...)` with a `PartitionedRateLimiter`-backed implementation in `EntityGraphQL.AspNet`.
+- **New `UseAggregate()` field extension** (beta8) — expose `count`/`min`/`max`/`sum`/`average` over a collection field, translated to a single SQL query under EF. Placement adapts to the field (attaches to a paging wrapper, wraps as `{ items, aggregate }`, or an additive sibling field), and it supports aggregating service-backed and bulk-resolved fields via the two-pass execution model.
+- **Filtering improvements** — reference service fields in filters (#303), GraphQL variables in filters (`filter: "name == $searchTerm"`, #396), `selectMany` for nested collections, generic custom type converters (#476), better nullable numeric comparisons (#484), and filtering by paged child fields (#378, below).
+- **Paging & EF performance** — the `COUNT` query only runs when the selection needs the total, `hasNextPage` alone is answered with a cheap `EXISTS` query, and connection cursor assignment computes its argument math once per request. Page queries select only the requested columns with parameterized paging.
+- **New GraphQL document parser** (beta3) — replaced the third-party parser; adds document descriptions from the September 2025 spec; structured error source `locations` in responses.
+- **Targets** — adds `net10.0`; `EntityGraphQL.AspNet` drops `net6.0`/`net7.0` (the core `EntityGraphQL` package still targets `netstandard2.1` for older runtimes).
+
+## Breaking changes summary
+
+Each is detailed in the beta section it shipped in:
+
+- Partial-results behavior and `AddGraphQLValidator` now registering `IGraphQLValidator` as transient (beta1)
+- `MapGraphQL` spec-following behavior is the default (beta1); removed previously-obsolete members; filter support via `ArgumentHelper.EntityQuery` removed — use `UseFilter()` (beta1)
+- `AddGraphQLOptions<T>` restructured to composition (`options.Builder` / `options.Schema`), `ConfigureSchema(...)` methods, and `AddGraphQLSchema()` returning a `GraphQLSchemaBuilder<T>` for chaining `ConfigureGraphQLSchema(...)` (beta3/beta5)
+- Authorization refactored to a keyed data structure; role/policy helpers replace the roles constructor (beta3)
+- `IFieldExtension` hooks take context objects instead of positional parameters (beta4)
+- Renames: `SchemaBuilderSchemaOptions` → `SchemaProviderOptions` (beta3), `ExecutionOptions.MaxQueryNodes` → `MaxFieldSelections`, `UserKeySelector` → `RateLimitUserKeySelector` (beta6), `ExecutableDirectiveLocation` enum fields to C# style (beta3)
+- Default serializers use `JsonSerializerDefaults.Web` (beta6)
+
+## Changes since beta8
+
+- #378 - Filtering by a paged child field now works. Within a filter expression a field using `UseOffsetPaging()`/`UseConnectionPaging()` resolves to its underlying collection (the page wrapper only exists in the GraphQL schema), so `enquiries(filter: "enquirerDaps.count() > 0")`, `"enquirerDaps.items.count() > 0"` (`items`/`edges` are the collection) and `"enquirerDaps.totalItems > 0"` (`totalItems`/`totalCount` map to `Count()`) all compile and translate to SQL under EF. Previously these failed with `Method 'count' not found on current context 'OffsetPage'` or a `NullReferenceException`. Other page metadata (e.g. `hasNextPage`) raises a clear error when used in a filter.
+
+
 # 6.0.0-beta8
 
 ## New Features

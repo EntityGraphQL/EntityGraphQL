@@ -345,6 +345,19 @@ With variables:
 }
 ```
 
+## Paged Fields in Filters
+
+A field using `UseOffsetPaging()`/`UseConnectionPaging()` returns a page wrapper type in the GraphQL schema, but that wrapper can't execute inside a filter (or translate to SQL). So within a filter expression a paged field resolves to its **underlying collection**:
+
+```graphql
+# enquirerDaps uses UseOffsetPaging - all of these are equivalent in a filter:
+enquiries(filter: "enquirerDaps.count() > 0")
+enquiries(filter: "enquirerDaps.items.count() > 0")  # items/edges are the collection itself
+enquiries(filter: "enquirerDaps.totalItems > 0")     # totalItems/totalCount map to Count()
+```
+
+Note the collection is the *unfiltered* source — any `filter` argument passed to the paged field in the query applies to that field's own results, not to the parent's filter. Other page metadata (e.g. `hasNextPage`) is not available in filters.
+
 ## Service Fields in Filters
 
 When using the filter extension with fields that resolve data from services (using `Resolve<TService>()`) and have two-pass execution enabled (`ExecuteServiceFieldsSeparately = true`, which is the default), EntityGraphQL automatically handles filter splitting to optimize query performance.

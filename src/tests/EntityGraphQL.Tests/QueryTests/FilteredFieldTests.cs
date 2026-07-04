@@ -215,7 +215,7 @@ public class FilteredFieldTests
         Assert.DoesNotContain("filter: String = ", sdl);
     }
 
-    [Fact(Skip = "GitHub Issue #378 - Fix not implemented yet")]
+    [Fact]
     public void ReproducesGitHubIssue378_CountMethodNotFoundOnOffsetPage()
     {
         var schema = SchemaBuilder.FromObject<IncidentContext>();
@@ -269,7 +269,7 @@ public class FilteredFieldTests
         Assert.Empty(secondEnquiry.enquirerDaps.items);
     }
 
-    [Fact(Skip = "GitHub Issue #378 - Fix not implemented yet")]
+    [Fact]
     public void ReproducesGitHubIssue378_CountMethodNotFoundOnConnectionPage()
     {
         var schema = SchemaBuilder.FromObject<IncidentContext>();
@@ -310,6 +310,58 @@ public class FilteredFieldTests
         Assert.Equal(1, firstEnquiry.node.id);
         var secondEnquiry = Enumerable.ElementAt(incident.enquiries.edges, 1);
         Assert.Equal(3, secondEnquiry.node.id);
+    }
+
+    [Fact]
+    public void GitHubIssue378_PagedFieldUsedDirectlyInFilter()
+    {
+        // the paged field resolves to its underlying collection in a filter, so count()/any() work directly
+        // (the user's first attempt in the issue) and totalItems maps to Count()
+        var schema = SchemaBuilder.FromObject<IncidentContext>();
+        schema.Type<Incident>().GetField("enquiries", null).UseFilter().UseOffsetPaging();
+        schema.Type<Enquiry>().GetField("enquirerDaps", null).UseFilter().UseOffsetPaging();
+
+        var context = new IncidentContext().FillWithIncidentData();
+
+        var direct = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"query { incident(id: 1) { enquiries(filter: ""enquirerDaps.count() > 0"") { items { id } } } }" },
+            context,
+            null,
+            null
+        );
+        Assert.Null(direct.Errors);
+        dynamic incident = ((IDictionary<string, object>)direct.Data!)["incident"];
+        Assert.Equal(2, Enumerable.Count(incident.enquiries.items));
+
+        var totalItems = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"query { incident(id: 1) { enquiries(filter: ""enquirerDaps.totalItems == 0"") { items { id } } } }" },
+            context,
+            null,
+            null
+        );
+        Assert.Null(totalItems.Errors);
+        dynamic incident2 = ((IDictionary<string, object>)totalItems.Data!)["incident"];
+        Assert.Equal(1, Enumerable.Count(incident2.enquiries.items)); // only enquiry id=2 has none
+        Assert.Equal(2, Enumerable.First(incident2.enquiries.items).id);
+    }
+
+    [Fact]
+    public void GitHubIssue378_UnsupportedPageFieldInFilterGivesClearError()
+    {
+        var schema = SchemaBuilder.FromObject<IncidentContext>();
+        schema.Type<Incident>().GetField("enquiries", null).UseFilter().UseOffsetPaging();
+        schema.Type<Enquiry>().GetField("enquirerDaps", null).UseFilter().UseOffsetPaging();
+
+        var context = new IncidentContext().FillWithIncidentData();
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"query { incident(id: 1) { enquiries(filter: ""enquirerDaps.hasNextPage"") { items { id } } } }" },
+            context,
+            null,
+            null
+        );
+
+        Assert.NotNull(result.Errors);
+        Assert.Contains("not supported on a paged field", result.Errors![0].Message);
     }
 
     private class IncidentContext
