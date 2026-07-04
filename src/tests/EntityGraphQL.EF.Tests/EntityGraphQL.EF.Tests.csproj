@@ -3,6 +3,10 @@
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NU1903: transitive SQLitePCLRaw.lib.e_sqlite3 advisory via Microsoft.EntityFrameworkCore.Sqlite.
+         No patched 2.x exists; keep it visible as a warning (not an error) until an EF Sqlite release
+         references SQLitePCLRaw 3.x, then remove this. -->
+    <WarningsNotAsErrors>NU1903</WarningsNotAsErrors>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <LangVersion>13.0</LangVersion>
@@ -12,16 +16,16 @@
     <ProjectReference Include="../EntityGraphQL.Tests.Util/EntityGraphQL.Tests.Util.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.28" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.28" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.17" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.17" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />

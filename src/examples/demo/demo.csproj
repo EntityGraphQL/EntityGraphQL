@@ -3,13 +3,17 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- NU1903: transitive SQLitePCLRaw.lib.e_sqlite3 advisory via Microsoft.EntityFrameworkCore.Sqlite.
+         No patched 2.x exists; keep it visible as a warning (not an error) until an EF Sqlite release
+         references SQLitePCLRaw 3.x, then remove this. -->
+    <WarningsNotAsErrors>NU1903</WarningsNotAsErrors>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="wwwroot\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageReference Include="EntityFrameworkCore.Projectables" Version="4.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.0" />
     <ProjectReference Include="../../EntityGraphQL.AspNet/EntityGraphQL.AspNet.csproj" />

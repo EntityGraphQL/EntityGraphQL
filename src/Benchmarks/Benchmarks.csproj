@@ -16,7 +16,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.15" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.17" />
     <ProjectReference Include="../EntityGraphQL/EntityGraphQL.csproj" />
     <None Update="./DataLoader/moviedata.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
