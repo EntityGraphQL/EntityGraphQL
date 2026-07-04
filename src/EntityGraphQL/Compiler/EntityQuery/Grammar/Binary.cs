@@ -52,30 +52,30 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
             // If types are now equal after literal parser, skip further specific conversions
             if (left.Type != right.Type)
             {
-                if (left.Type == typeof(Guid) || left.Type == typeof(Guid?) && right.Type == typeof(string))
+                if ((left.Type == typeof(Guid) || left.Type == typeof(Guid?)) && right.Type == typeof(string))
                     right = ConvertToGuid(right);
-                else if (right.Type == typeof(Guid) || right.Type == typeof(Guid?) && left.Type == typeof(string))
+                else if ((right.Type == typeof(Guid) || right.Type == typeof(Guid?)) && left.Type == typeof(string))
                     left = ConvertToGuid(left);
-                else if (left.Type == typeof(DateTime) || left.Type == typeof(DateTime?) && right.Type == typeof(string))
+                else if ((left.Type == typeof(DateTime) || left.Type == typeof(DateTime?)) && right.Type == typeof(string))
                     right = ConvertToDateTime(right);
-                else if (right.Type == typeof(DateTime) || right.Type == typeof(DateTime?) && left.Type == typeof(string))
+                else if ((right.Type == typeof(DateTime) || right.Type == typeof(DateTime?)) && left.Type == typeof(string))
                     left = ConvertToDateTime(left);
-                else if (left.Type == typeof(DateTimeOffset) || left.Type == typeof(DateTimeOffset?) && right.Type == typeof(string))
+                else if ((left.Type == typeof(DateTimeOffset) || left.Type == typeof(DateTimeOffset?)) && right.Type == typeof(string))
                     right = ConvertToDateTimeOffset(right);
-                else if (right.Type == typeof(DateTimeOffset) || right.Type == typeof(DateTimeOffset?) && left.Type == typeof(string))
+                else if ((right.Type == typeof(DateTimeOffset) || right.Type == typeof(DateTimeOffset?)) && left.Type == typeof(string))
                     left = ConvertToDateTimeOffset(left);
-                else if (left.Type == typeof(TimeSpan) || left.Type == typeof(TimeSpan?) && right.Type == typeof(string))
+                else if ((left.Type == typeof(TimeSpan) || left.Type == typeof(TimeSpan?)) && right.Type == typeof(string))
                     right = ConvertToTimeSpan(right);
-                else if (right.Type == typeof(TimeSpan) || right.Type == typeof(TimeSpan?) && left.Type == typeof(string))
+                else if ((right.Type == typeof(TimeSpan) || right.Type == typeof(TimeSpan?)) && left.Type == typeof(string))
                     left = ConvertToTimeSpan(left);
 #if NET8_0_OR_GREATER
-                else if (left.Type == typeof(DateOnly) || left.Type == typeof(DateOnly?) && right.Type == typeof(string))
+                else if ((left.Type == typeof(DateOnly) || left.Type == typeof(DateOnly?)) && right.Type == typeof(string))
                     right = ConvertToDateOnly(right);
-                else if (right.Type == typeof(DateOnly) || right.Type == typeof(DateOnly?) && left.Type == typeof(string))
+                else if ((right.Type == typeof(DateOnly) || right.Type == typeof(DateOnly?)) && left.Type == typeof(string))
                     left = ConvertToDateOnly(left);
-                else if (left.Type == typeof(TimeOnly) || left.Type == typeof(TimeOnly?) && right.Type == typeof(string))
+                else if ((left.Type == typeof(TimeOnly) || left.Type == typeof(TimeOnly?)) && right.Type == typeof(string))
                     right = ConvertToTimeOnly(right);
-                else if (right.Type == typeof(TimeOnly) || right.Type == typeof(TimeOnly?) && left.Type == typeof(string))
+                else if ((right.Type == typeof(TimeOnly) || right.Type == typeof(TimeOnly?)) && left.Type == typeof(string))
                     left = ConvertToTimeOnly(left);
 #endif
                 else if (left.Type.IsEnum && right.Type == typeof(string))

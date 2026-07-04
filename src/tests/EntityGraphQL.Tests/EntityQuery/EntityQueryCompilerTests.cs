@@ -357,6 +357,49 @@ public class EntityQueryCompilerTests
     }
 
     [Fact]
+    public void TestNullableDateTimeComparedToDateTimeField_UsesNullablePromotionNotStringParse()
+    {
+        // regression: a && / || precedence bug hijacked DateTime vs DateTime? comparisons into DateTime.Parse
+        // (which failed to build - Parse takes a string). It should be simple nullable promotion.
+        var schemaProvider = SchemaBuilder.FromObject<Entry>();
+        var compiledResult = EntityQueryCompiler.Compile("when == whenNullable", schemaProvider, compileContext);
+        Assert.DoesNotContain("Parse", compiledResult.LambdaExpression.ToString());
+
+        var list = new List<Entry>
+        {
+            new("Match") { When = new DateTime(2020, 08, 10), WhenNullable = new DateTime(2020, 08, 10) },
+            new("NoMatch") { When = new DateTime(2020, 08, 11), WhenNullable = new DateTime(2020, 08, 12) },
+            new("NullValue") { When = new DateTime(2020, 08, 11), WhenNullable = null },
+        };
+        var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
+
+        Assert.Single(results);
+        Assert.Equal("Match", results.First().Message);
+    }
+
+    [Fact]
+    public void TestNullableGuidComparedToGuidField_UsesNullablePromotionNotStringParse()
+    {
+        // regression: the same precedence bug turned Guid vs Guid? comparisons into Guid.Parse(x.ToString())
+        // which executes in memory but does not translate to SQL. It should be simple nullable promotion.
+        var schemaProvider = SchemaBuilder.FromObject<Entry>();
+        var compiledResult = EntityQueryCompiler.Compile("id == idNullable", schemaProvider, compileContext);
+        Assert.DoesNotContain("Parse", compiledResult.LambdaExpression.ToString());
+
+        var matching = Guid.NewGuid();
+        var list = new List<Entry>
+        {
+            new("Match") { Id = matching, IdNullable = matching },
+            new("NoMatch") { Id = Guid.NewGuid(), IdNullable = Guid.NewGuid() },
+            new("NullValue") { Id = Guid.NewGuid(), IdNullable = null },
+        };
+        var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
+
+        Assert.Single(results);
+        Assert.Equal("Match", results.First().Message);
+    }
+
+    [Fact]
     public void CompilesEnumSimple()
     {
         var schema = SchemaBuilder.FromObject<TestSchema>();
@@ -473,7 +516,10 @@ public class EntityQueryCompilerTests
         }
 
         public DateTime When { get; set; }
+        public DateTime? WhenNullable { get; set; }
         public DateTimeOffset WhenOffset { get; set; }
+        public Guid Id { get; set; }
+        public Guid? IdNullable { get; set; }
         public string Message { get; set; }
     }
 
