@@ -979,4 +979,110 @@ public class ServiceFieldBulkTests
         Assert.Equal(2, project.tasks.Count);
         Assert.Equal(1, project.tasks[0].createdBy.userData.id);
     }
+
+    [Fact]
+    public void TestBulkResolverTwoRootFields_SameBulkField_CalledOncePerRootField()
+    {
+        // regression: bulk resolvers registered while compiling one root field leaked into the next
+        // root field's execution - the service was re-called with the sibling's data
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy))
+                .ResolveBulk<UserService, int, User>(proj => proj.CreatedBy, (ids, srv) => srv.GetAllUsers(ids));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                projects { name createdBy { id } }
+                otherProjects: projects { name createdBy { id } }
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // once per root field - not 3 (1 for the first + 2 for the second re-running the first's resolver)
+        Assert.Equal(2, userService.CallCount);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(1, projects[0].createdBy.id);
+        dynamic otherProjects = res.Data!["otherProjects"]!;
+        Assert.Equal(1, otherProjects[0].createdBy.id);
+    }
+
+    [Fact]
+    public void TestBulkResolverTwoRootFields_SiblingWithDifferentShape_DoesNotRunLeakedResolver()
+    {
+        // regression: a bulk resolver leaked from the first root field was evaluated against the second
+        // root field's (differently shaped) data - throwing or calling the service with wrong keys
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy))
+                .ResolveBulk<UserService, int, User>(proj => proj.CreatedBy, (ids, srv) => srv.GetAllUsers(ids));
+        });
+        // sibling root field has a (non-bulk) service field so it also runs the two-pass execution
+        schema.UpdateType<Person>(type =>
+        {
+            type.AddField("linkedUser", "A user").Resolve<UserService>((person, users) => users.GetUser());
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                projects { name createdBy { id } }
+                people { name linkedUser { id } }
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                },
+            ],
+            People = [new Person { Id = 99, Name = "Alyssa" }],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(1, projects[0].createdBy.id);
+        dynamic people = res.Data!["people"]!;
+        Assert.Equal("Alyssa", people[0].name);
+        // 1 bulk call for projects + 1 per-person call - the bulk resolver must not run again for people
+        Assert.Equal(2, userService.CallCount);
+    }
 }

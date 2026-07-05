@@ -319,6 +319,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             if (node.RootParameter == null)
                 throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Root parameter not set for {node.Name}");
 
+            // the compileContext is shared across the operation's root fields but bulk resolvers are
+            // per-root-field - registered while compiling this node's first pass and resolved against this
+            // node's first-pass data. Clear any registered by a previous root field so they are not
+            // re-resolved against this node's (differently shaped) data
+            compileContext.BulkResolvers.Clear();
+
             Expression? expression = null;
             var contextParam = node.RootParameter;
             bool isSecondExec = false;
