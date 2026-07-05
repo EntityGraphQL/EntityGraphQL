@@ -109,6 +109,25 @@ app.Run();
 If you are using a tool like Postman, it expects the paths to be the same so you will need to tell it the correct path or use `UseGraphQLWebSockets<ChatContext>(path: "/graphql")`.
 :::
 
+## WebSocket server options
+
+`UseGraphQLWebSockets` accepts a `GraphQLWebSocketOptions` to control protocol-level behavior of the connection:
+
+```cs
+app.UseGraphQLWebSockets<ChatContext>(webSocketOptions: new GraphQLWebSocketOptions
+{
+    // Maximum size of a single incoming message. A larger message closes the connection
+    // with close code 1009 (MessageTooBig). Set to null for no limit. Default 1 MB
+    MaxMessageSizeBytes = 1024 * 1024,
+    // How long a client has to send its connection_init message before the connection is
+    // closed with close code 4408, per the graphql-ws protocol. Set to null for no timeout.
+    // Default 10 seconds
+    ConnectionInitTimeout = TimeSpan.FromSeconds(10),
+});
+```
+
+These defaults apply if you pass no options. Messages that are not valid JSON close the connection with close code `4400`.
+
 We will use a mutation to allow clients to post messages as well, it uses the `ChatService` to post new messages, which as you see above broadcasts new messages to subscribers.
 
 ```cs

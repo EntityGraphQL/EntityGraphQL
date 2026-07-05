@@ -8,7 +8,12 @@ namespace EntityGraphQL.AspNet;
 
 public static class EntityGraphQLWebApplicationExtensions
 {
-    public static IApplicationBuilder UseGraphQLWebSockets<TQueryType>(this IApplicationBuilder app, string path = "/subscriptions", ExecutionOptions? options = null)
+    public static IApplicationBuilder UseGraphQLWebSockets<TQueryType>(
+        this IApplicationBuilder app,
+        string path = "/subscriptions",
+        ExecutionOptions? options = null,
+        GraphQLWebSocketOptions? webSocketOptions = null
+    )
     {
         path = path.TrimEnd('/');
 
@@ -28,7 +33,7 @@ public static class EntityGraphQLWebApplicationExtensions
                             return;
                         }
 
-                        var server = new GraphQLWebSocketServer<TQueryType>(webSocket, context, options);
+                        var server = new GraphQLWebSocketServer<TQueryType>(webSocket, context, options, webSocketOptions);
 
                         await server.HandleAsync();
                     }

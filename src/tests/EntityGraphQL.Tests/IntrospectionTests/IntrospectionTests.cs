@@ -48,6 +48,88 @@ public class IntrospectionTests
     }
 
     [Fact]
+    public void Introspection_RespectsAuthorization_TypesAndFields()
+    {
+        var schema = SchemaBuilder.FromObject<RoleAuthorizationTests.RolesDataContext>();
+
+        var typesQuery = new QueryRequest { Query = @"{ __schema { types { name } } }" };
+        var fieldsQuery = new QueryRequest { Query = @"{ __type(name: ""Task"") { name fields { name } } }" };
+
+        // anonymous user: Project type (requires 'admin') and Task.description (requires 'can-description') hidden
+        var anon = schema.ExecuteRequestWithContext(typesQuery, new RoleAuthorizationTests.RolesDataContext(), null, null);
+        Assert.Null(anon.Errors);
+        var anonTypes = ((IEnumerable<dynamic>)((dynamic)anon.Data!["__schema"]!).types).Select(t => (string)t.name).ToList();
+        Assert.DoesNotContain("Project", anonTypes);
+        Assert.Contains("Task", anonTypes);
+
+        var anonFields = schema.ExecuteRequestWithContext(fieldsQuery, new RoleAuthorizationTests.RolesDataContext(), null, null);
+        Assert.Null(anonFields.Errors);
+        var anonFieldNames = ((IEnumerable<dynamic>)((dynamic)anonFields.Data!["__type"]!).fields).Select(f => (string)f.name).ToList();
+        Assert.DoesNotContain("description", anonFieldNames);
+        // the project field on Task returns the protected Project type - also hidden
+        Assert.DoesNotContain("project", anonFieldNames);
+        Assert.Contains("id", anonFieldNames);
+
+        // authorized user sees them
+        var claims = new System.Security.Claims.ClaimsIdentity(
+            [
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "admin"),
+                new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "can-description"),
+            ],
+            "authed"
+        );
+        var user = new System.Security.Claims.ClaimsPrincipal(claims);
+
+        var authed = schema.ExecuteRequestWithContext(typesQuery, new RoleAuthorizationTests.RolesDataContext(), null, user);
+        Assert.Null(authed.Errors);
+        var authedTypes = ((IEnumerable<dynamic>)((dynamic)authed.Data!["__schema"]!).types).Select(t => (string)t.name).ToList();
+        Assert.Contains("Project", authedTypes);
+
+        var authedFields = schema.ExecuteRequestWithContext(fieldsQuery, new RoleAuthorizationTests.RolesDataContext(), null, user);
+        Assert.Null(authedFields.Errors);
+        var authedFieldNames = ((IEnumerable<dynamic>)((dynamic)authedFields.Data!["__type"]!).fields).Select(f => (string)f.name).ToList();
+        Assert.Contains("description", authedFieldNames);
+        Assert.Contains("project", authedFieldNames);
+
+        // the generated SDL is for tooling/codegen and always contains the full schema
+        var sdl = schema.ToGraphQLSchemaString();
+        Assert.Contains("type Project", sdl);
+        Assert.Contains("description", sdl);
+    }
+
+    [Fact]
+    public void Introspection_ProtectedType_ByName_ReturnsNullForAnonymous()
+    {
+        var schema = SchemaBuilder.FromObject<RoleAuthorizationTests.RolesDataContext>();
+        var gql = new QueryRequest { Query = @"{ __type(name: ""Project"") { name } }" };
+
+        var anon = schema.ExecuteRequestWithContext(gql, new RoleAuthorizationTests.RolesDataContext(), null, null);
+        Assert.Null(anon.Errors);
+        Assert.Null(anon.Data!["__type"]);
+
+        var user = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity([new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, "admin")], "authed")
+        );
+        var authed = schema.ExecuteRequestWithContext(gql, new RoleAuthorizationTests.RolesDataContext(), null, user);
+        Assert.Null(authed.Errors);
+        Assert.Equal("Project", ((dynamic)authed.Data!["__type"]!).name);
+    }
+
+    [Fact]
+    public void TypeByName_UnknownType_ReturnsNullNotError()
+    {
+        // __type: __Type is nullable per the GraphQL spec - unknown names return null, not an error
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var gql = new QueryRequest { Query = @"{ __type(name: ""DoesNotExist"") { name } }" };
+
+        var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
+
+        Assert.Null(result.Errors);
+        Assert.True(result.Data!.ContainsKey("__type"));
+        Assert.Null(result.Data["__type"]);
+    }
+
+    [Fact]
     public void TestGraphiQLIntrospection()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

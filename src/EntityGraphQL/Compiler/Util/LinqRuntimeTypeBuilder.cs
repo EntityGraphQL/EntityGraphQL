@@ -13,7 +13,7 @@ namespace EntityGraphQL.Compiler.Util;
 /// <summary>
 /// Builds .NET types at runtime and caches them to be reused
 /// </summary>
-public static class LinqRuntimeTypeBuilder
+internal static class LinqRuntimeTypeBuilder
 {
     public static readonly string DynamicAssemblyName = "EntityGraphQL.DynamicTypes";
     public static readonly string DynamicTypePrefix = "Dynamic_";

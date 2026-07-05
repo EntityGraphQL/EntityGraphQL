@@ -26,6 +26,63 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
+    public async Task TestMessageTooLargeClosesConnection()
+    {
+        var httpContext = SetupMockHttpContext();
+        var socket = new MockSocket();
+        var server = new GraphQLWebSocketServer<TestQueryContext>(socket.Object, httpContext.Object, null, new GraphQLWebSocketOptions { MaxMessageSizeBytes = 10 });
+
+        socket.SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\", \"padding\":\"{new string('x', 100)}\"}}");
+        socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.MessageTooBig, "Message too large");
+
+        await server.HandleAsync();
+
+        socket.Verify(s => s.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message too large", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TestMalformedJsonClosesConnectionNotCrash()
+    {
+        var (server, socket, _) = Setup();
+
+        socket.SetupReceiveAsync("{ this is not valid json !!");
+        socket.SetupAndAssertCloseAsync(4400, "Invalid message - could not parse JSON");
+
+        await server.HandleAsync();
+
+        socket.Verify(s => s.CloseAsync((WebSocketCloseStatus)4400, "Invalid message - could not parse JSON", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TestConnectionInitTimeoutClosesConnection()
+    {
+        var httpContext = SetupMockHttpContext();
+        var socket = new MockSocket();
+        var server = new GraphQLWebSocketServer<TestQueryContext>(
+            socket.Object,
+            httpContext.Object,
+            null,
+            new GraphQLWebSocketOptions { ConnectionInitTimeout = TimeSpan.FromMilliseconds(100) }
+        );
+
+        // the client connects but never sends connection_init - receive blocks until the server closes
+        socket
+            .Setup(s => s.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
+            .Returns(
+                async (ArraySegment<byte> segment, CancellationToken token) =>
+                {
+                    await Task.Delay(Timeout.Infinite, token);
+                    return new WebSocketReceiveResult(0, WebSocketMessageType.Text, true);
+                }
+            );
+        socket.SetupAndAssertCloseAsync(4408, "Connection initialisation timeout");
+
+        await server.HandleAsync();
+
+        socket.Verify(s => s.CloseAsync((WebSocketCloseStatus)4408, "Connection initialisation timeout", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task TestConnectionInitGetAcknowledgement()
     {
         var (server, socket, _) = Setup();

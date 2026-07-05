@@ -11,17 +11,25 @@ namespace EntityGraphQL.Compiler;
 public static class GraphQLHelper
 {
     public static Expression InjectServices(
-        IServiceProvider serviceProvider,
+        IServiceProvider? serviceProvider,
         IEnumerable<ParameterExpression> services,
         List<object?> allArgs,
         Expression expression,
         List<ParameterExpression> parameters,
         ParameterReplacer replacer,
+        QueryRequestContext? requestContext = null,
         CancellationToken cancellationToken = default
     )
     {
         foreach (var serviceParam in services)
         {
+            var isEngineSupplied = serviceParam.Type == typeof(CancellationToken) || serviceParam.Type == typeof(QueryRequestContext);
+            // Without a service provider regular services cannot be resolved - leave those parameters alone
+            // (matching the behaviour when injection is skipped entirely). Engine-supplied values
+            // (CancellationToken, QueryRequestContext) are still injected as they don't need the provider.
+            if (serviceProvider == null && !isEngineSupplied)
+                continue;
+
             // We create a new parameter so each time the expression is used the
             // serviceProvider.GetService is used and the rules registered with the service provider are used
             // e.g. a new instance or a singleton etc.
@@ -33,10 +41,16 @@ public static class GraphQLHelper
             {
                 allArgs.Add(cancellationToken);
             }
+            // the executing request's context (user etc.) is supplied by the engine, not the service provider.
+            // Used by e.g. the introspection fields to filter the schema to what the user can access
+            else if (serviceParam.Type == typeof(QueryRequestContext))
+            {
+                allArgs.Add(requestContext ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"No request context available to inject for {serviceParam.Name}"));
+            }
             else
             {
                 var service =
-                    serviceProvider.GetService(serviceParam.Type)
+                    serviceProvider!.GetService(serviceParam.Type)
                     ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Service {serviceParam.Type.Name} not found in service provider");
                 allArgs.Add(service);
             }

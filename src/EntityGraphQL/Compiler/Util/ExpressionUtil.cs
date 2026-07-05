@@ -27,7 +27,7 @@ public static partial class ExpressionUtil
     ///
     /// Any other method we wouldn't specifically know how to handle
     /// </summary>
-    public static readonly HashSet<Tuple<Type, string>> ListToSingleMethods =
+    internal static readonly HashSet<Tuple<Type, string>> ListToSingleMethods =
     [
         Tuple.Create(typeof(Enumerable), nameof(Enumerable.First)),
         Tuple.Create(typeof(Enumerable), nameof(Enumerable.FirstOrDefault)),

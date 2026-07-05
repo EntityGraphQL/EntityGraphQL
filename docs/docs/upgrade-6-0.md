@@ -329,6 +329,22 @@ ExecutableDirectiveLocation.Field
 
 Introspection output still follows the GraphQL spec names (`QUERY`, `FIELD`, etc.), but C# enum references must use the new names.
 
+## Authorization Now Fails Closed
+
+A bare `[GraphQLAuthorize]` / `[Authorize]` attribute (no roles or policies) now requires an authenticated user — previously it was silently ignored, granting anonymous access. `IsAuthorized` requires `Identity.IsAuthenticated` whenever any authorization requirement is present, and in `EntityGraphQL.AspNet` a policy-protected field is denied (rather than allowed through) when no `IAuthorizationService` is registered or the user is `null`.
+
+**Impact:** if anything in your schema relied on a bare authorize attribute being a no-op, or policy checks passing without a registered `IAuthorizationService`, those requests will now be denied. Fields/types with no authorization attribute are unaffected.
+
+## Introspection Respects Authorization
+
+Introspection queries (`__schema` / `__type`) now only return the types and fields the requesting user is authorized to access. Anonymous users can no longer enumerate protected type/field/argument names. `__type(name: ...)` also now returns `null` for an unknown (or unauthorized) type name per the GraphQL spec, instead of an error.
+
+**Impact:** introspection output can differ per user. Tooling that fetches the schema via introspection (codegen, IDEs) should run as a user that can see everything — or use `schema.ToGraphQLSchemaString()`, which is unchanged and always outputs the full schema.
+
+## Compiler Internals Made `internal`
+
+`LinqRuntimeTypeBuilder`, `ExpressionReplacer` and `ExpressionUtil.ListToSingleMethods` are no longer public — they are engine internals with no supported external use. `ParameterReplacer` and the rest of `ExpressionUtil` remain public as they are part of the field extension API.
+
 ## ASP.NET schema lifetime
 
 `AddGraphQLSchema()` in `EntityGraphQL.AspNet` now supports configuring the registered schema lifetime via `options.SchemaLifetime`.

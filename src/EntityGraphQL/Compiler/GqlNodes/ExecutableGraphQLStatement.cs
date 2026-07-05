@@ -519,12 +519,13 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
                 var allArgs = new List<object?> { bulkDataArgs };
                 var bulkLoader = GraphQLHelper.InjectServices(
-                    serviceProvider!,
+                    serviceProvider,
                     compileContext.Services,
                     allArgs,
                     bulkResolver.FieldExpression.Body,
                     parameters,
                     replacer,
+                    compileContext.RequestContext,
                     compileContext.CancellationToken
                 );
                 if (compileContext.ConstantParameters.Any())
@@ -646,11 +647,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         var parameters = new List<ParameterExpression> { contextParam };
 
         // this is the full requested graph
-        // inject dependencies into the fullSelection
-        if (serviceProvider != null)
-        {
-            expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer, compileContext.CancellationToken);
-        }
+        // inject dependencies into the fullSelection. Runs even without a service provider as the engine
+        // supplies some values itself (CancellationToken, QueryRequestContext)
+        expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer, compileContext.RequestContext, compileContext.CancellationToken);
 
         if (compileContext.ConstantParameters.Any())
         {

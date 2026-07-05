@@ -4,6 +4,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using EntityGraphQL.Authorization;
 
 namespace EntityGraphQL.Schema;
@@ -14,6 +16,14 @@ namespace EntityGraphQL.Schema;
 public class RoleBasedAuthorization : IGqlAuthorizationService
 {
     public RoleBasedAuthorization() { }
+
+    /// <summary>
+    /// Role checks are synchronous - nothing to prepare. See <see cref="IGqlAuthorizationService.PrepareForRequestAsync"/>.
+    /// </summary>
+    public virtual ValueTask<IGqlAuthorizationService> PrepareForRequestAsync(ISchemaProvider schema, ClaimsPrincipal? user, CancellationToken cancellationToken = default)
+    {
+        return new ValueTask<IGqlAuthorizationService>(this);
+    }
 
     /// <summary>
     /// Check if this user has the right security claims, roles or policies to access the request type/field

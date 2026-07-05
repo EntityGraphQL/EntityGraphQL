@@ -312,6 +312,69 @@ public class PoliciesTests
         Assert.Null(pass.Errors);
     }
 
+    [Fact]
+    public void PolicyEvaluation_IsPreEvaluatedOncePerRequest_NotSyncOverAsyncPerField()
+    {
+        // policies are evaluated asynchronously once at the start of the request (PrepareForRequestAsync),
+        // not blocking-per-field during compilation
+        var countingService = new CountingAsyncAuthService(succeed: true);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IAuthorizationService>(countingService);
+        var services = serviceCollection.BuildServiceProvider();
+
+        var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+        );
+
+        var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "someone")], "authed"));
+        // selects the Project type (policy "admin") twice via two fields plus the type check - the policy is
+        // still only evaluated once for the request
+        var gql = new QueryRequest { Query = @"{ projects { id } tasks { project { id } } }" };
+        var result = schema.ExecuteRequestWithContext(gql, new PolicyDataContext(), services, user);
+
+        Assert.Null(result.Errors);
+        Assert.True(countingService.CallCount <= 2, $"Expected policies pre-evaluated once each, saw {countingService.CallCount} evaluations");
+        Assert.True(countingService.CallCount > 0, "Expected the policy to be evaluated");
+    }
+
+    [Fact]
+    public void PolicyEvaluation_PreEvaluatedDenial_StillBlocks()
+    {
+        var countingService = new CountingAsyncAuthService(succeed: false);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IAuthorizationService>(countingService);
+        var services = serviceCollection.BuildServiceProvider();
+
+        var schema = SchemaBuilder.FromObject<PolicyDataContext>(
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+        );
+
+        var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "someone")], "authed"));
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = @"{ projects { id } }" }, new PolicyDataContext(), services, user);
+
+        Assert.NotNull(result.Errors);
+        Assert.Contains(result.Errors!, e => e.Message.Contains("Project"));
+    }
+
+    /// <summary>
+    /// A truly asynchronous authorization service that counts evaluations
+    /// </summary>
+    private sealed class CountingAsyncAuthService(bool succeed) : IAuthorizationService
+    {
+        private int callCount;
+        public int CallCount => callCount;
+
+        public System.Threading.Tasks.Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, IEnumerable<IAuthorizationRequirement> requirements) =>
+            throw new NotImplementedException();
+
+        public async System.Threading.Tasks.Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource, string policyName)
+        {
+            Interlocked.Increment(ref callCount);
+            await System.Threading.Tasks.Task.Yield();
+            return succeed ? AuthorizationResult.Success() : AuthorizationResult.Failed();
+        }
+    }
+
     internal class PolicyDataContext
     {
         public IEnumerable<Project> Projects { get; set; } = new List<Project>();

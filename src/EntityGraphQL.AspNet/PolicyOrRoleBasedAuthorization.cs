@@ -4,6 +4,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using EntityGraphQL.Schema;
 using Microsoft.AspNetCore.Authorization;
 
@@ -47,7 +49,7 @@ public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
             foreach (var policy in policies)
             {
                 // each policy entry is an OR-set - at least one must succeed; all entries must pass (AND)
-                var hasValidPolicy = policy.Any(p => authService.AuthorizeAsync(user, p).GetAwaiter().GetResult().Succeeded);
+                var hasValidPolicy = policy.Any(p => CheckPolicy(user, p));
                 if (!hasValidPolicy)
                     return false;
             }
@@ -55,6 +57,86 @@ public class PolicyOrRoleBasedAuthorization : RoleBasedAuthorization
 
         // check roles and that the user is authenticated
         return base.IsAuthorized(user, requiredAuthorization);
+    }
+
+    /// <summary>
+    /// Evaluate a single policy for the user. The base implementation blocks on the async policy evaluation -
+    /// requests going through schema execution avoid this via <see cref="PrepareForRequestAsync"/> which
+    /// pre-evaluates the schema's policies asynchronously and answers from those results.
+    /// </summary>
+    protected virtual bool CheckPolicy(ClaimsPrincipal user, string policy)
+    {
+        return authService!.AuthorizeAsync(user, policy).GetAwaiter().GetResult().Succeeded;
+    }
+
+    /// <summary>
+    /// Pre-evaluates every policy used in the schema for this user, properly awaited, and returns a
+    /// request-scoped service that answers policy checks from the results. This avoids blocking threads with
+    /// sync-over-async policy evaluation during (synchronous) query compilation.
+    /// </summary>
+    public override async ValueTask<IGqlAuthorizationService> PrepareForRequestAsync(ISchemaProvider schema, ClaimsPrincipal? user, CancellationToken cancellationToken = default)
+    {
+        // no user or no way to evaluate - policy checks fail closed in IsAuthorized, nothing to pre-evaluate
+        if (authService == null || user == null)
+            return this;
+
+        var policyNames = CollectSchemaPolicies(schema);
+        if (policyNames.Count == 0)
+            return this;
+
+        var results = new Dictionary<string, bool>(policyNames.Count);
+        foreach (var policy in policyNames)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            results[policy] = (await authService.AuthorizeAsync(user, policy)).Succeeded;
+        }
+
+        return new PreEvaluatedPolicyAuthorization(authService, results);
+    }
+
+    private static HashSet<string> CollectSchemaPolicies(ISchemaProvider schema)
+    {
+        var policyNames = new HashSet<string>();
+
+        void CollectFrom(RequiredAuthorization? auth)
+        {
+            var policies = auth?.GetPolicies();
+            if (policies == null)
+                return;
+            foreach (var policySet in policies)
+                policyNames.UnionWith(policySet);
+        }
+
+        var types = schema.GetNonContextTypes().Concat([schema.Type(schema.QueryContextName), schema.Mutation().SchemaType, schema.Subscription().SchemaType]).Distinct();
+
+        foreach (var type in types)
+        {
+            CollectFrom(type.RequiredAuthorization);
+            foreach (var field in type.GetFields())
+                CollectFrom(field.RequiredAuthorization);
+        }
+
+        return policyNames;
+    }
+
+    /// <summary>
+    /// Request-scoped authorization answering policy checks from results evaluated up front. A policy not in
+    /// the results (e.g. the schema changed mid-request) falls back to the base blocking evaluation.
+    /// </summary>
+    private sealed class PreEvaluatedPolicyAuthorization : PolicyOrRoleBasedAuthorization
+    {
+        private readonly IReadOnlyDictionary<string, bool> policyResults;
+
+        public PreEvaluatedPolicyAuthorization(IAuthorizationService authService, IReadOnlyDictionary<string, bool> policyResults)
+            : base(authService)
+        {
+            this.policyResults = policyResults;
+        }
+
+        protected override bool CheckPolicy(ClaimsPrincipal user, string policy)
+        {
+            return policyResults.TryGetValue(policy, out var succeeded) ? succeeded : base.CheckPolicy(user, policy);
+        }
     }
 
     private static RequiredAuthorization? GetRequiredAuth(RequiredAuthorization? requiredAuth, ICustomAttributeProvider thing)

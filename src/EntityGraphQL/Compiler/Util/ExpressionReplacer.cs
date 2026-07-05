@@ -7,7 +7,7 @@ namespace EntityGraphQL.Compiler.Util;
 /// <summary>
 /// Used to replace whole expressions in a service field expression
 /// </summary>
-public class ExpressionReplacer : ExpressionVisitor
+internal class ExpressionReplacer : ExpressionVisitor
 {
     private readonly Expression newContext;
     private readonly bool replaceInline;

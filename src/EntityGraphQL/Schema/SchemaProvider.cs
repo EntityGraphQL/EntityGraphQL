@@ -378,16 +378,20 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             return;
 
         // evaluate Fields lazily so we don't end up in endless loop
+        // The QueryRequestContext is injected by the engine so introspection only shows the requesting user
+        // the types/fields they are authorized to access. ToGraphQLSchemaString() still outputs the full schema.
         Type<Models.TypeElement>("__Type")
             .ReplaceField("fields", new { includeDeprecated = false }, "Fields available on type")
-            .Resolve((t, p) => SchemaIntrospection.BuildFieldsForType(this, t.Name!, t.Kind, p.includeDeprecated))
+            .Resolve<QueryRequestContext>((t, p, requestContext) => SchemaIntrospection.BuildFieldsForType(this, t.Name!, t.Kind, p.includeDeprecated, requestContext))
             .AsService();
 
-        Query().ReplaceField("__schema", db => SchemaIntrospection.Make(this), "Introspection of the schema").Returns("__Schema").AsService();
+        Query().ReplaceField("__schema", "Introspection of the schema").Resolve<QueryRequestContext>((db, requestContext) => SchemaIntrospection.Make(this, requestContext)).Returns("__Schema").AsService();
         Query()
-            .ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, (db, p) => SchemaIntrospection.Make(this).Types.Where(s => s.Name == p.name).First(), "Query a type by name")
-            .AsService()
-            .Returns("__Type");
+            // __type is nullable per the GraphQL spec - an unknown (or unauthorized) type name returns null, not an error
+            .ReplaceField("__type", new { name = ArgumentHelper.Required<string>() }, "Query a type by name")
+            .Resolve<QueryRequestContext>((db, p, requestContext) => SchemaIntrospection.Make(this, requestContext).Types.FirstOrDefault(s => s.Name == p.name))
+            .Returns("__Type")
+            .AsService();
     }
 
     /// <summary>
@@ -530,6 +534,10 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             if (fieldRateLimiter != null)
                 leases = await FieldRateLimitExecutor.AcquireAsync(compiledQuery, gql.OperationName, fieldRateLimiter, user, options.RateLimitUserKeySelector, cancellationToken);
 
+            // let the authorization service do any async work (e.g. policy evaluation) up front - the
+            // IsAuthorized calls made while compiling the query are synchronous
+            var requestAuthService = await AuthorizationService.PrepareForRequestAsync(this, user, cancellationToken);
+
             try
             {
                 result = await compiledQuery.ExecuteQueryAsync(
@@ -537,7 +545,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                     serviceProvider,
                     gql.Variables,
                     gql.OperationName,
-                    new QueryRequestContext(AuthorizationService, user),
+                    new QueryRequestContext(requestAuthService, user),
                     options,
                     cancellationToken
                 );

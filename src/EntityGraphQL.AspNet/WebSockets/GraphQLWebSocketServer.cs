@@ -45,16 +45,18 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
 
     private readonly WebSocket webSocket;
     private readonly ExecutionOptions options;
-    private bool initialized;
+    private readonly GraphQLWebSocketOptions webSocketOptions;
+    private volatile bool initialized;
     private readonly JsonSerializerOptions jsonOptions = new() { IncludeFields = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public HttpContext Context { get; }
 
-    public GraphQLWebSocketServer(WebSocket webSocket, HttpContext context, ExecutionOptions? options = null)
+    public GraphQLWebSocketServer(WebSocket webSocket, HttpContext context, ExecutionOptions? options = null, GraphQLWebSocketOptions? webSocketOptions = null)
     {
         this.webSocket = webSocket;
         this.Context = context;
         this.options = options ?? new ExecutionOptions();
+        this.webSocketOptions = webSocketOptions ?? new GraphQLWebSocketOptions();
     }
 
     public async Task HandleAsync()
@@ -64,12 +66,15 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(Context.RequestAborted, closeCts.Token);
         drainTask = DrainOutgoingAsync(linked.Token);
 
+        StartConnectionInitTimeout(linked.Token);
+
         try
         {
             while (!webSocket.CloseStatus.HasValue && webSocket.State == WebSocketState.Open)
             {
                 using var memoryStream = new MemoryStream();
                 WebSocketReceiveResult? receiveResult = null;
+                var messageTooBig = false;
                 do
                 {
                     var buffer = new byte[1024 * 4];
@@ -85,13 +90,39 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
                     if (receiveResult.Count == 0)
                         continue;
 
+                    if (webSocketOptions.MaxMessageSizeBytes.HasValue && memoryStream.Length + receiveResult.Count > webSocketOptions.MaxMessageSizeBytes.Value)
+                    {
+                        // stop accumulating an unbounded message into memory
+                        await CloseConnectionAsync(WebSocketCloseStatus.MessageTooBig, "Message too large");
+                        messageTooBig = true;
+                        break;
+                    }
+
                     await memoryStream.WriteAsync(segment.AsMemory(segment.Offset, receiveResult.Count), linked.Token);
                 } while (!receiveResult.EndOfMessage);
+
+                if (messageTooBig)
+                    break;
 
                 if (!webSocket.CloseStatus.HasValue)
                 {
                     var message = Encoding.UTF8.GetString(memoryStream.ToArray());
-                    await HandleMessageAsync(JsonSerializer.Deserialize<GraphQLWSRequest>(message, jsonOptions)!);
+                    GraphQLWSRequest? request;
+                    try
+                    {
+                        request = JsonSerializer.Deserialize<GraphQLWSRequest>(message, jsonOptions);
+                    }
+                    catch (JsonException)
+                    {
+                        await CloseConnectionAsync((WebSocketCloseStatus)4400, "Invalid message - could not parse JSON");
+                        break;
+                    }
+                    if (request == null)
+                    {
+                        await CloseConnectionAsync((WebSocketCloseStatus)4400, "Invalid message - could not parse JSON");
+                        break;
+                    }
+                    await HandleMessageAsync(request);
                 }
             }
         }
@@ -114,6 +145,33 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
 
             closeCts.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Per the graphql-ws protocol the client must send connection_init within a deadline or the server
+    /// closes with 4408, so idle/misbehaving clients cannot hold sockets open indefinitely.
+    /// </summary>
+    private void StartConnectionInitTimeout(CancellationToken ct)
+    {
+        if (webSocketOptions.ConnectionInitTimeout == null)
+            return;
+
+        _ = Task.Run(
+            async () =>
+            {
+                try
+                {
+                    await Task.Delay(webSocketOptions.ConnectionInitTimeout.Value, ct);
+                    if (!initialized)
+                        await CloseConnectionAsync((WebSocketCloseStatus)4408, "Connection initialisation timeout");
+                }
+                catch (OperationCanceledException)
+                {
+                    // connection closed before the deadline - nothing to do
+                }
+            },
+            CancellationToken.None
+        );
     }
 
     /// <summary>

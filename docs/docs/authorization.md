@@ -55,6 +55,16 @@ You can add authorization requirements throughout your schema even using the `Au
 
 \_Note: if you provide multiple `[AuthorizeAttribute]` attributes on a single field/mutation they are treated as `AND` meaning all are required. If you provide a single `[AuthorizeAttribute]` attribute with multiple roles/policies in a comma-separated string they are treated as `OR` i.e. having any of those listed will authorize access.
 
+:::info
+A bare attribute with no roles or policies — `[GraphQLAuthorize]` or `[Authorize]` — requires the user to be authenticated (`Identity.IsAuthenticated`). Authorization fails closed: if a requirement is present but cannot be satisfied (no user, or a policy is required but no `IAuthorizationService` is registered), access is denied.
+:::
+
+## Introspection
+
+Introspection queries (`__schema` and `__type`) respect authorization — the result only includes the types and fields the requesting user is authorized to access, so protected type/field names are not discoverable by unauthorized users. Querying `__type(name: ...)` for a protected type returns `null`.
+
+Note this applies only to introspection queries at runtime. `schema.ToGraphQLSchemaString()` always outputs the full schema — use it to generate SDL files for tooling and type generation.
+
 ## Mutations
 
 Mark you mutation methods with the `[Authorize(Roles = "role-name")]` attribute.
@@ -150,6 +160,8 @@ Authorization requirements are stored in a `RequiredAuthorization` object which 
 ### Creating a Custom Authorization Service
 
 To implement custom authorization, create a class that extends `RoleBasedAuthorization` or implements `IGqlAuthorizationService`:
+
+_Note: `IsAuthorized` is synchronous as it is called while compiling the query. If your authorization needs async work (e.g. a database or network lookup), override `PrepareForRequestAsync` — it is called once at the start of each request in an async context and can return a request-scoped service that answers `IsAuthorized` from pre-fetched results. This is how `PolicyOrRoleBasedAuthorization` evaluates ASP.NET Core policies._
 
 ```cs
 public class CustomAuthorizationService : RoleBasedAuthorization
