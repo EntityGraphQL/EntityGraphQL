@@ -22,9 +22,11 @@ public static class GraphQLParser
     /// Hard limit on parse recursion depth (nested selection sets + nested argument/input values). This is a
     /// safety backstop against a maliciously deep document exhausting the stack during parsing - it runs before
     /// (and independently of) the configurable <see cref="ExecutionOptions.MaxQueryDepth"/> which is applied after
-    /// the document is parsed. Set well above any legitimate query so it never interferes with real usage.
+    /// the document is parsed. Set well above any legitimate query so it never interferes with real usage, but
+    /// low enough that the recursion fits in the thread stack on all supported runtimes (each nesting level is
+    /// several parser frames with large ref-struct locals - 500 overflowed on net8).
     /// </summary>
-    private const int MaxParseDepth = 500;
+    private const int MaxParseDepth = 128;
 
     public static GraphQLDocument Parse(QueryRequest request, ISchemaProvider schemaProvide)
     {

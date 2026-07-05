@@ -40,6 +40,14 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
     /// </summary>
     private readonly CancellationTokenSource closeCts = new();
 
+    /// <summary>
+    /// Serializes the WebSocket close so a protocol-level close (e.g. connection_init timeout) is not raced
+    /// by the receive loop's cleanup close - the first close reason requested wins.
+    /// </summary>
+    private readonly SemaphoreSlim closeLock = new(1, 1);
+    private WebSocketCloseStatus? pendingCloseStatus;
+    private string? pendingCloseDescription;
+
     /// <summary>Represents the running drain task; awaited in HandleAsync's finally block.</summary>
     private Task drainTask = Task.CompletedTask;
 
@@ -356,6 +364,14 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
     /// </summary>
     private async Task CloseConnectionAsync(WebSocketCloseStatus? closeStatus, string? closeStatusDescription)
     {
+        // record the intended close reason - cancelling closeCts below wakes the receive loop whose cleanup
+        // also closes the socket, and it must use this reason rather than racing in a normal closure
+        if (pendingCloseStatus == null && closeStatus != null)
+        {
+            pendingCloseStatus = closeStatus;
+            pendingCloseDescription = closeStatusDescription;
+        }
+
         // Stop the drain task so no concurrent SendAsync races with the CloseAsync call below.
         closeCts.Cancel();
         outgoing.Writer.TryComplete();
@@ -366,9 +382,17 @@ public class GraphQLWebSocketServer<TQueryType> : IGraphQLWebSocketServer, IDisp
 
     private async Task CloseWebSocketAsync(WebSocketCloseStatus? closeStatus, string? closeStatusDescription)
     {
-        if (webSocket.State is not (WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted))
+        await closeLock.WaitAsync();
+        try
         {
-            await webSocket.CloseAsync(closeStatus ?? WebSocketCloseStatus.NormalClosure, closeStatusDescription, CancellationToken.None);
+            if (webSocket.State is not (WebSocketState.Closed or WebSocketState.CloseSent or WebSocketState.Aborted))
+            {
+                await webSocket.CloseAsync(closeStatus ?? pendingCloseStatus ?? WebSocketCloseStatus.NormalClosure, closeStatusDescription ?? pendingCloseDescription, CancellationToken.None);
+            }
+        }
+        finally
+        {
+            closeLock.Release();
         }
     }
 

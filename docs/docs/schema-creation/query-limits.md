@@ -52,6 +52,10 @@ Depth counts how many levels of selection sets you traverse from the root. Fragm
 }
 ```
 
+### Built-in parse-depth backstop
+
+Independently of `MaxQueryDepth` (which is applied after parsing), the document parser enforces a hard nesting-depth limit of 128 (selection sets and nested argument/input values) while parsing. A document deeper than that is rejected with a normal GraphQL error before it can exhaust the process stack. This is a safety backstop, not a policy knob — it is far deeper than any legitimate query (set `MaxQueryDepth` to enforce your actual policy, typically 10–15) and is deliberately uniform across all supported .NET versions so a document that parses on one runtime parses on all of them.
+
 ## Node count
 
 `MaxFieldSelections` counts every field selection after fragment / inline-fragment expansion. This is the backstop for the alias and fragment-spread batching attacks — even if each individual field passes auth and schema checks, a query that selects 100,000 fields is rejected here.
