@@ -12,6 +12,12 @@ public interface IDirectiveProcessor
     List<ExecutableDirectiveLocation> Location { get; }
 
     /// <summary>
+    /// True if the directive may be used more than once at a single location. Default false - using a
+    /// non-repeatable directive twice at one location is a validation error per the GraphQL spec.
+    /// </summary>
+    bool IsRepeatable => false;
+
+    /// <summary>
     /// Return the Type used for the directive arguments
     /// </summary>
     /// <returns></returns>

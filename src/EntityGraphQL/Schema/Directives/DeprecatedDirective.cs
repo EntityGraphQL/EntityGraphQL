@@ -58,6 +58,12 @@ namespace EntityGraphQL.Schema.Directives
             enumValue.DeprecationReason = Reason;
         }
 
+        public void ProcessInputValue(InputValue inputValue)
+        {
+            inputValue.IsDeprecated = true;
+            inputValue.DeprecationReason = Reason;
+        }
+
         public string ToGraphQLSchemaString()
         {
             return $"@deprecated(reason: \"{Reason}\")";

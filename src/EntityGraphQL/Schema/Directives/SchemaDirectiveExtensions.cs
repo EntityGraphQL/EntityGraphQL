@@ -21,6 +21,14 @@ public static class SchemaDirectiveExtensions
         }
     }
 
+    public static void ProcessInputValue(this IEnumerable<ISchemaDirective> directives, Models.InputValue inputValue)
+    {
+        foreach (var directive in directives)
+        {
+            directive.ProcessInputValue(inputValue);
+        }
+    }
+
     public static void ProcessEnumValue(this IEnumerable<ISchemaDirective> directives, Models.EnumValue enumValue)
     {
         foreach (var directive in directives)

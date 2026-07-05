@@ -714,6 +714,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
     public virtual void AddField(BaseGraphQLField field)
     {
+        // root fields with the same response name must be mergeable per the GraphQL spec. Fragment spreads
+        // are named after the fragment, not a response name - they merge during expansion
+        if (field is not GraphQLFragmentSpreadField and not GraphQLInlineFragmentField)
+        {
+            var existing = QueryFields.FirstOrDefault(f => f.Name == field.Name && f is not GraphQLFragmentSpreadField and not GraphQLInlineFragmentField);
+            if (existing != null)
+                BaseGraphQLField.ValidateFieldsCanMerge(existing, field);
+        }
         field.IsRootField = true;
         QueryFields.Add(field);
     }

@@ -117,6 +117,9 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                             continue;
                         }
                     }
+                    if (potentialMatch is BaseGraphQLField existingFieldNode)
+                        ValidateFieldsCanMerge(existingFieldNode, subField);
+
                     selectionFields[subField] = new CompiledField(subField, fieldExp);
                 }
                 catch (EntityGraphQLFieldException ex)

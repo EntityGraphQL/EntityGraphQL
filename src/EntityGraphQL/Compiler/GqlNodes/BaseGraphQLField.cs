@@ -373,6 +373,57 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return nextFieldContext;
     }
 
+    /// <summary>
+    /// Per the GraphQL spec (Field Selection Merging) two selections with the same response name must be
+    /// mergeable: on the same type they must be the same field with identical arguments; across (mutually
+    /// exclusive fragment) types they may be different fields but their response shapes must match.
+    /// </summary>
+    internal static void ValidateFieldsCanMerge(BaseGraphQLField existingField, BaseGraphQLField newField)
+    {
+        if (Equals(existingField.FromType, newField.FromType))
+        {
+            // arguments may be stored on the node or baked into the field expression (e.g. to-single fields)
+            // so compare both
+            if (
+                existingField.SchemaName != newField.SchemaName
+                || !FieldArgumentsMatch(existingField, newField)
+                || !Equals(existingField.NextFieldContext?.ToString(), newField.NextFieldContext?.ToString())
+            )
+                throw new EntityGraphQLException(
+                    GraphQLErrorCategory.DocumentError,
+                    $"Fields with the same response name '{newField.Name}' must be the same field with identical arguments. Use different aliases."
+                );
+        }
+        else if (
+            existingField.Field != null
+            && newField.Field != null
+            && existingField.Field.ReturnType.GqlTypeForReturnOrArgument != newField.Field.ReturnType.GqlTypeForReturnOrArgument
+        )
+        {
+            throw new EntityGraphQLException(
+                GraphQLErrorCategory.DocumentError,
+                $"Fields with the same response name '{newField.Name}' must have compatible types. Found '{existingField.Field.ReturnType.GqlTypeForReturnOrArgument}' and '{newField.Field.ReturnType.GqlTypeForReturnOrArgument}'. Use different aliases."
+            );
+        }
+    }
+
+    private static bool FieldArgumentsMatch(BaseGraphQLField a, BaseGraphQLField b)
+    {
+        // a collection-to-single field (e.g. project(id: 1)) stores its arguments on the inner collection node
+        var argsA = a is GraphQLCollectionToSingleField singleA ? singleA.CollectionSelectionNode.Arguments : a.Arguments;
+        var argsB = b is GraphQLCollectionToSingleField singleB ? singleB.CollectionSelectionNode.Arguments : b.Arguments;
+        if (argsA.Count != argsB.Count)
+            return false;
+        foreach (var (key, value) in argsA)
+        {
+            if (!argsB.TryGetValue(key, out var other))
+                return false;
+            if (!Equals(value?.ToString(), other?.ToString()))
+                return false;
+        }
+        return true;
+    }
+
     public override int GetHashCode()
     {
         return Name.GetHashCode() + SchemaName.GetHashCode() + FromType?.GetHashCode() ?? 0;

@@ -125,6 +125,10 @@ public class GraphQLSubscriptionStatement : GraphQLMutationStatement
                 GraphQLErrorCategory.DocumentError,
                 $"Subscription operations may only have a single root field. Field '{field.Name}' should be used in another operation."
             );
+        // per the GraphQL spec (September 2025) @skip/@include must not be used on the root selection set of a
+        // subscription - it could result in a response with no root field
+        if (field.Directives.Any(d => d.Name == "skip" || d.Name == "include"))
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, "@skip and @include directives are not allowed on the root field of a subscription operation.");
         field.IsRootField = true;
         QueryFields.Add(field);
     }

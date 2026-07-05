@@ -140,10 +140,18 @@ public static class SchemaIntrospection
                 if (field.ResolveExpression?.NodeType == System.Linq.Expressions.ExpressionType.Call)
                     continue;
 
-                inputValues.Add(new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true)) { Description = field.Description });
+                var inputValue = new InputValue(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet, true)) { Description = field.Description };
+                field.DirectivesReadOnly.ProcessInputValue(inputValue);
+                inputValues.Add(inputValue);
             }
 
-            var typeElement = new TypeElement("INPUT_OBJECT", schemaType.Name) { Description = schemaType.Description, InputFields = inputValues.ToArray() };
+            // per spec isOneOf is non-null for input object types - the @oneOf directive sets it true below
+            var typeElement = new TypeElement("INPUT_OBJECT", schemaType.Name)
+            {
+                Description = schemaType.Description,
+                InputFields = inputValues.ToArray(),
+                IsOneOf = false,
+            };
 
             schemaType.Directives.ProcessType(typeElement);
 
@@ -347,7 +355,15 @@ public static class SchemaIntrospection
             var stringValue = SchemaGenerator.GetArgDefaultValue(arg.Value.DefaultValue, schema.SchemaFieldNamer)?.Trim('"');
             var defaultValue = string.IsNullOrEmpty(stringValue) ? null : stringValue;
 
-            args.Add(new InputValue(arg.Key, type) { DefaultValue = defaultValue, Description = arg.Value.Description });
+            args.Add(
+                new InputValue(arg.Key, type)
+                {
+                    DefaultValue = defaultValue,
+                    Description = arg.Value.Description,
+                    IsDeprecated = arg.Value.IsDeprecated,
+                    DeprecationReason = arg.Value.DeprecationReason,
+                }
+            );
         }
 
         return args;
@@ -360,6 +376,7 @@ public static class SchemaIntrospection
             .Select(directive => new Directive(directive.Name)
             {
                 Description = directive.Description,
+                IsRepeatable = directive.IsRepeatable,
                 Locations = directive.Location.Select(i => i.GetDescription())!,
                 Args = directive
                     .GetArguments(schema)

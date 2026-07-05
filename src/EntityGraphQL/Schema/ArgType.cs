@@ -42,6 +42,8 @@ public class ArgType
     private RequiredAttribute? requiredAttribute;
     public bool IsRequired { get; set; }
     public Type RawType { get; private set; }
+    public bool IsDeprecated { get; set; }
+    public string? DeprecationReason { get; set; }
 
     public ArgType(string name, string dotnetName, GqlTypeInfo type, Type rawType)
     {
@@ -140,6 +142,15 @@ public class ArgType
         if (attributes.FirstOrDefault(a => a is DescriptionAttribute) is DescriptionAttribute d)
         {
             arg.Description = d.Description;
+        }
+
+        if (attributes.FirstOrDefault(a => a is ObsoleteAttribute) is ObsoleteAttribute obsolete)
+        {
+            // per the GraphQL spec deprecated arguments/input fields must be optional
+            if (arg.IsRequired && !arg.DefaultValue.IsSet)
+                throw new EntityGraphQLSchemaException($"Argument '{arg.Name}' can not be deprecated as it is required. Required arguments (non-null with no default value) can not be deprecated.");
+            arg.IsDeprecated = true;
+            arg.DeprecationReason = obsolete.Message;
         }
 
         return arg;

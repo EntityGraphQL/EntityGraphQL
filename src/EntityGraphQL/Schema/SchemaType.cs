@@ -351,6 +351,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
                 $"No schema interface found for dotnet type {type.Name}. Make sure you add the interface to the schema. Or use parameter addTypeIfNotInSchema = true"
             );
 
+        ValidateFieldCovariance(interfaceType);
         BaseTypes.Add(interfaceType);
         return this;
     }
@@ -361,8 +362,39 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
         if (!interfaceType.IsInterface)
             throw new EntityGraphQLSchemaException($"Schema type {typeName} can not be implemented as it is not an interface. You can only implement interfaces");
 
+        ValidateFieldCovariance(interfaceType);
         BaseTypes.Add(interfaceType);
         return this;
+    }
+
+    /// <summary>
+    /// Per the GraphQL spec (September 2025) a field on an implementing type must be equal to or a sub-type
+    /// (covariant) of the interface's field. Fields not (yet) present on this type are not checked - the
+    /// common pattern adds fields after Implements()/ImplementAllBaseTypes()
+    /// </summary>
+    private void ValidateFieldCovariance(ISchemaType interfaceType)
+    {
+        foreach (var interfaceField in interfaceType.GetFields())
+        {
+            if (interfaceField.Name.StartsWith("__", StringComparison.InvariantCulture))
+                continue;
+            if (!FieldsByName.TryGetValue(interfaceField.Name, out var implField))
+                continue;
+
+            var interfaceReturn = interfaceField.ReturnType;
+            var implReturn = implField.ReturnType;
+
+            var listMismatch = interfaceReturn.IsList != implReturn.IsList;
+            var typeIncompatible =
+                interfaceReturn.SchemaType.TypeDotnet != implReturn.SchemaType.TypeDotnet && !interfaceReturn.SchemaType.TypeDotnet.IsAssignableFrom(implReturn.SchemaType.TypeDotnet);
+            // the implementing field may be non-null where the interface is nullable, not the reverse
+            var nullabilityWeakened = interfaceReturn.TypeNotNullable && !implReturn.TypeNotNullable;
+
+            if (listMismatch || typeIncompatible || nullabilityWeakened)
+                throw new EntityGraphQLSchemaException(
+                    $"Type '{Name}' can not implement interface '{interfaceType.Name}'. Field '{interfaceField.Name}' of type '{implReturn.GqlTypeForReturnOrArgument}' is not compatible with the interface's field type '{interfaceReturn.GqlTypeForReturnOrArgument}'. Implementing fields must be the same type or a sub-type (covariant)."
+                );
+        }
     }
 
     public ISchemaType AddAllPossibleTypes(bool addTypeIfNotInSchema = true, bool addAllFieldsOnAddedType = true)

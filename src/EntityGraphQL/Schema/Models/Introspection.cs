@@ -51,7 +51,12 @@ public partial class TypeElement
 
     public TypeElement[] PossibleTypes { get; set; } = [];
     public TypeElement? OfType { get; set; }
-    public bool OneField { get; set; }
+
+    /// <summary>
+    /// Per the GraphQL spec (September 2025) - true for OneOf input object types, false for other input
+    /// object types, null for non-input types
+    /// </summary>
+    public bool? IsOneOf { get; set; }
 
     // may be non-null for custom SCALAR, otherwise null.
     public string? SpecifiedByURL { get; set; }
@@ -90,6 +95,8 @@ public class InputValue
     public string? Description { get; set; }
     public TypeElement Type { get; private set; }
     public string? DefaultValue { get; set; }
+    public bool IsDeprecated { get; set; }
+    public string? DeprecationReason { get; set; }
 }
 
 public partial class Directive
@@ -102,6 +109,8 @@ public partial class Directive
     public string Name { get; private set; }
 
     public string? Description { get; set; }
+
+    public bool IsRepeatable { get; set; }
 
     public IEnumerable<string> Locations { get; set; } = Array.Empty<string>();
 

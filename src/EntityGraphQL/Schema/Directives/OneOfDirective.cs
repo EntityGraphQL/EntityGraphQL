@@ -52,7 +52,7 @@ namespace EntityGraphQL.Schema.Directives
 
         public void ProcessType(Models.TypeElement type)
         {
-            type.OneField = true;
+            type.IsOneOf = true;
         }
 
         public string ToGraphQLSchemaString()

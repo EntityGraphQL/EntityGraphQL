@@ -9,6 +9,7 @@ public interface ISchemaDirective
     void ProcessField(Models.Field field) { }
     void ProcessType(Models.TypeElement type) { }
     void ProcessEnumValue(Models.EnumValue enumValue) { }
+    void ProcessInputValue(Models.InputValue inputValue) { }
 
     string ToGraphQLSchemaString();
 }

@@ -482,6 +482,9 @@ public static class GraphQLParser
             var processor = node.Schema.GetDirective(name);
             if (!processor.Location.Contains(location))
                 throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Directive '{name}' can not be used on '{location}'");
+            // non-repeatable directives may only be used once per location (GraphQL spec - Directives Are Unique Per Location)
+            if (!processor.IsRepeatable && directives.Any(d => d.Name == name))
+                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"The directive '{name}' can only be used once at this location");
 
             var processedArgs = arguments;
             if (processedArgs.Count > 0)

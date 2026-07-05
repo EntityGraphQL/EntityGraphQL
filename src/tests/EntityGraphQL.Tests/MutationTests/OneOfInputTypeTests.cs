@@ -32,7 +32,7 @@ public class OneOfInputTypeTests
                       __type(name: ""InputObject"") {
                         name
                         kind
-                        oneField
+                        isOneOf
                       }
                     }",
         };
@@ -42,7 +42,7 @@ public class OneOfInputTypeTests
 
         Assert.Equal("InputObject", ((dynamic)res.Data!["__type"]!).name);
         Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data!["__type"]!).kind);
-        Assert.False(((dynamic)res.Data!["__type"]!).oneField);
+        Assert.False(((dynamic)res.Data!["__type"]!).isOneOf);
     }
 
     [GraphQLOneOf]
@@ -72,7 +72,7 @@ public class OneOfInputTypeTests
                       __type(name: ""InputObject"") {
                         name
                         kind
-                        oneField
+                        isOneOf
                       }
                     }",
         };
@@ -82,7 +82,7 @@ public class OneOfInputTypeTests
 
         Assert.Equal("InputObject", ((dynamic)res.Data!["__type"]!).name);
         Assert.Equal("INPUT_OBJECT", ((dynamic)res.Data!["__type"]!).kind);
-        Assert.True(((dynamic)res.Data!["__type"]!).oneField);
+        Assert.True(((dynamic)res.Data!["__type"]!).isOneOf);
     }
 
     [Fact]

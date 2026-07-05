@@ -87,7 +87,7 @@ The `ISchemaDirective` method contains:
 - The `ToGraphQLSchemaString()` method where you return the formatted directive including arguments (eg `return $"@deprecated(reason: \"{Reason}\")";`)
 - Directives are automatically added to the SDL output. As there is no official way to view directives in the introspection specification as of yet, the recommend method is extending the built in introspection types with additional fields with the information you wish to expose.
 
-e.g. the @OneOf directive is exposed as the field `OneField` on `TypeElement`
+e.g. the @OneOf directive is exposed as the field `isOneOf` on `TypeElement` (per the GraphQL spec)
 
 ## Example Sample Directive
 

@@ -385,6 +385,19 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
             .Resolve<QueryRequestContext>((t, p, requestContext) => SchemaIntrospection.BuildFieldsForType(this, t.Name!, t.Kind, p.includeDeprecated, requestContext))
             .AsService();
 
+        // per the GraphQL spec (September 2025) deprecated arguments/input fields are hidden unless includeDeprecated is true
+        Type<Models.TypeElement>("__Type")
+            .ReplaceField(
+                "inputFields",
+                new { includeDeprecated = false },
+                (t, p) => t.InputFields != null ? t.InputFields.Where(f => p.includeDeprecated || !f.IsDeprecated).ToArray() : null,
+                "Input fields on the type"
+            );
+        Type<Models.Field>("__Field")
+            .ReplaceField("args", new { includeDeprecated = false }, (f, p) => f.Args.Where(a => p.includeDeprecated || !a.IsDeprecated), "Arguments for the field");
+        Type<Models.Directive>("__Directive")
+            .ReplaceField("args", new { includeDeprecated = false }, (d, p) => d.Args.Where(a => p.includeDeprecated || !a.IsDeprecated), "Arguments for the directive");
+
         Query().ReplaceField("__schema", "Introspection of the schema").Resolve<QueryRequestContext>((db, requestContext) => SchemaIntrospection.Make(this, requestContext)).Returns("__Schema").AsService();
         Query()
             // __type is nullable per the GraphQL spec - an unknown (or unauthorized) type name returns null, not an error

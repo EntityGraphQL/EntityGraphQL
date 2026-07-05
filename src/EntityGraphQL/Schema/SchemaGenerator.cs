@@ -146,6 +146,11 @@ public class SchemaGenerator
                 arg += " = " + defaultValue;
             }
 
+            if (f.Value.IsDeprecated)
+            {
+                arg += string.IsNullOrEmpty(f.Value.DeprecationReason) ? " @deprecated" : $" @deprecated(reason: \"{f.Value.DeprecationReason}\")";
+            }
+
             return arg;
         });
 
