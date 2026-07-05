@@ -82,6 +82,12 @@ public class FilterExpressionExtension : BaseFieldExtension
                 {
                     expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", [expression.Type.GetEnumerableOrArrayType()!], expression, split.NonServiceFilter);
                 }
+                else if (servicesPass && field.Services.Count > 0)
+                {
+                    // the field's own resolver uses services so the collection never existed in the first pass -
+                    // this is its only pass and the elements are the raw service result, so apply the full filter
+                    expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", [expression.Type.GetEnumerableOrArrayType()!], expression, filterExpression);
+                }
                 else if (servicesPass && split.ServiceFilter != null)
                 {
                     var newListType = expression.Type.GetGenericArguments()[0];
