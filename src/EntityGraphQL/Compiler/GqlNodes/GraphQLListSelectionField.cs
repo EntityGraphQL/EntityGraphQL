@@ -143,21 +143,23 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
 
         (listContext, selectionFields, nextFieldContext) = ProcessExtensionsSelection(listContext, selectionFields, nextFieldContext, argumentParams, contextChanged, replacer);
 
-        Expression? resultExpression = null;
         var isAsync = Field?.IsAsync == true;
         var useNullCheckMethods =
             contextChanged || !compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || HasServices || Field?.Services.Any(s => s.Type != Field.Schema.QueryContextType) == true;
-        // have this return both the dynamic types so we can use them next, post-service
-        if (resultExpression == null)
-            (resultExpression, PossibleNextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(
-                this,
-                nextFieldContext!,
-                listContext,
-                selectionFields,
-                useNullCheckMethods,
-                isAsync,
-                withoutServiceFields || !contextChanged
-            );
+        // have this return both the dynamic types so we can use them next, post-service. They are stored on the
+        // compileContext (not this node) as the node is part of the cached document shared across requests
+        var (resultExpression, nextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(
+            this,
+            nextFieldContext!,
+            listContext,
+            selectionFields,
+            compileContext.GetPossibleNextContextTypes(this),
+            useNullCheckMethods,
+            isAsync,
+            withoutServiceFields || !contextChanged
+        );
+        if (nextContextTypes != null)
+            compileContext.SetPossibleNextContextTypes(this, nextContextTypes);
 
         var resultElementType = resultExpression.Type.GetEnumerableOrArrayType()!;
 

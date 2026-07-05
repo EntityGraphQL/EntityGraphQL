@@ -302,11 +302,10 @@ public static class GraphQLParser
 
                 if (directives != null && directives.Count > 0)
                 {
+                    // directives are processed at execution time (BaseGraphQLField.Expand) where document
+                    // variables are available - executing them here with no variables fails for e.g.
+                    // @include(if: $var) and the result was discarded anyway
                     inlineFragField.AddDirectives(directives);
-                    foreach (var directive in directives)
-                    {
-                        directive.VisitNode(ExecutableDirectiveLocation.InlineFragment, node.Schema, inlineFragField, new Dictionary<string, object?>(), null, null);
-                    }
                 }
 
                 return inlineFragField;

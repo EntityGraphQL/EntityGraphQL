@@ -82,6 +82,26 @@ public class CompileContext
     }
 
     /// <summary>
+    /// The dynamic types produced for an interface/union list selection during the first-pass compile, read
+    /// again when building the second (services) pass. Keyed by the query node and stored here because the
+    /// node belongs to the cached document shared across requests - per-request state must not live on it.
+    /// </summary>
+    private readonly Dictionary<IGraphQLNode, List<Type>> possibleNextContextTypes = [];
+
+    public void SetPossibleNextContextTypes(IGraphQLNode node, List<Type> types) => possibleNextContextTypes[node] = types;
+
+    public List<Type>? GetPossibleNextContextTypes(IGraphQLNode node) => possibleNextContextTypes.TryGetValue(node, out var types) ? types : null;
+
+    /// <summary>
+    /// Carry the first pass's state into the context used for the second (services) pass.
+    /// </summary>
+    internal void CopyPossibleNextContextTypesFrom(CompileContext other)
+    {
+        foreach (var kvp in other.possibleNextContextTypes)
+            possibleNextContextTypes[kvp.Key] = kvp.Value;
+    }
+
+    /// <summary>
     /// Stores the second-pass element parameter that replaces an original list element parameter.
     /// Used by paging extensions (ConnectionEdgeExtension, OffsetPagingItemsExtension) to get the
     /// correct anonymous-type element when building service expressions in the second pass.

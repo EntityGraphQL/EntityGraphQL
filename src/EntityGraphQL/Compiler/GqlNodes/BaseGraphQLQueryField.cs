@@ -13,12 +13,9 @@ namespace EntityGraphQL.Compiler;
 /// </summary>
 public abstract class BaseGraphQLQueryField : BaseGraphQLField
 {
-    /// <summary>
-    /// Possible types for the next field context, introduce by interfaces or unions
-    /// These are only needed after the for evaluation if a second one is required with service fields.
-    /// They are dynamic types used to cast the base
-    /// </summary>
-    internal List<Type>? PossibleNextContextTypes { get; set; }
+    // Note: the possible types for the next field context (introduced by interfaces or unions) are per-request
+    // compile state stored on the CompileContext keyed by this node - this node is part of the cached document
+    // shared across concurrent requests so per-request state must not be stored on it
     public GraphQLCollectionToSingleField? ToSingleNode { get; set; }
 
     protected BaseGraphQLQueryField(
@@ -35,7 +32,6 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     protected BaseGraphQLQueryField(BaseGraphQLQueryField context, Expression? nextFieldContext)
         : base(context, nextFieldContext)
     {
-        PossibleNextContextTypes = [.. context.PossibleNextContextTypes ?? []];
         // we don't populate ToSingleNode as GraphQLCollectionToSingleField handles that
     }
 
@@ -97,7 +93,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                         schemaContext,
                         withoutServiceFields,
                         actualNextFieldContext,
-                        PossibleNextContextTypes,
+                        compileContext.GetPossibleNextContextTypes(this),
                         contextChanged,
                         replacer
                     );

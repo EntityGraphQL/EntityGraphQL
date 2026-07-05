@@ -438,11 +438,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     // new context
                     var prevDelegateCache = compileContext.DelegateCache;
                     var prevDelegateCacheKeyBase = compileContext.DelegateCacheKeyBase;
-                    compileContext = new(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken)
+                    var newCompileContext = new CompileContext(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken)
                     {
                         DelegateCache = prevDelegateCache,
                         DelegateCacheKeyBase = prevDelegateCacheKeyBase,
                     };
+                    // the second pass needs the dynamic types the first pass produced for interface/union selections
+                    newCompileContext.CopyPossibleNextContextTypesFrom(compileContext);
+                    compileContext = newCompileContext;
 
                     // we now know the selection type without services and need to build the full select on that type
                     // need to rebuild the full query

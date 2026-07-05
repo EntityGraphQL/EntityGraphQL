@@ -408,6 +408,38 @@ public class DirectiveTests
         Assert.Equal(1, person.id);
         Assert.Equal(date.ToString(dateFormat), person.birthday);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TestIncludeOnInlineFragmentWithVariable(bool includeValue)
+    {
+        // @include(if: $var) on an inline fragment - variables must resolve the same as on a field
+        var schema = new ApiVersion1.TestAbstractDataGraphSchema();
+        var query = new QueryRequest
+        {
+            Query =
+                @"query MyQuery($include: Boolean!){
+                    animals {
+                        name
+                        ... on Cat @include(if: $include) { lives }
+                    }
+                }",
+            Variables = new QueryVariables { { "include", includeValue } },
+        };
+        var context = new TestAbstractDataContext();
+        context.Animals.Add(new Cat { Name = "Felix", Lives = 9 });
+
+        var result = schema.ExecuteRequestWithContext(query, context, null, null);
+
+        Assert.Null(result.Errors);
+        dynamic cat = ((dynamic)result.Data!["animals"]!)[0];
+        Assert.Equal("Felix", cat.name);
+        if (includeValue)
+            Assert.Equal(9, (int)cat.lives);
+        else
+            Assert.Null(cat.GetType().GetField("lives"));
+    }
 }
 
 internal class ExampleDirective : DirectiveProcessor<object>

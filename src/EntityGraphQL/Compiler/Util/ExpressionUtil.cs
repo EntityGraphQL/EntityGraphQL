@@ -506,11 +506,14 @@ public static partial class ExpressionUtil
     /// <summary>
     /// Makes a selection from a IEnumerable context
     /// </summary>
+    /// <param name="possibleNextContextTypes">The dynamic types produced when this field was compiled in the
+    /// first pass (from the compile context - per-request state that must not live on the shared field node)</param>
     public static (Expression expression, List<Type>? dynamicTypes) MakeSelectWithDynamicType(
         GraphQLListSelectionField field,
         ParameterExpression currentContextParam,
         Expression baseExp,
         IDictionary<IFieldKey, CompiledField> fieldExpressions,
+        List<Type>? possibleNextContextTypes,
         bool nullCheck,
         bool isAsync,
         bool finalExecution
@@ -532,8 +535,8 @@ public static partial class ExpressionUtil
             else
             {
                 validTypes = [currentContextParam.Type];
-                if (field.PossibleNextContextTypes?.Count > 0)
-                    validTypes.AddRange(field.PossibleNextContextTypes);
+                if (possibleNextContextTypes?.Count > 0)
+                    validTypes.AddRange(possibleNextContextTypes);
             }
 
             var fieldsOnBaseType = fieldExpressions

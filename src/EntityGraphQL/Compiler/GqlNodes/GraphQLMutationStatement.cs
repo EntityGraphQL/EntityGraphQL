@@ -147,10 +147,12 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
             }
             else
             {
-                // we now know the context as it is dynamically returned in a mutation
+                // we now know the context as it is dynamically returned in a mutation.
+                // Copy the node - the original belongs to the cached document shared across requests and
+                // must not carry this request's expressions/parameters
                 if (resultExp is GraphQLListSelectionField listField)
                 {
-                    listField.ListExpression = mutationContextExpression;
+                    resultExp = new GraphQLListSelectionField(listField, listField.NextFieldContext as ParameterExpression) { ListExpression = mutationContextExpression };
                 }
                 SetupConstants(mutationContextExpression, compileContext, resultExp.RootParameter!);
             }
@@ -160,12 +162,13 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
             (result, _) = await CompileAndExecuteNodeAsync(compileContext, context!, serviceProvider, fragments, resultExp, docVariables);
             return result;
         }
-        // we now know the context as it is dynamically returned in a mutation
+        // we now know the context as it is dynamically returned in a mutation.
+        // Copy the node - the original belongs to the cached document shared across requests and must not
+        // carry this request's parameters
         if (resultExp is GraphQLListSelectionField field)
         {
             var contextParam = Expression.Parameter(result!.GetType());
-            resultExp.RootParameter = contextParam;
-            field.ListExpression = contextParam;
+            resultExp = new GraphQLListSelectionField(field, field.NextFieldContext as ParameterExpression) { ListExpression = contextParam, RootParameter = contextParam };
         }
 
         // run the query select against the object they have returned directly from the mutation
