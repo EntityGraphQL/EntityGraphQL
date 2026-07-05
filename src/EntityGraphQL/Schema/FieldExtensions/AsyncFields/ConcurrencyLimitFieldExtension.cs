@@ -20,6 +20,13 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
     private readonly List<Type>? serviceTypes;
 
     /// <summary>
+    /// Compiled form of each wrapped operation lambda, keyed by expression instance. For a list field the
+    /// wrapped call executes per element with the same lambda instance - without this it compiled per element.
+    /// Weakly keyed so entries die with their expression trees.
+    /// </summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<LambdaExpression, Delegate> compiledOperations = new();
+
+    /// <summary>
     /// Create a service-based concurrency limit (resolved from ExecutionOptions)
     /// </summary>
     /// <param name="serviceTypes">The service type to apply limits to</param>
@@ -57,8 +64,17 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
             return (expression, originalArgParam, argumentParam, arguments);
         }
 
+        // The limiter registry and CancellationToken are per-request state. They must be passed into the
+        // expression as parameters (values supplied at execution time via the compile context's constant
+        // parameters) - baking them in as Expression.Constant would freeze request 1's registry and token
+        // into a delegate reused by later requests when CacheCompiledDelegates is on
+        var registryParam = Expression.Parameter(typeof(ConcurrencyLimiterRegistry), "concurrencyRegistry");
+        var cancellationTokenParam = Expression.Parameter(typeof(CancellationToken), "concurrencyCancelToken");
+        compileContext.AddConstant(null, registryParam, compileContext.ConcurrencyLimiterRegistry);
+        compileContext.AddConstant(null, cancellationTokenParam, compileContext.CancellationToken);
+
         // Wrap the async expression with hierarchical concurrency control
-        var newExp = WrapAsyncExpressionWithConcurrencyLimit(field, expression, semaphoreConfigs, compileContext.ConcurrencyLimiterRegistry, compileContext.CancellationToken);
+        var newExp = WrapAsyncExpressionWithConcurrencyLimit(field, expression, semaphoreConfigs, registryParam, cancellationTokenParam);
         return (newExp, originalArgParam, argumentParam, arguments);
     }
 
@@ -72,8 +88,8 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         IField field,
         Expression asyncExpression,
         List<(string scopeKey, int maxConcurrency)> semaphoreConfigs,
-        ConcurrencyLimiterRegistry concurrencyLimiterRegistry,
-        CancellationToken cancellationToken
+        Expression concurrencyLimiterRegistry,
+        Expression cancellationToken
     )
     {
         List<ParameterExpression> expArgs = [field.FieldParam!, .. field.Services];
@@ -85,7 +101,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         // Convert semaphore configs to a constant expression
         var semaphoreConfigsConstant = Expression.Constant(semaphoreConfigs);
 
-        Expression[] arguments = [asyncExpressionExp, semaphoreConfigsConstant, Expression.Constant(concurrencyLimiterRegistry), expArgsArray, Expression.Constant(cancellationToken)];
+        Expression[] arguments = [asyncExpressionExp, semaphoreConfigsConstant, concurrencyLimiterRegistry, expArgsArray, cancellationToken];
 
         var call = Expression.Call(typeof(ConcurrencyLimitFieldExtension), nameof(ExecuteWithConcurrencyLimitAsync), null, arguments);
         return call;
@@ -139,16 +155,21 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         // Get all semaphores for hierarchical limiting
         var semaphores = semaphoreConfigs.Select(config => concurrencyLimiterRegistry.GetSemaphore(config.scopeKey, config.maxConcurrency)).ToList();
 
-        // Acquire all semaphores in order (query -> service -> field)
-        foreach (var semaphore in semaphores)
-        {
-            await semaphore.WaitAsync(cancellationToken);
-        }
-
+        // Acquire all semaphores in order (query -> service -> field). Acquisition happens inside the
+        // try so a cancelled/faulted WaitAsync releases the permits already acquired
+        var acquired = 0;
         try
         {
-            // Execute the async operation
-            var asyncOperation = asyncOperationExp.Compile().DynamicInvoke(expArgs);
+            foreach (var semaphore in semaphores)
+            {
+                await semaphore.WaitAsync(cancellationToken);
+                acquired++;
+            }
+
+            // Execute the async operation. The lambda is compiled once per expression instance - this method
+            // runs per row for list fields, so compiling here every call is expensive
+            var compiledOperation = compiledOperations.GetValue(asyncOperationExp, static exp => exp.Compile());
+            var asyncOperation = compiledOperation.DynamicInvoke(expArgs);
             if (asyncOperation is null)
             {
                 return null;
@@ -187,8 +208,8 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         }
         finally
         {
-            // Release all semaphores in reverse order (field -> service -> query)
-            for (int i = semaphores.Count - 1; i >= 0; i--)
+            // Release the acquired semaphores in reverse order (field -> service -> query)
+            for (int i = acquired - 1; i >= 0; i--)
             {
                 semaphores[i].Release();
             }

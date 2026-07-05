@@ -230,6 +230,58 @@ public class ConcurrencyTests
         concurrencyLimiterRegistry.ClearAllSemaphores();
     }
 
+    [Fact]
+    public async System.Threading.Tasks.Task TestConcurrencyLimit_DelegateCache_Request1TokenDoesNotPoisonLaterRequests()
+    {
+        // regression: the per-request CancellationToken (and limiter registry) were baked into the wrapped
+        // expression as Expression.Constant. With CacheCompiledDelegates on, request 1's token lives inside
+        // the cached delegate - once cancelled, every later request of that query failed
+        var schema = SchemaBuilder.FromObject<TestMovieContext>();
+        var data = new TestMovieContext { Movies = [new Movie { Id = Guid.NewGuid(), Name = "Movie 1" }] };
+        var timedService = new TimedSlowService();
+        schema.Type<Movie>().AddField("slowOperation", "Slow operation").ResolveAsync<TimedSlowService>((movie, service) => service.DoTimedWorkAsync(movie.Id), maxConcurrency: 2);
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(timedService);
+        serviceCollection.AddSingleton(data);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var options = new ExecutionOptions { EnableQueryCache = true, CacheCompiledDelegates = true };
+        var query = new QueryRequest { Query = "{ movies { name slowOperation } }" };
+
+        using var cts = new CancellationTokenSource();
+        var r1 = await schema.ExecuteRequestAsync(query, sp, null, options, cts.Token);
+        Assert.Null(r1.Errors);
+
+        // request 1 is done; its token being cancelled must not affect later requests
+        cts.Cancel();
+
+        var r2 = await schema.ExecuteRequestAsync(query, sp, null, options, CancellationToken.None);
+        Assert.Null(r2.Errors);
+        dynamic movies = r2.Data!["movies"]!;
+        Assert.StartsWith("Timed result", movies[0].slowOperation);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TestConcurrencyLimit_CancelledAcquire_DoesNotLeakAcquiredPermits()
+    {
+        // regression: semaphores were acquired outside the try/finally - if a later acquire was cancelled,
+        // the permits already acquired were never released
+        var registry = new ConcurrencyLimiterRegistry();
+        var semaphoreB = registry.GetSemaphore("B", 1);
+        await semaphoreB.WaitAsync(); // make B unavailable so A acquires then B blocks until cancelled
+
+        using var cts = new CancellationTokenSource(100);
+        var operation = System.Linq.Expressions.Expression.Lambda(System.Linq.Expressions.Expression.Constant(System.Threading.Tasks.Task.FromResult<object?>("done")));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            ConcurrencyLimitFieldExtension.ExecuteWithConcurrencyLimitAsync(operation, [("A", 1), ("B", 1)], registry, [], cts.Token)
+        );
+
+        // A's permit must have been released when acquiring B was cancelled
+        Assert.Equal(1, registry.GetSemaphore("A", 1).CurrentCount);
+        semaphoreB.Release();
+    }
+
     public class TestMovieContext
     {
         public List<Movie> Movies { get; set; } = new();
