@@ -230,6 +230,86 @@ public class QueryCacheTests
     }
 
     [Fact]
+    public void DelegateCache_ListVariableWithDifferentValues_DoesNotReuseWrongPlan()
+    {
+        // regression: the delegate cache key hashed variable values with ToString(). A List/array/Dictionary
+        // variable stringifies to its type name - identical for different contents - so request B could be
+        // served request A's compiled plan (e.g. the wrong ORDER BY direction/field baked in)
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<TestDataContext>().GetField("people", null).UseSort();
+        var data = new TestDataContext { People = [new Person { LastName = "Alpha" }, new Person { LastName = "Zeta" }] };
+
+        var options = new ExecutionOptions { EnableQueryCache = true, CacheCompiledDelegates = true };
+        var q =
+            @"query($sort: [QueryPeopleSortInput]) {
+                people(sort: $sort) { lastName }
+            }";
+
+        var r1 = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = q, Variables = new QueryVariables { { "sort", new[] { new { lastName = SortDirection.DESC } } } } },
+            data,
+            null,
+            null,
+            options
+        );
+        var r2 = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = q, Variables = new QueryVariables { { "sort", new[] { new { lastName = SortDirection.ASC } } } } },
+            data,
+            null,
+            null,
+            options
+        );
+
+        Assert.Null(r1.Errors);
+        Assert.Null(r2.Errors);
+        dynamic people1 = r1.Data!["people"]!;
+        Assert.Equal("Zeta", Enumerable.First(people1).lastName); // DESC
+        dynamic people2 = r2.Data!["people"]!;
+        Assert.Equal("Alpha", Enumerable.First(people2).lastName); // ASC - the bug replayed request 1's DESC plan
+    }
+
+    [Fact]
+    public void DelegateCache_DictionaryVariableWithDifferentValues_DoesNotReuseWrongPlan()
+    {
+        // as above but with List<Dictionary<,>> values (the shape a custom deserializer produces) sorting
+        // by a different field entirely
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<TestDataContext>().GetField("people", null).UseSort();
+        var data = new TestDataContext
+        {
+            People = [new Person { LastName = "Alpha", Height = 200 }, new Person { LastName = "Zeta", Height = 100 }],
+        };
+
+        var options = new ExecutionOptions { EnableQueryCache = true, CacheCompiledDelegates = true };
+        var q =
+            @"query($sort: [QueryPeopleSortInput]) {
+                people(sort: $sort) { lastName }
+            }";
+
+        var r1 = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = q, Variables = new QueryVariables { { "sort", new List<object> { new Dictionary<string, object> { { "lastName", "ASC" } } } } } },
+            data,
+            null,
+            null,
+            options
+        );
+        var r2 = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = q, Variables = new QueryVariables { { "sort", new List<object> { new Dictionary<string, object> { { "height", "ASC" } } } } } },
+            data,
+            null,
+            null,
+            options
+        );
+
+        Assert.Null(r1.Errors);
+        Assert.Null(r2.Errors);
+        dynamic people1 = r1.Data!["people"]!;
+        Assert.Equal("Alpha", Enumerable.First(people1).lastName); // by lastName
+        dynamic people2 = r2.Data!["people"]!;
+        Assert.Equal("Zeta", Enumerable.First(people2).lastName); // by height - the bug replayed request 1's plan
+    }
+
+    [Fact]
     public void DelegateCache_BeforeExecuting_BypassesCacheButStillWorks()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

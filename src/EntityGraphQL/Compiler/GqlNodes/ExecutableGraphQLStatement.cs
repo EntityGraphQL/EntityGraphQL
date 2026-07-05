@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -130,8 +131,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
             if (options.CacheCompiledDelegates && options.EnableQueryCache && options.BeforeExecuting == null)
             {
-                compileContext.DelegateCache = Schema.QueryCache;
-                compileContext.DelegateCacheKeyBase = $"{statementId}:{ComputeVariablesHash(variables)}";
+                // a null hash means a variable value could not be represented by value - skip caching for this
+                // request rather than risk serving another request's compiled plan
+                var variablesHash = ComputeVariablesHash(variables);
+                if (variablesHash != null)
+                {
+                    compileContext.DelegateCache = Schema.QueryCache;
+                    compileContext.DelegateCacheKeyBase = $"{statementId}:{variablesHash}";
+                }
             }
 
             foreach (var fieldNode in QueryFields)
@@ -288,14 +295,81 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return variablesToUse;
     }
 
-    private static string ComputeVariablesHash(QueryVariables? variables)
+    /// <summary>
+    /// Builds a hash of the variable values for the delegate cache key. The representation must be value-based -
+    /// different values must produce different hashes as they can change the compiled expression shape (e.g. sort
+    /// fields, filter inputs). Returns null when a value cannot be represented by value (an arbitrary object with
+    /// no ToString override stringifies to its type name), in which case delegate caching is skipped for the
+    /// request rather than risking serving another request's compiled plan.
+    /// </summary>
+    private static string? ComputeVariablesHash(QueryVariables? variables)
     {
         if (variables == null || variables.Count == 0)
             return "";
         var sb = new StringBuilder();
         foreach (var kv in variables.OrderBy(k => k.Key, StringComparer.Ordinal))
-            sb.Append(kv.Key).Append(':').Append(kv.Value?.ToString() ?? "\0").Append(';');
+        {
+            sb.Append(kv.Key).Append(':');
+            if (!AppendVariableValueForHash(sb, kv.Value))
+                return null;
+            sb.Append(';');
+        }
         return QueryCache.ComputeHash(sb.ToString());
+    }
+
+    private static bool AppendVariableValueForHash(StringBuilder sb, object? value)
+    {
+        switch (value)
+        {
+            case null:
+                sb.Append('\0');
+                return true;
+            // length-prefixed so adjacent values can't be confused ("ab","c" vs "a","bc")
+            case string s:
+                sb.Append('s').Append(s.Length).Append(':').Append(s);
+                return true;
+            case bool b:
+                sb.Append(b ? 'T' : 'F');
+                return true;
+            // numbers, DateTime/DateTimeOffset/TimeSpan, Guid, enums - all format by value
+            case IFormattable f:
+                sb.Append(f.ToString(null, CultureInfo.InvariantCulture));
+                return true;
+            case IDictionary dict:
+                sb.Append('{');
+                foreach (DictionaryEntry entry in dict)
+                {
+                    if (!AppendVariableValueForHash(sb, entry.Key))
+                        return false;
+                    sb.Append(':');
+                    if (!AppendVariableValueForHash(sb, entry.Value))
+                        return false;
+                    sb.Append(',');
+                }
+                sb.Append('}');
+                return true;
+            case IEnumerable list:
+                sb.Append('[');
+                foreach (var item in list)
+                {
+                    if (!AppendVariableValueForHash(sb, item))
+                        return false;
+                    sb.Append(',');
+                }
+                sb.Append(']');
+                return true;
+            default:
+                // JsonElement (raw JSON) and anonymous types override ToString with a value-based representation.
+                // Anything still using object/ValueType.ToString() would stringify to its type name - identical
+                // for different values - so it cannot be safely hashed
+                var toStringMethod = value.GetType().GetMethod(nameof(ToString), Type.EmptyTypes);
+                if (toStringMethod != null && toStringMethod.DeclaringType != typeof(object) && toStringMethod.DeclaringType != typeof(ValueType))
+                {
+                    sb.Append(value);
+                    return true;
+                }
+                return false;
+        }
     }
 
     protected async Task<(object? result, bool didExecute)> CompileAndExecuteNodeAsync(
