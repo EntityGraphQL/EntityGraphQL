@@ -42,6 +42,37 @@ public class InheritanceTests
     }
 
     [Fact]
+    public void TestInlineFragmentOnFromObjectSchema()
+    {
+        // FromObject adds a referenced abstract base class as an interface. Its implementing types must be
+        // linked to it (even without AutoCreateInterfaceTypes) or inline fragments silently mis-project -
+        // previously `lives` here returned the whole Cat object instead of the int value
+        var schema = SchemaBuilder.FromObject<TestAbstractDataContext>();
+
+        Assert.True(schema.GetSchemaType(typeof(Animal), false, null).IsInterface);
+        Assert.Contains(schema.GetSchemaType(typeof(Cat), false, null).BaseTypesReadOnly, t => t.Name == "Animal");
+
+        var context = new TestAbstractDataContext();
+        context.Animals.Add(new Dog { Name = "Rex", HasBone = true });
+        context.Animals.Add(new Cat { Name = "Felix", Lives = 9 });
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"{ animals { name ... on Cat { lives } ... on Dog { hasBone } } }" },
+            context,
+            null,
+            null
+        );
+
+        Assert.Null(result.Errors);
+        dynamic animals = result.Data!["animals"]!;
+        Assert.Equal(2, animals.Count);
+        Assert.Equal("Rex", animals[0].name);
+        Assert.True(animals[0].hasBone);
+        Assert.Equal("Felix", animals[1].name);
+        Assert.Equal(9, animals[1].lives);
+    }
+
+    [Fact]
     public void TestAutoInheritance()
     {
         var schema = SchemaBuilder.FromObject<TestAbstractDataContextNoAnimals>(new SchemaBuilderOptions { AutoCreateInterfaceTypes = true });

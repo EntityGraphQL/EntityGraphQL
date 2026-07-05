@@ -47,7 +47,11 @@ public class SchemaBuilderOptions
     /// <summary>
     /// If true (default = false), any object type that is encountered during reflection of the object graph that has abstract
     /// or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an
-    /// Interface including it's fields
+    /// Interface including it's fields.
+    ///
+    /// Note this option only controls creating interface types for base types not otherwise in the schema. Types are always
+    /// linked (implements) to base types that are in the schema as interfaces - e.g. an abstract base class referenced by a
+    /// context property is added as an interface and its implementing types linked to it, without this option.
     /// </summary>
     public bool AutoCreateInterfaceTypes { get; set; }
 

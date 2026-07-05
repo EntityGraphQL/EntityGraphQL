@@ -99,7 +99,36 @@ public static class SchemaBuilder
         {
             schema.Query().AddField(f);
         }
+        LinkTypesToRegisteredInterfaces(schema);
         return schema;
+    }
+
+    /// <summary>
+    /// An abstract base class referenced by a context property is added to the schema as an interface even
+    /// without AutoCreateInterfaceTypes (that option controls creating interface types for bases NOT otherwise
+    /// in the schema). The implementing types must be linked to it or inline fragments on the interface
+    /// (e.g. `... on Cat { lives }`) silently mis-project. Run after all types are added so property order
+    /// on the context does not matter.
+    /// </summary>
+    private static void LinkTypesToRegisteredInterfaces<TContextType>(SchemaProvider<TContextType> schema)
+    {
+        foreach (var schemaType in schema.GetNonContextTypes().Where(t => t.GqlType == GqlTypes.QueryObject).ToList())
+        {
+            // base class chain + declared interfaces
+            var candidates = new List<Type>();
+            for (var baseType = schemaType.TypeDotnet.BaseType; baseType != null && baseType != typeof(object); baseType = baseType.BaseType)
+                candidates.Add(baseType);
+            candidates.AddRange(schemaType.TypeDotnet.GetInterfaces());
+
+            foreach (var candidate in candidates)
+            {
+                if (!schema.HasType(candidate))
+                    continue;
+                var baseSchemaType = schema.GetSchemaType(candidate, false, null);
+                if (baseSchemaType.IsInterface && !schemaType.BaseTypesReadOnly.Contains(baseSchemaType))
+                    schemaType.Implements(baseSchemaType.Name);
+            }
+        }
     }
 
     private static Field? MakeFieldWithIdArgumentIfExists(ISchemaProvider schema, ISchemaType schemaType, Type contextType, Field fieldProp, SchemaBuilderOptions options)

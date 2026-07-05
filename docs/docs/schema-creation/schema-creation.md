@@ -165,7 +165,7 @@ public List<AllowedException> AllowedExceptions { get; set; } = [
 
    - `.AutoCreateEnumTypes` - automatically create Enum types in the schema if found in the `DemoContext` object graph. Default is `true`
    - `.AutoCreateNewComplexTypes` - automatically add dotnet types found in the object graph to the schema. This will also call `AddAllFields()` on those types passing this options object to it. Default is `true`
-   - `.AutoCreateInterfaceTypes` - If true (default = false), any object type that is encountered during reflection of the object graph that has abstract or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an Interface including it's fields
+   - `.AutoCreateInterfaceTypes` - If true (default = false), any object type that is encountered during reflection of the object graph that has abstract or interface types (regardless of if they are referenced by other fields), those will be added to the schema as an Interface including it's fields. Note types are always linked (`implements`) to base types that are in the schema as interfaces (e.g. an abstract base class referenced by a context property) - this option only controls _creating_ interface types for base types not otherwise in the schema
    - `.IgnoreProps` - List properties or field names to ignore. Default includes a list of EF properties. Default list includes
 
    ```json
