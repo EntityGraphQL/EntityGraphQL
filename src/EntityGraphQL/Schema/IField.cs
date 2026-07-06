@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema.Directives;
@@ -82,7 +83,7 @@ public interface IField
     /// </summary>
     bool IsAsync { get; }
 
-    IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators { get; }
+    IReadOnlyCollection<Func<ArgumentValidatorContext, Task>> Validators { get; }
 
     /// <summary>
     /// Given the current context, a type and a field name, it returns the expression for that field. Allows the provider to have a complex expression for a simple field.

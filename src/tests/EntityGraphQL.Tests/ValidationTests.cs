@@ -107,6 +107,20 @@ public class ValidationTests
     }
 
     [Fact]
+    public void TestTrulyAsyncValidatorOnMutation_ErrorsAreObserved()
+    {
+        // a validator with real async work (awaits before adding its error) - previously the returned Task
+        // was discarded so the error raced the request and was lost
+        var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
+        schema.Mutation().Add(AddPerson).AddValidator<TrulyAsyncValidator>();
+        var gql = new QueryRequest { Query = @"mutation Mutate { addPerson(name: ""Anyone"") }" };
+
+        var results = schema.ExecuteRequestWithContext(gql, new ValidationTestsContext(), null, null);
+        Assert.NotNull(results.Errors);
+        Assert.Contains(results.Errors, e => e.Message.Contains("Async validation failed"));
+    }
+
+    [Fact]
     public void TestGraphQLValidatorWithInlineArgs()
     {
         var schema = SchemaBuilder.FromObject<ValidationTestsContext>();
@@ -507,6 +521,17 @@ public class ValidationTests
     private static bool AddPerson(PersonArgs args)
     {
         return true;
+    }
+}
+
+internal class TrulyAsyncValidator : IArgumentValidator
+{
+    public async System.Threading.Tasks.Task ValidateAsync(ArgumentValidatorContext context)
+    {
+        // a validator doing real async work (e.g. a DB/API check) - errors added after the await must
+        // still be observed by the request
+        await System.Threading.Tasks.Task.Delay(20);
+        context.AddError("Async validation failed");
     }
 }
 

@@ -30,7 +30,7 @@ public abstract class BaseField : IField
     public IList<ISchemaDirective> DirectivesReadOnly => Directives.AsReadOnly();
     public bool ArgumentsAreInternal { get; internal set; }
     public List<ParameterExpression> Services { get; set; } = [];
-    public IReadOnlyCollection<Action<ArgumentValidatorContext>> Validators => ArgumentValidators;
+    public IReadOnlyCollection<Func<ArgumentValidatorContext, Task>> Validators => ArgumentValidators;
 
     /// <summary>
     /// Indicates if this field returns a Task and requires async resolution
@@ -42,7 +42,7 @@ public abstract class BaseField : IField
     #endregion IField properties
 
     protected List<ISchemaDirective> Directives { get; set; } = [];
-    protected List<Action<ArgumentValidatorContext>> ArgumentValidators { get; set; } = [];
+    protected List<Func<ArgumentValidatorContext, Task>> ArgumentValidators { get; set; } = [];
 
     /// <summary>
     /// Expressions used to resolve the field in a bulk fashion. This is used for optimising the number of calls to the underlying data source.
@@ -170,19 +170,28 @@ public abstract class BaseField : IField
         where TValidator : IArgumentValidator
     {
         var validator = (IArgumentValidator)Activator.CreateInstance<TValidator>();
-        ArgumentValidators.Add((context) => validator.ValidateAsync(context));
+        ArgumentValidators.Add(validator.ValidateAsync);
         return this;
     }
 
     public IField AddValidator(Action<ArgumentValidatorContext> callback)
     {
-        ArgumentValidators.Add(callback);
+        ArgumentValidators.Add(context =>
+        {
+            callback(context);
+            return Task.CompletedTask;
+        });
         return this;
     }
 
+    /// <summary>
+    /// Add an async validator. It is awaited for mutation and subscription arguments. Note validators for
+    /// query field arguments run while the query is (synchronously) compiled - avoid real async work (I/O)
+    /// in validators used on query fields.
+    /// </summary>
     public IField AddValidator(Func<ArgumentValidatorContext, Task> callback)
     {
-        ArgumentValidators.Add((context) => callback(context).GetAwaiter().GetResult());
+        ArgumentValidators.Add(callback);
         return this;
     }
 

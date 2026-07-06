@@ -90,6 +90,10 @@ public class PeopleArgs
 
 EntityGraphQL allows you to register argument validator which is a great place to perform custom validation on any arguments. If you add any errors to the `ArgumentValidatorContext` you are passed execution of the the query will not proceed and the errors will be in the result.
 
+:::info Async validators
+`IArgumentValidator.ValidateAsync` (and the `AddValidator(Func<ArgumentValidatorContext, Task>)` overload) are genuinely awaited for **mutation and subscription** arguments — you can safely do async work (e.g. a database lookup) there. Validators on **query field** arguments run while the query is compiled, which is synchronous — an async validator will block a thread, so avoid real async work (I/O) in validators used on query fields.
+:::
+
 You can register validators via a class that implements `IArgumentValidator`.
 
 ```cs

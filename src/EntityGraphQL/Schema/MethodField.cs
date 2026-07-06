@@ -172,7 +172,8 @@ public abstract class MethodField : BaseField
             var validatorContext = new ArgumentValidatorContext(this, argInstance ?? argsToValidate, Method);
             foreach (var argValidator in ArgumentValidators)
             {
-                argValidator(validatorContext);
+                // mutations/subscriptions execute in an async context - validators are genuinely awaited
+                await argValidator(validatorContext);
             }
             if (validatorContext.Errors != null && validatorContext.Errors.Count > 0)
             {

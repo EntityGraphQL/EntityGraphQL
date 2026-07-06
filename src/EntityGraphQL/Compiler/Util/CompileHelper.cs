@@ -84,7 +84,9 @@ public static class GraphQLHelper
             var invokeContext = new ArgumentValidatorContext(field, argumentValue);
             foreach (var m in field.Validators)
             {
-                m(invokeContext);
+                // query fields validate their arguments during (synchronous) query compilation - an async
+                // validator blocks here. Avoid real async work (I/O) in validators used on query fields
+                m(invokeContext).GetAwaiter().GetResult();
                 argumentValue = invokeContext.Arguments;
             }
 
