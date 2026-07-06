@@ -63,6 +63,62 @@ public class AsyncModelTests
         public System.Threading.Tasks.Task<int> GetValueAsync() => System.Threading.Tasks.Task.FromResult(5);
     }
 
+    /// <summary>user type deliberately in an EntityGraphQL.* namespace - see test below</summary>
+    private class SlowDictService
+    {
+        public System.Threading.Tasks.Task<int> GetValueAsync() => System.Threading.Tasks.Task.FromResult(7);
+    }
+
+    [Fact]
+    public void AsyncResultWalker_UserTypeInEntityGraphQLNamespace_IsNotRebuilt()
+    {
+        // the walker rebuilds the engine's own wrapper types and projection types. A USER type that happens
+        // to live in an EntityGraphQL.* namespace (like this test assembly) must not be rebuilt into a
+        // dynamic type - it is not the engine's
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddScalarType<UserTypeInOurNamespace>("UserBlob", "A scalar-mapped complex value");
+        schema.Type<Person>().AddField("userBlob", p => new UserTypeInOurNamespace { Value = 9 }, "A blob");
+        schema.Type<Person>().AddField("asyncValue2", "An async value").ResolveAsync<SlowService>((p, srv) => srv.GetValueAsync());
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new SlowService());
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var data = new TestDataContext { People = [new Person { Name = "A" }] };
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { name userBlob asyncValue2 } }" }, data, sp, null);
+
+        Assert.Null(result.Errors);
+        dynamic person = ((dynamic)result.Data!["people"]!)[0];
+        // still the user's CLR type, not a rebuilt dynamic type
+        var blob = Assert.IsType<UserTypeInOurNamespace>((object)person.userBlob);
+        Assert.Equal(9, blob.Value);
+    }
+
+    [Fact]
+    public void AsyncResultWalker_DictionaryStaysADictionary()
+    {
+        // a dictionary value in a result with async fields must stay a map - previously the collection
+        // handling turned it into a List<KeyValuePair<,>> changing the serialized shape
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddScalarType<System.Collections.Generic.Dictionary<string, object>>("JsonMap", "A map");
+        schema.Type<Person>().AddField("meta", p => new System.Collections.Generic.Dictionary<string, object> { { "a", 1 }, { "b", "two" } }, "Metadata");
+        schema.Type<Person>().AddField("asyncValue3", "An async value").ResolveAsync<SlowDictService>((p, srv) => srv.GetValueAsync());
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new SlowDictService());
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var data = new TestDataContext { People = [new Person { Name = "A" }] };
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { name meta asyncValue3 } }" }, data, sp, null);
+
+        Assert.Null(result.Errors);
+        dynamic person = ((dynamic)result.Data!["people"]!)[0];
+        var meta = Assert.IsAssignableFrom<System.Collections.IDictionary>((object)person.meta);
+        Assert.Equal(1, meta["a"]);
+        Assert.Equal("two", meta["b"]);
+        Assert.Equal(7, person.asyncValue3);
+    }
+
     [Fact]
     public void AsyncResultWalker_DoesNotReadPropertiesOfNonAsyncTypes()
     {
@@ -90,6 +146,16 @@ public class AsyncModelTests
         Assert.Equal(0, BlobWithLazyProperty.LazyReads);
     }
 }
+}
+
+/// <summary>
+/// Deliberately in the EntityGraphQL.Tests namespace - a user type whose namespace starts with
+/// "EntityGraphQL" but is not the engine's assembly
+/// </summary>
+public class UserTypeInOurNamespace
+{
+    public int Value { get; set; }
+    public System.Threading.Tasks.Task<int>? MaybeTask { get; set; }
 }
 
 namespace UserApp.Entities

@@ -745,17 +745,21 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         {
             await task;
 
-            // Get the result from Task<T>
-            var taskType = task.GetType();
-            // Try to get Result property
-            var resultProp = taskType.GetProperty(nameof(Task<object>.Result));
-            if (resultProp != null)
+            var resultAccessor = taskResultAccessors.GetOrAdd(task.GetType(), TaskResultAccessorFactory);
+            if (resultAccessor != null)
             {
-                var taskResult = resultProp.GetValue(task);
+                var taskResult = resultAccessor(task);
                 return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
             }
 
             return null; // Task (not Task<T>)
+        }
+
+        // non-generic ValueTask - just await it, there is no result
+        if (obj is ValueTask plainValueTask)
+        {
+            await plainValueTask;
+            return null;
         }
 
         // ValueTask<T>
@@ -788,6 +792,19 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // selected
         if (!TypeCouldContainAsyncValue(type))
             return obj;
+
+        // Dictionaries must stay dictionaries (the generic collection handling below would turn them into a
+        // list of KeyValuePairs, changing the serialized shape). Keys can not be async - resolve the values
+        if (obj is IDictionary dictionaryObj)
+        {
+            var keyType = type.IsGenericType && type.GetGenericArguments().Length == 2 ? type.GetGenericArguments()[0] : typeof(object);
+            var resolvedDict = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(keyType, typeof(object)))!;
+            foreach (DictionaryEntry entry in dictionaryObj)
+            {
+                resolvedDict[entry.Key] = entry.Value != null ? await ResolveAsyncResultsRecursive(entry.Value, cancellationToken) : null;
+            }
+            return resolvedDict;
+        }
 
         // Handle collections (but not strings)
         if (obj is IEnumerable enumerable and not string)
@@ -898,9 +915,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             if (type == typeof(object))
                 return true;
 
-            // dynamic projection types are where the engine puts Task-typed fields
-            if (IsAnonymousOrDynamicType(type))
-                return true;
+            // dynamic projection types (where the engine puts Task-typed fields) and anonymous types fall
+            // through to the member-type recursion below - only branches whose declared field types can hold
+            // an async value are walked, so non-async branches of a result are returned untouched
 
             var underlying = Nullable.GetUnderlyingType(type) ?? type;
             if (underlying.IsPrimitive || underlying.IsEnum || underlying == typeof(string) || underlying == typeof(decimal) || underlying == typeof(DateTime) || underlying == typeof(DateTimeOffset) || underlying == typeof(TimeSpan) || underlying == typeof(Guid))
@@ -937,13 +954,17 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
     }
 
+    private static readonly ConcurrentDictionary<Type, (PropertyInfo[] Properties, FieldInfo[] Fields)> reflectionMemberCache = new();
+
+    private static (PropertyInfo[] Properties, FieldInfo[] Fields) GetCachedMembers(Type type) =>
+        reflectionMemberCache.GetOrAdd(type, t => (t.GetProperties(BindingFlags.Public | BindingFlags.Instance), t.GetFields(BindingFlags.Public | BindingFlags.Instance)));
+
     /// <summary>
     /// Handles complex objects including anonymous types, dynamic types, and regular classes
     /// </summary>
     private static async Task<object?> ResolveComplexObject(object obj, Type type, CancellationToken cancellationToken = default)
     {
-        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+        var (properties, fields) = GetCachedMembers(type);
 
         // For anonymous types and dynamically generated types, try to reconstruct the object
         if (IsAnonymousOrDynamicType(type))
@@ -952,9 +973,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             return await RebuildDynamicTypeWithResolvedFields(obj, type, properties, fields, cancellationToken);
         }
 
-        // For regular mutable objects, we can modify in place
+        // For regular mutable objects, we can modify in place. Check the declared member type before touching
+        // the getter - reading a property can have side effects (e.g. EF lazy-loading)
         foreach (var prop in properties.Where(p => p.CanRead && p.CanWrite))
         {
+            if (!TypeCouldContainAsyncValue(prop.PropertyType))
+                continue;
             var value = prop.GetValue(obj);
             if (value != null && ContainsAsyncValue(value))
             {
@@ -966,6 +990,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // Fields are typically readonly, but let's try anyway
         foreach (var field in fields.Where(f => !f.IsInitOnly))
         {
+            if (!TypeCouldContainAsyncValue(field.FieldType))
+                continue;
             var value = field.GetValue(obj);
             if (value != null && ContainsAsyncValue(value))
             {
@@ -995,41 +1021,122 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     }
 
     /// <summary>
-    /// Determines if a type is anonymous or dynamically generated (like those created by EntityGraphQL)
+    /// Determines if a type is anonymous or dynamically generated (like those created by EntityGraphQL).
+    /// These are rebuilt (not modified in place) as their members are read-only or Task-typed.
     /// </summary>
     private static bool IsAnonymousOrDynamicType(Type type)
     {
-        return type.Namespace?.StartsWith("EntityGraphQL", StringComparison.Ordinal) == true || type.Assembly.IsDynamic;
+        // runtime-built projection types (LinqRuntimeTypeBuilder)
+        if (type.Assembly.IsDynamic)
+            return true;
+        // compiler-generated anonymous types - read-only properties so they must be rebuilt
+        if (type.Namespace == null && type.Name.Contains("AnonymousType") && type.IsDefined(typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), false))
+            return true;
+        // the engine's own wrapper types (e.g. Connection<T>). Restricted to this assembly - previously any
+        // type in an EntityGraphQL.* namespace matched, wrongly rebuilding user types in such namespaces
+        return type.Namespace?.StartsWith("EntityGraphQL", StringComparison.Ordinal) == true && type.Assembly == typeof(ExecutableGraphQLStatement).Assembly;
     }
+
+    /// <summary>
+    /// A compiled per-type plan for rebuilding a dynamic/anonymous type with its async members resolved -
+    /// avoids per-row reflection (member Get/SetValue, Activator, dynamic type lookups). Built by observing
+    /// the first row of a type through the reflective path, then reused for every following row. A row whose
+    /// resolved member types do not match the plan (e.g. polymorphic nested results) falls back to the
+    /// reflective path for that row.
+    /// </summary>
+    private sealed class DynamicTypeResolutionPlan(string[] memberNames, Func<object, object?>[] getters, bool[] needsResolve, Type[] targetMemberTypes, Func<object?[], object> construct)
+    {
+        public string[] MemberNames { get; } = memberNames;
+        public Func<object, object?>[] Getters { get; } = getters;
+        public bool[] NeedsResolve { get; } = needsResolve;
+        public Type[] TargetMemberTypes { get; } = targetMemberTypes;
+        public Func<object?[], object> Construct { get; } = construct;
+    }
+
+    private static readonly ConcurrentDictionary<Type, DynamicTypeResolutionPlan> resolutionPlans = new();
+
+    /// <summary>
+    /// Compiled Task&lt;T&gt;.Result accessors keyed by task type - the walker unwraps many tasks per request
+    /// and reflection GetProperty/GetValue per task is measurable. Null for non-generic Task.
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, Func<Task, object?>?> taskResultAccessors = new();
+
+    private static readonly Func<Type, Func<Task, object?>?> TaskResultAccessorFactory = static t =>
+    {
+        var resultProp = t.GetProperty(nameof(Task<object>.Result));
+        if (resultProp == null)
+            return null;
+        var taskParam = Expression.Parameter(typeof(Task), "task");
+        return Expression.Lambda<Func<Task, object?>>(Expression.Convert(Expression.Property(Expression.Convert(taskParam, t), resultProp), typeof(object)), taskParam).Compile();
+    };
 
     /// <summary>
     /// Rebuilds a dynamic type with resolved field types (converting Task<T> fields to T fields)
     /// </summary>
     private static async Task<object?> RebuildDynamicTypeWithResolvedFields(object obj, Type originalType, PropertyInfo[] properties, FieldInfo[] fields, CancellationToken cancellationToken = default)
     {
+        // fast path - a previous row of this type compiled a plan
+        if (resolutionPlans.TryGetValue(originalType, out var plan))
+        {
+            var values = new object?[plan.Getters.Length];
+            var planMatches = true;
+            for (var i = 0; i < plan.Getters.Length; i++)
+            {
+                var value = plan.Getters[i](obj);
+                object? resolved;
+                if (value == null || !plan.NeedsResolve[i])
+                {
+                    resolved = value;
+                }
+                // fast path - an already-completed task unwraps synchronously without the async recursion
+                else if (value is Task { IsCompletedSuccessfully: true } completedTask && taskResultAccessors.GetOrAdd(completedTask.GetType(), TaskResultAccessorFactory) is { } accessor)
+                {
+                    var taskResult = accessor(completedTask);
+                    resolved = taskResult != null && TypeCouldContainAsyncValue(taskResult.GetType()) ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : taskResult;
+                }
+                else
+                {
+                    resolved = await ResolveAsyncResultsRecursive(value, cancellationToken);
+                }
+                if (resolved != null && !plan.TargetMemberTypes[i].IsInstanceOfType(resolved))
+                {
+                    // this row's resolved shape differs from the observed plan - use the reflective path
+                    planMatches = false;
+                    break;
+                }
+                values[i] = resolved;
+            }
+            if (planMatches)
+                return plan.Construct(values);
+        }
+
         var fieldTypeMap = new Dictionary<string, Type>();
         var fieldValues = new Dictionary<string, object?>();
+        // recorded in iteration order so a plan can be compiled from what we observe
+        var memberOrder = new List<(string Name, Type DeclaredType, MemberInfo Member)>();
 
-        // Process properties
+        // Process properties. Members whose declared type can not contain an async value are copied as-is
         foreach (var prop in properties.Where(p => p.CanRead))
         {
             var value = prop.GetValue(obj);
-            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value, cancellationToken) : null;
+            var resolvedValue = value != null && TypeCouldContainAsyncValue(prop.PropertyType) ? await ResolveAsyncResultsRecursive(value, cancellationToken) : value;
 
             fieldValues[prop.Name] = resolvedValue;
             // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
             fieldTypeMap[prop.Name] = GetResolvedFieldType(prop.PropertyType, resolvedValue);
+            memberOrder.Add((prop.Name, prop.PropertyType, prop));
         }
 
         // Process fields
         foreach (var field in fields)
         {
             var value = field.GetValue(obj);
-            var resolvedValue = value != null ? await ResolveAsyncResultsRecursive(value, cancellationToken) : null;
+            var resolvedValue = value != null && TypeCouldContainAsyncValue(field.FieldType) ? await ResolveAsyncResultsRecursive(value, cancellationToken) : value;
 
             fieldValues[field.Name] = resolvedValue;
             // If original type was Task<T>, use T. Otherwise use the resolved value type or original type
             fieldTypeMap[field.Name] = GetResolvedFieldType(field.FieldType, resolvedValue);
+            memberOrder.Add((field.Name, field.FieldType, field));
         }
 
         // Create new dynamic type with resolved field types
@@ -1049,7 +1156,47 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             }
         }
 
+        if (plan == null)
+            TryCompileResolutionPlan(originalType, newType, memberOrder);
+
         return newInstance;
+    }
+
+    private static void TryCompileResolutionPlan(Type originalType, Type newType, List<(string Name, Type DeclaredType, MemberInfo Member)> memberOrder)
+    {
+        var objParam = Expression.Parameter(typeof(object), "obj");
+        var valuesParam = Expression.Parameter(typeof(object?[]), "values");
+        var typedObj = Expression.Convert(objParam, originalType);
+
+        var getters = new Func<object, object?>[memberOrder.Count];
+        var needsResolve = new bool[memberOrder.Count];
+        var names = new string[memberOrder.Count];
+        var targetTypes = new Type[memberOrder.Count];
+        var bindings = new List<MemberBinding>(memberOrder.Count);
+
+        for (var i = 0; i < memberOrder.Count; i++)
+        {
+            var (name, declaredType, member) = memberOrder[i];
+            var targetField = newType.GetField(name);
+            if (targetField == null)
+                return; // unexpected shape - no plan, keep using the reflective path
+
+            names[i] = name;
+            needsResolve[i] = TypeCouldContainAsyncValue(declaredType);
+            targetTypes[i] = targetField.FieldType;
+
+            Expression access = member is PropertyInfo pi ? Expression.Property(typedObj, pi) : Expression.Field(typedObj, (FieldInfo)member);
+            getters[i] = Expression.Lambda<Func<object, object?>>(Expression.Convert(access, typeof(object)), objParam).Compile();
+
+            var item = Expression.ArrayIndex(valuesParam, Expression.Constant(i));
+            // null resolved values become the field type's default (matching reflection SetValue(null) behavior)
+            var assigned = Expression.Condition(Expression.Equal(item, Expression.Constant(null)), Expression.Default(targetField.FieldType), Expression.Convert(item, targetField.FieldType));
+            bindings.Add(Expression.Bind(targetField, assigned));
+        }
+
+        var construct = Expression.Lambda<Func<object?[], object>>(Expression.Convert(Expression.MemberInit(Expression.New(newType), bindings), typeof(object)), valuesParam).Compile();
+
+        resolutionPlans.TryAdd(originalType, new DynamicTypeResolutionPlan(names, getters, needsResolve, targetTypes, construct));
     }
 
     /// <summary>

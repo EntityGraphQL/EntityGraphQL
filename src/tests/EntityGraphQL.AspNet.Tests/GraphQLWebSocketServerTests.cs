@@ -277,6 +277,82 @@ public class GraphQLWebSocketServerTests
     }
 
     [Fact]
+    public async Task TestMultipleEventsAreDeliveredInOrder()
+    {
+        // events are executed by a background consumer per subscription (so the publisher never blocks) -
+        // delivery must still be in publish order. This test holds the connection open until the events
+        // actually arrive, so it can not pass vacuously
+        var (server, socket, httpContext) = Setup();
+        var id = Guid.NewGuid().ToString();
+        var chatService = httpContext.Object.RequestServices.GetService<TestChatService>()!;
+
+        var sentMessages = new List<string>();
+        var allNextsReceived = new TaskCompletionSource();
+        socket
+            .Setup(s => s.SendAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<System.Net.WebSockets.WebSocketMessageType>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(
+                (ArraySegment<byte> segment, System.Net.WebSockets.WebSocketMessageType _, bool _, CancellationToken _) =>
+                {
+                    lock (sentMessages)
+                    {
+                        sentMessages.Add(System.Text.Encoding.UTF8.GetString(segment));
+                        if (sentMessages.Count(m => m.Contains($"\"type\":\"{GraphQLWSMessageType.Next}\"")) == 3)
+                            allNextsReceived.TrySetResult();
+                    }
+                }
+            );
+
+        var recvSeq = new MockSequence();
+        socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
+        socket
+            .InSequence(recvSeq)
+            .SetupReceiveAsync(
+                new GraphQLWSRequest
+                {
+                    Id = id,
+                    Type = GraphQLWSMessageType.Subscribe,
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
+                },
+                () =>
+                {
+                    // wait until the subscribe execution has registered its observer before publishing
+                    var broadcaster = (EntityGraphQL.Subscriptions.Broadcaster<Message>)chatService.Subscribe();
+                    var waited = 0;
+                    while (broadcaster.Subscribers.Count == 0 && waited < 5000)
+                    {
+                        Thread.Sleep(10);
+                        waited += 10;
+                    }
+                    chatService.PostMessage("one");
+                    chatService.PostMessage("two");
+                    chatService.PostMessage("three");
+                }
+            );
+        // hold the connection open until all events have been delivered, then close
+        socket
+            .InSequence(recvSeq)
+            .Setup(s => s.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
+            .Returns(
+                async (ArraySegment<byte> _, CancellationToken ct) =>
+                {
+                    await allNextsReceived.Task.WaitAsync(TimeSpan.FromSeconds(5), ct);
+                    return new System.Net.WebSockets.WebSocketReceiveResult(0, System.Net.WebSockets.WebSocketMessageType.Close, true, System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "Test over");
+                }
+            );
+
+        socket.SetupAndAssertCloseAsync((int)System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "Test over");
+
+        await server.HandleAsync();
+
+        var nextMessages = sentMessages.Where(m => m.Contains($"\"type\":\"{GraphQLWSMessageType.Next}\"")).ToList();
+        Assert.Equal(3, nextMessages.Count);
+        Assert.Contains("\"text\":\"one\"", nextMessages[0]);
+        Assert.Contains("\"text\":\"two\"", nextMessages[1]);
+        Assert.Contains("\"text\":\"three\"", nextMessages[2]);
+    }
+
+    [Fact]
     public async Task TestQueryOverWebsocket()
     {
         var (server, socket, httpContext) = Setup();

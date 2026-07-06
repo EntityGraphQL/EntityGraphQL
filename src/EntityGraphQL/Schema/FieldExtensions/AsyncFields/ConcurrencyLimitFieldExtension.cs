@@ -22,9 +22,17 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
     /// <summary>
     /// Compiled form of each wrapped operation lambda, keyed by expression instance. For a list field the
     /// wrapped call executes per element with the same lambda instance - without this it compiled per element.
+    /// Compiled to a uniform object[]-taking delegate so invocation avoids DynamicInvoke's per-call overhead.
     /// Weakly keyed so entries die with their expression trees.
     /// </summary>
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<LambdaExpression, Delegate> compiledOperations = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<LambdaExpression, Func<object?[], object?>> compiledOperations = new();
+
+    private static Func<object?[], object?> CompileOperation(LambdaExpression exp)
+    {
+        var argsParam = Expression.Parameter(typeof(object?[]), "args");
+        var call = Expression.Invoke(exp, exp.Parameters.Select((p, i) => (Expression)Expression.Convert(Expression.ArrayIndex(argsParam, Expression.Constant(i)), p.Type)));
+        return Expression.Lambda<Func<object?[], object?>>(Expression.Convert(call, typeof(object)), argsParam).Compile();
+    }
 
     /// <summary>
     /// Create a service-based concurrency limit (resolved from ExecutionOptions)
@@ -169,7 +177,9 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
     )
     {
         // Get all semaphores for hierarchical limiting
-        var semaphores = semaphoreConfigs.Select(config => concurrencyLimiterRegistry.GetSemaphore(config.scopeKey, config.maxConcurrency)).ToList();
+        var semaphores = new SemaphoreSlim[semaphoreConfigs.Count];
+        for (var i = 0; i < semaphoreConfigs.Count; i++)
+            semaphores[i] = concurrencyLimiterRegistry.GetSemaphore(semaphoreConfigs[i].scopeKey, semaphoreConfigs[i].maxConcurrency);
 
         // Acquire all semaphores in order (query -> service -> field). Acquisition happens inside the
         // try so a cancelled/faulted WaitAsync releases the permits already acquired
@@ -184,11 +194,20 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
 
             // Execute the async operation. The lambda is compiled once per expression instance - this method
             // runs per row for list fields, so compiling here every call is expensive
-            var compiledOperation = compiledOperations.GetValue(asyncOperationExp, static exp => exp.Compile());
-            var asyncOperation = compiledOperation.DynamicInvoke(expArgs);
+            var compiledOperation = compiledOperations.GetValue(asyncOperationExp, static exp => CompileOperation(exp));
+            var asyncOperation = compiledOperation(expArgs);
             if (asyncOperation is null)
             {
                 return default;
+            }
+            // common case - a correctly typed task, no reflection needed
+            if (asyncOperation is Task<TResult> typedTask)
+            {
+                return await typedTask;
+            }
+            if (asyncOperation is ValueTask<TResult> typedValueTask)
+            {
+                return await typedValueTask;
             }
             if (asyncOperation is Task task)
             {
