@@ -37,8 +37,10 @@ const config = {
       '@docusaurus/plugin-client-redirects',
       {
         // the site previously served docs under /docs/* with a separate landing page at /.
-        // Keep old inbound links working
-        redirects: [{ from: ['/docs', '/docs/getting-started', '/intro', '/docs/intro'], to: '/' }],
+        // Keep old inbound links working. /intro and /docs/intro are NOT listed here: /intro is a real
+        // page (the 5.7 snapshot's Introduction, served at the root version) and createRedirects below
+        // already maps /docs/intro -> /intro
+        redirects: [{ from: ['/docs', '/docs/getting-started'], to: '/' }],
         createRedirects(existingPath) {
           if (existingPath === '/') return undefined;
           return [`/docs${existingPath}`];
