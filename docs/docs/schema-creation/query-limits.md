@@ -17,8 +17,9 @@ These guards protect against common GraphQL DoS vectors: deeply nested queries, 
 | `MaxFieldAliases` | Hard cap on aliased selections (where response name differs from the schema field name). | `null` (unlimited) |
 | `MaxQueryComplexity` | Hard cap on total cost computed by `IQueryComplexityAnalyzer`. | `null` (unlimited) |
 | `QueryComplexityAnalyzer` | Override the default analyzer with your own. | `DefaultQueryComplexityAnalyzer` |
+| `MaxQueryConcurrency` | Cap on concurrent async operations within one query execution (a runtime limit, not a pre-execution guard - see below). | `100` |
 
-A limit of `null` or `0` means the check is skipped. When any guard fires, the request fails with a GraphQL `DocumentError` and nothing executes.
+A limit of `null` or `0` means the check is skipped. When any of the pre-execution guards fire, the request fails with a GraphQL `DocumentError` and nothing executes.
 
 ## Recommended production starting point
 
@@ -175,6 +176,19 @@ var options = new ExecutionOptions
     QueryComplexityAnalyzer = new MyAnalyzer(),
 };
 ```
+
+## Concurrency
+
+Unlike the guards above, `MaxQueryConcurrency` is enforced *during* execution. An async field resolved for a list runs per item - without a cap, a query returning 10,000 rows with one async field starts 10,000 concurrent operations (thread-pool/socket exhaustion, hammering rate-limited APIs). It defaults to `100`; set it to `null` for unlimited.
+
+```cs
+var options = new ExecutionOptions
+{
+    MaxQueryConcurrency = 20, // max 20 concurrent async operations across the whole query
+};
+```
+
+It combines with per-service limits (`ExecutionOptions.ServiceConcurrencyLimits`) and per-field limits (`maxConcurrency:` on `ResolveAsync`) - the most restrictive applies. Note it does not make non-thread-safe services (e.g. a scoped `DbContext`) safe in async list fields - use a per-service limit or `maxConcurrency: 1` for those. See [Async Fields](./async-fields) for the full concurrency model.
 
 ## Error format
 
