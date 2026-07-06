@@ -797,6 +797,19 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     }
 
     /// <summary>
+    /// Add root query fields from methods marked with GraphQLFieldAttribute in the given class. Lets you group
+    /// related query field definitions into classes instead of many Query().AddField() calls.
+    /// Shortcut for Query().AddFieldsFrom&lt;TType&gt;(options).
+    /// </summary>
+    /// <typeparam name="TType">Class containing [GraphQLField] marked methods</typeparam>
+    /// <param name="options">Options for the schema builder</param>
+    public void AddQueryFieldsFrom<TType>(SchemaBuilderOptions? options = null)
+        where TType : class
+    {
+        queryType.AddFieldsFrom<TType>(options);
+    }
+
+    /// <summary>
     /// Search for a GraphQL type with the given name. Lookup is only done by name.
     ///
     /// Customer type mappings are not searched

@@ -221,7 +221,15 @@ public static class SchemaBuilder
         return fields;
     }
 
-    internal static BaseField? ProcessMethodIntoField(ISchemaType fromType, MethodInfo method, ParameterExpression param, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
+    internal static BaseField? ProcessMethodIntoField(
+        ISchemaType fromType,
+        MethodInfo method,
+        ParameterExpression param,
+        ISchemaProvider schema,
+        SchemaBuilderOptions options,
+        bool isInputType,
+        Expression? callInstance = null
+    )
     {
         if (!ShouldIncludeMember(method, options, isInputType))
             return null;
@@ -272,7 +280,15 @@ public static class SchemaBuilder
             // build argument expressions for the call
             foreach (var item in argumentsFromMethod)
             {
-                if (item.IsService)
+                if (item.IsService && item.ServiceType == param.Type)
+                {
+                    // a parameter of the field's context type binds to the field context itself (e.g. the query
+                    // context for root fields added via AddFieldsFrom) - not a DI service. Keeping the field
+                    // service-free means it executes on the database-bound pass and the DI-registered instance
+                    // (which may differ from the executing context) is never resolved
+                    argsForCallExpression.Add(item.ArgName, param);
+                }
+                else if (item.IsService)
                 {
                     fieldServices.Add(item.ArgName, Expression.Parameter(item.ServiceType!, item.ArgName));
                     argsForCallExpression.Add(item.ArgName, fieldServices[item.ArgName]!);
@@ -296,13 +312,13 @@ public static class SchemaBuilder
                 }
             }
 
-            var call = Expression.Call(method.IsStatic ? null : param, method, argsForCallExpression.Values);
+            var call = Expression.Call(method.IsStatic ? null : callInstance ?? param, method, argsForCallExpression.Values);
             var lambdaParams = new[] { param, argTypeParam }.Concat(fieldServices.Values);
             le = Expression.Lambda(call, lambdaParams);
         }
         else
         {
-            var call = Expression.Call(param, method);
+            var call = Expression.Call(method.IsStatic ? null : callInstance ?? param, method);
             le = Expression.Lambda(call, param);
         }
 

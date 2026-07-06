@@ -50,6 +50,56 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     }
 
     /// <summary>
+    /// Add fields to this type from methods marked with [GraphQLField] in TFrom. Lets you group related field
+    /// definitions into classes instead of many AddField() calls - e.g. schema.Query().AddFieldsFrom&lt;PeopleQueries&gt;().
+    /// Method parameters of this type's dotnet type bind to the field context (the query context for root fields),
+    /// CancellationToken binds to the request token, other complex types resolve as services from the service
+    /// provider and remaining parameters become GraphQL arguments.
+    /// For instance methods a single instance of TFrom is created at schema build time (parameterless constructor
+    /// required) - take per-request dependencies as method parameters, not constructor injection.
+    /// </summary>
+    /// <typeparam name="TFrom">Class containing [GraphQLField] marked methods</typeparam>
+    /// <param name="options">Options for the schema builder</param>
+    /// <returns>This type for further chaining</returns>
+    public SchemaType<TBaseType> AddFieldsFrom<TFrom>(SchemaBuilderOptions? options = null)
+        where TFrom : class
+    {
+        if (GqlType != GqlTypes.QueryObject && GqlType != GqlTypes.Interface)
+            throw new EntityGraphQLSchemaException($"AddFieldsFrom can only be used on object or interface types. '{Name}' is a {GqlType}.");
+
+        options ??= new SchemaBuilderOptions();
+        var contextParam = Expression.Parameter(TypeDotnet, $"ctx_{TypeDotnet.Name}");
+        object? instance = null;
+        foreach (var method in typeof(TFrom).GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static))
+        {
+            if (method.GetCustomAttribute<GraphQLFieldAttribute>() == null)
+                continue;
+
+            Expression? callInstance = null;
+            if (!method.IsStatic)
+            {
+                try
+                {
+                    instance ??= Activator.CreateInstance<TFrom>();
+                }
+                catch (MissingMethodException)
+                {
+                    throw new EntityGraphQLSchemaException(
+                        $"Cannot create an instance of '{typeof(TFrom).Name}' for AddFieldsFrom - it has [GraphQLField] instance methods but no parameterless constructor. "
+                            + "Make the methods static or add a parameterless constructor. Take per-request dependencies as method parameters (resolved from the service provider) instead of constructor parameters."
+                    );
+                }
+                callInstance = Expression.Constant(instance);
+            }
+
+            var field = SchemaBuilder.ProcessMethodIntoField(this, method, contextParam, Schema, options, isInputType: false, callInstance);
+            if (field != null)
+                AddField(field);
+        }
+        return this;
+    }
+
+    /// <summary>
     /// Using reflection, add all the public Fields and Properties from the dotnet type as fields on the
     /// schema type. Quick helper method to build out schemas
     /// </summary>

@@ -187,6 +187,36 @@ public uint[] AgesOfActorsAtRelease()
 }
 ```
 
+### Grouping fields with AddFieldsFrom
+
+Building a large schema often ends up as many `schema.Query().AddField(...)` calls. `AddFieldsFrom<T>()` lets you group related field definitions into classes - each public method marked with `[GraphQLField]` becomes a field on the type you call it on. `schema.AddQueryFieldsFrom<T>()` is a shortcut for `schema.Query().AddFieldsFrom<T>()`.
+
+```cs
+public class PeopleQueries
+{
+    [GraphQLField("adults", "People 18 or older")]
+    public static IQueryable<Person> Adults(DemoContext db) => db.People.Where(p => p.Age >= 18);
+
+    [GraphQLField]
+    public IQueryable<Person> PeopleByName(DemoContext db, string nameLike) =>
+        db.People.Where(p => p.Name.Contains(nameLike));
+}
+
+schema.AddQueryFieldsFrom<PeopleQueries>();
+// or on any object type
+schema.Type<Person>().AddFieldsFrom<PersonExtraFields>();
+```
+
+Method parameters map as follows:
+
+- A parameter of the type you are adding the fields to (the query context for root fields) binds to the field context - it is not resolved from the service provider, so the field still executes on the database pass.
+- `CancellationToken` binds to the request's cancellation token.
+- Other parameters follow the same rules as methods-as-fields above - scalars/known input types become GraphQL arguments, everything else resolves as a service from the service provider.
+
+Methods returning `IQueryable<T>` work well with EF - the method executes returning the deferred query and EntityGraphQL builds the field selection on top of it, so your filters and the selection all translate to SQL.
+
+For instance (non-static) methods a single instance of the class is created at schema build time, which requires a parameterless constructor. Take per-request dependencies as method parameters (resolved from the service provider) rather than constructor parameters.
+
 ## Helper methods
 
 ### WhereWhen()
