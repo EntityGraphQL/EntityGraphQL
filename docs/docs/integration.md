@@ -8,6 +8,10 @@ Being GraphQL there are many tools that integrate well with EntityGraphQL.
 
 EntityGraphQL supports GraphQL introspection queries so tools like GraphiQL and Relay can work against your schema.
 
+:::tip GraphQL over HTTP
+`MapGraphQL()` follows the [GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md), the behavior EntityGraphQL adopted in v6. GraphQL execution errors are returned in the GraphQL response body rather than by changing the route shape or adding a special endpoint mode. HTTP status codes follow the spec per negotiated media type: with `application/graphql-response+json` (the default) a request error (no `data` in the response) returns `400`, a partial success (`data` plus `errors`) returns `294` and a clean result `200`; with the legacy `application/json` every well-formed request returns `200` and clients must read the body. Either way, always read `errors` from the response body.
+:::
+
 ## Introspection
 
 Introspection is **enabled by default** and is required by most GraphQL client tools (GraphiQL, Insomnia, Relay dev tools, Apollo Studio, code generators, etc.). Disabling it is not recommended unless your schema must be kept confidential.

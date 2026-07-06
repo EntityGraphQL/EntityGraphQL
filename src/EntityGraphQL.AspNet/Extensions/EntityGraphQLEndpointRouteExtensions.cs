@@ -115,8 +115,25 @@ public static class EntityGraphQLEndpointRouteExtensions
 
                     context.Response.ContentType = requestedType ?? $"{APP_GQL_TYPE_START}; charset=utf-8";
 
-                    // Per GraphQL over HTTP spec: GraphQL errors should return 200 with error details
-                    context.Response.StatusCode = StatusCodes.Status200OK;
+                    // Status codes per the GraphQL over HTTP spec. For application/graphql-response+json the
+                    // status reflects the GraphQL outcome (clients should still read the body - the code aids
+                    // intermediaries/observability): no data entry means a request error (4xx - the spec
+                    // recommends 400/422 per case; we use 400 as the errors don't distinguish parse from
+                    // validation), data plus errors is a partial success (294 per the spec), otherwise 200.
+                    // For legacy application/json the spec requires 200 for every well-formed request
+                    if (context.Response.ContentType.StartsWith(APP_GQL_TYPE_START, StringComparison.InvariantCulture))
+                    {
+                        if (!gqlResult.HasDataKey)
+                            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        else if (gqlResult.HasErrors())
+                            context.Response.StatusCode = 294; // partial success
+                        else
+                            context.Response.StatusCode = StatusCodes.Status200OK;
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = StatusCodes.Status200OK;
+                    }
 
                     var serializer = context.RequestServices.GetRequiredService<IGraphQLResponseSerializer>();
                     await serializer.SerializeAsync(context.Response.Body, gqlResult);

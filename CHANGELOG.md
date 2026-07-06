@@ -1,3 +1,20 @@
+# 6.0.0
+
+EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 releases. The beta sections below carry the full, detailed lists of changes, fixes and migration notes - and see the [upgrade guide](https://entitygraphql.github.io/6.0/upgrade-6-0) for a consolidated migration path from 5.x.
+
+## 6.0 Highlights
+
+- **GraphQL spec conformance** - partial results per the spec (failing top-level fields no longer fail the whole operation), [September 2025 GraphQL spec](https://spec.graphql.org/September2025/) support (`@oneOf`, argument/input-field deprecation, document descriptions, stricter validation) and `MapGraphQL()` follows the [GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md) by default.
+- **A real async model** - `ResolveAsync<TService>()` fields, end-to-end `CancellationToken` support (into resolvers, mutations, subscriptions and the in-flight EF query), async database materialization for root list fields, and concurrency control per field, per service and per query (`MaxQueryConcurrency` defaults to 100).
+- **Security hardening** - authorization fails closed, introspection respects authorization, a parser recursion backstop against deeply-nested document DoS, opt-in query guards (`MaxQueryDepth`, `MaxFieldSelections`, `MaxFieldAliases`, `MaxQueryComplexity`) and per-field rate limiting.
+- **New schema-building features** - `UseAggregate()` for SQL-translated aggregates over collections, `AddFieldsFrom<T>()`/`AddQueryFieldsFrom<T>()` to group field definitions into classes, filter improvements (GraphQL variables, service fields, `selectMany`, filtering by paged child fields) and async subscription setup for external brokers.
+- **Performance** - paging answers `hasNextPage` with a cheap `EXISTS` instead of `COUNT(*)`, async result processing is compiled and targeted (~2x faster on async-heavy results), opt-in compiled-delegate caching, and WebSocket subscription delivery is ordered and non-blocking.
+- **Modern targets** - `net8.0`, `net9.0` and `net10.0` with a dependency-light core package.
+
+## Breaking Changes from Beta 9
+
+- `MapGraphQL()` HTTP status codes now fully follow the [GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md) for the `application/graphql-response+json` media type (the default response type): a response with no `data` entry (a request error - e.g. document parse/validation failure) returns `400` instead of `200`, and a response with both `data` and `errors` (partial success) returns `294` per the spec. Clean results remain `200`. Responses negotiated as legacy `application/json` keep returning `200` for every well-formed request. Clients following the spec read the response body regardless of status code for `application/graphql-response+json`.
+
 # 6.0.0-beta9
 
 The final beta planned before 6.0.0.

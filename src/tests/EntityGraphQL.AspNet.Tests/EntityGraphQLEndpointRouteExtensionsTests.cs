@@ -81,7 +81,7 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
     }
 
     [Fact]
-    public async Task GraphQL_Endpoint_Returns_Ok_With_Error_For_Invalid_Query()
+    public async Task GraphQL_Endpoint_Returns_400_With_Error_For_Invalid_Query()
     {
         var graphqlRequest = new { query = "query { nonExistentField }" };
         var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
@@ -89,7 +89,9 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/graphql-response+json"));
         var response = await client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // per the GraphQL over HTTP spec, with application/graphql-response+json a response with no
+        // data entry (a request error) uses a 4xx status code
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.True(
             response.Content.Headers.ContentType?.MediaType == "application/graphql-response+json" || response.Content.Headers.ContentType?.MediaType == "application/json",
             "Content-Type is not application/graphql-response+json or application/json."
@@ -150,7 +152,7 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
     }
 
     [Fact]
-    public async Task GraphQL_Endpoint_200_On_Valid_Request_Invalid_GraphQL()
+    public async Task GraphQL_Endpoint_400_On_Valid_Request_Invalid_GraphQL()
     {
         var graphqlRequest = new { query = "{" }; // invalid graphql
         var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
@@ -158,7 +160,8 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/graphql-response+json"));
         var response = await client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // document parse failure -> no data entry -> 400 for application/graphql-response+json
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
         var responseString = await response.Content.ReadAsStringAsync();
         var json = JsonNode.Parse(responseString);
@@ -170,7 +173,7 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
     }
 
     [Fact]
-    public async Task GraphQL_Endpoint_200_No_Data_Mutation_Error()
+    public async Task GraphQL_Endpoint_294_No_Data_Mutation_Error()
     {
         var graphqlRequest = new { query = "mutation { mutationFail }" };
         var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
@@ -178,7 +181,8 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/graphql-response+json"));
         var response = await client.SendAsync(request);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // data entry present (null) with errors -> partial success -> 294 per the GraphQL over HTTP spec
+        Assert.Equal(294, (int)response.StatusCode);
 
         var responseString = await response.Content.ReadAsStringAsync();
         var json = JsonNode.Parse(responseString);
@@ -297,6 +301,24 @@ public class EntityGraphQLEndpointRouteExtensionsTests : IClassFixture<WebApplic
         Assert.True(response.Content.Headers.ContentType?.MediaType == "application/json", "Content-Type is not application/json.");
 
         await CheckResponseIsValid(response);
+    }
+
+    [Fact]
+    public async Task GraphQL_Endpoint_LegacyJson_Returns_200_For_Invalid_Query()
+    {
+        var graphqlRequest = new { query = "query { nonExistentField }" };
+        var requestBody = new StringContent(System.Text.Json.JsonSerializer.Serialize(graphqlRequest), Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, "/graphql") { Content = requestBody };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var response = await client.SendAsync(request);
+
+        // per the GraphQL over HTTP spec, the legacy application/json media type uses 200 for every
+        // response to a well-formed GraphQL-over-HTTP request - errors are in the body
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var responseString = await response.Content.ReadAsStringAsync();
+        var json = JsonNode.Parse(responseString);
+        Assert.NotNull(json);
+        Assert.NotNull(json["errors"]);
     }
 
     private static async Task CheckResponseIsValid(HttpResponseMessage response)
