@@ -7,7 +7,7 @@ sidebar_position: 12
 EntityGraphQL respects [Semantic Versioning](https://semver.org/), meaning version 6.0.0 contains breaking changes. Below highlights those changes and the impact to those coming from version 5.x.
 
 :::tip
-You can see the full changelog which includes other changes and bug fixes as well as links back to GitHub issues/MRs with more information [here on GitHub](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/CHANGELOG.md).
+You can see the full changelog which includes other changes and bug fixes as well as links back to GitHub issues/MRs with more information [here on GitHub](https://github.com/EntityGraphQL/EntityGraphQL/blob/main/CHANGELOG.md).
 :::
 
 ## Partial Results Support
@@ -349,7 +349,7 @@ Introspection queries (`__schema` / `__type`) now only return the types and fiel
 
 ## Compiler Internals Made `internal`
 
-`LinqRuntimeTypeBuilder`, `ExpressionReplacer` and `ExpressionUtil.ListToSingleMethods` are no longer public — they are engine internals with no supported external use. `ParameterReplacer` and the rest of `ExpressionUtil` remain public as they are part of the field extension API.
+`LinqRuntimeTypeBuilder`, `ExpressionReplacer` and `ExpressionUtil.ListToSingleMethods` are no longer public — they are engine internals with no supported external use. `ParameterReplacer` and the rest of `ExpressionUtil` remain public as they are part of the field extension API, however `ParameterReplacer.ReplaceByType` is marked obsolete (removal in 7.0) as it can capture parameters you did not intend.
 
 ## ASP.NET schema lifetime
 
@@ -364,9 +364,56 @@ services.AddGraphQLSchema<DemoContext>(options =>
 });
 ```
 
+## Renamed `ExecutionOptions`
+
+| 5.x                                | 6.x                                         |
+| ---------------------------------- | ------------------------------------------- |
+| `ExecutionOptions.MaxQueryNodes`   | `ExecutionOptions.MaxFieldSelections`       |
+| `ExecutionOptions.UserKeySelector` | `ExecutionOptions.RateLimitUserKeySelector` |
+
+`MaxFieldSelections` counts field selections (the GraphQL spec term) after fragment expansion. `RateLimitUserKeySelector` reflects that it only affects per-field rate limiters tagged `userSpecific: true`.
+
+## Stricter GraphQL Spec Validation
+
+Documents that were previously accepted but are invalid per the (September 2025) GraphQL spec are now rejected with a validation error:
+
+- Duplicate non-repeatable directives at one location (e.g. `@skip(...) @skip(...)`)
+- Conflicting field selection merges — selections with the same response name must be the same field with identical arguments (`{ x: id x: name }` or `{ project(id: 1) project(id: 2) }` are errors; use different aliases), and response shapes across mutually exclusive fragments must be compatible
+- `@skip` / `@include` on the root field of a subscription operation
+- Deprecating a required argument (schema build error)
+
+**Impact:** clients sending such documents will start receiving errors — they were invalid all along, but check for them in logs before upgrading.
+
+## JSON Serializer Defaults
+
+`DefaultGraphQLResponseSerializer` and `DefaultGraphQLRequestDeserializer` now use `JsonSerializerDefaults.Web`. Request deserialization becomes case-insensitive and reads numbers from JSON strings. Response output is unchanged (it was already camelCase).
+
+## Async Argument Validators
+
+`IField.Validators` is now `IReadOnlyCollection<Func<ArgumentValidatorContext, Task>>` and async validators (`IArgumentValidator` / the `Func<ArgumentValidatorContext, Task>` overload of `AddValidator`) are genuinely awaited for mutation and subscription arguments. Validators on query field arguments run during (synchronous) query compilation — avoid I/O in those. Only affects you if you enumerate/invoke `IField.Validators` directly.
+
+## `BeforeExecuting` Expression Shape
+
+If you use `ExecutionOptions.BeforeExecuting` to inspect or rewrite expressions: root-level list fields on the database-bound pass no longer end in an in-tree `ToList()` call. The deferred query is materialized after the expression executes — asynchronously (honouring the request's `CancellationToken`) when the LINQ provider's query objects implement `IAsyncEnumerable<T>`, as EF Core's do.
+
+## Dependency Updates
+
+`Humanizer.Core` was updated from 2.14.1 to 3.x. It is used to singularize names when generating schemas from your types — inflection rule changes between major versions could alter a generated name in rare cases. Compare `schema.ToGraphQLSchemaString()` output before/after upgrading if generated names matter to your clients.
+
+## New in 6.x Worth Adopting
+
+Not breaking — but if you are touching your schema code anyway:
+
+- **Async fields** — first-class `ResolveAsync<TService>()` with end-to-end `CancellationToken` support and per-field/service/query concurrency limits. See [Async Fields](./schema-creation/async-fields).
+- **Query limits** — opt-in `MaxQueryDepth`, `MaxFieldSelections`, `MaxFieldAliases`, `MaxQueryComplexity` and per-field rate limiting. See [Query limits](./schema-creation/query-limits).
+- **`UseAggregate()`** — `count`/`min`/`max`/`sum`/`average` over collection fields, translated to a single SQL query under EF. See [Aggregates](./field-extensions/aggregate).
+- **`AddFieldsFrom<T>()` / `AddQueryFieldsFrom<T>()`** — group related field definitions into classes with `[GraphQLField]` methods. See [Fields](./schema-creation/fields#grouping-fields-with-addfieldsfrom).
+- **Paging performance** — `hasNextPage` uses a cheap `EXISTS` query instead of `COUNT(*)` when the total isn't requested.
+- **Filter improvements** — filters support GraphQL variables (`$var`), service fields, `selectMany` and filtering by paged child fields.
+
 ## Target Framework Changes
 
-The following target frameworks have been dropped:
+Both packages now target `net8.0`, `net9.0` and `net10.0` only:
 
 - `EntityGraphQL.AspNet` package: Dropped `net6.0` and `net7.0`
-- `EntityGraphQL` package: Dropped `net6.0` (but still targets `netstandard2.1`, so it can still be used with those versions)
+- `EntityGraphQL` package: Dropped `net6.0` and `netstandard2.1`. Dropping netstandard also removes the `System.Text.Json`, `Microsoft.CSharp` and `System.ComponentModel.Annotations` package dependencies that only that target required.

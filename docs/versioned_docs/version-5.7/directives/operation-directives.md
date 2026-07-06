@@ -26,17 +26,15 @@ The GraphQL spec defines 2 directives that are supported out of the box in Entit
 - `@include(if: Boolean)` - Only include this field in the result if the argument is true.
 - `@skip(if: Boolean)` - Skip this field if the argument is true.
 
-Using a non-repeatable directive more than once at a single location (e.g. `@skip(...) @skip(...)`) is a validation error per the GraphQL spec. All built-in directives are non-repeatable.
-
 ## Custom Directives
 
-See the [IncludeDirective](https://github.com/EntityGraphQL/EntityGraphQL/blob/main/src/EntityGraphQL/Directives/IncludeDirectiveProcessor.cs) implementation to see how you could implement a custom directive with `IDirectiveProcessor`. You can add your directive to the schema with the following
+See the [IncludeDirective](https://github.com/lukemurray/EntityGraphQL/blob/main/src/EntityGraphQL/Directives/IncludeDirectiveProcessor.cs) implementation to see how you could implement a custom directive. You can add your directive to the schema with the following
 
 ```cs
 // Example only, you don't need to actually add Include or Skip directives
 schema.AddDirective(new IncludeDirective());
 ```
 
-A custom `IDirectiveProcessor` can override the `IsRepeatable` property (defaults to `false`) to allow the directive to be used multiple times at one location. Directives are exposed in introspection including `isRepeatable`.
+These directives work on the internal representation of a field `GraphQLQueryNode`. This is working against the query graph not the data result.
 
-These directives work on the internal representation of the query fields (see `BaseGraphQLField.Directives`) — they operate on the query graph before execution, not the data result.
+_There is more functionality planned for custom directives which can work on both the pre-execution query graph or the post-execution data._

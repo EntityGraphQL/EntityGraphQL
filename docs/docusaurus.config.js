@@ -12,7 +12,11 @@ const config = {
   url: 'https://entitygraphql.github.io',
   baseUrl: '/',
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
   favicon: 'img/favicon.ico',
 
   // GitHub pages deployment config.
@@ -28,6 +32,21 @@ const config = {
     locales: ['en'],
   },
 
+  plugins: [
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        // the site previously served docs under /docs/* with a separate landing page at /.
+        // Keep old inbound links working
+        redirects: [{ from: ['/docs', '/docs/getting-started', '/intro', '/docs/intro'], to: '/' }],
+        createRedirects(existingPath) {
+          if (existingPath === '/') return undefined;
+          return [`/docs${existingPath}`];
+        },
+      },
+    ],
+  ],
+
   presets: [
     [
       'classic',
@@ -35,10 +54,25 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
+          // docs are the site - no separate landing page. Root '/' is getting-started
+          routeBasePath: '/',
+          // While 6.0 is in beta, 5.7 (snapshotted from the 5.7.2 tag under versioned_docs) is the
+          // default version served at the root and the 6.0 beta docs live under /6.0/ with an
+          // "unreleased" banner. When 6.0 goes final: set lastVersion to 'current', remove the
+          // current.path so 6.0 docs serve at the root, and re-point the announcement bar
+          lastVersion: '5.7',
+          versions: {
+            current: {
+              label: '6.0',
+              path: '6.0',
+              banner: 'unreleased',
+            },
+            5.7: {
+              label: '5.7',
+            },
+          },
           editUrl:
-            'https://github.com/EntityGraphQL/EntityGraphQL/tree/master/docs',
+            'https://github.com/EntityGraphQL/EntityGraphQL/tree/main/docs',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -50,6 +84,11 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
+      announcementBar: {
+        id: 'v6-beta',
+        content: 'EntityGraphQL 6.0.0-beta9 is available - see the <a href="/6.0/">6.0 beta docs</a> and the <a href="/6.0/upgrade-6-0">upgrade guide</a>.',
+        isCloseable: true,
+      },
       navbar: {
         title: 'Entity GraphQL',
         logo: {
@@ -59,9 +98,13 @@ const config = {
         items: [
           {
             type: 'doc',
-            docId: 'intro',
+            docId: 'getting-started',
             position: 'left',
             label: 'Documentation',
+          },
+          {
+            type: 'docsVersionDropdown',
+            position: 'right',
           },
           {
             href: 'https://github.com/EntityGraphQL/EntityGraphQL',
@@ -78,7 +121,7 @@ const config = {
             items: [
               {
                 label: 'Getting started',
-                to: '/docs/intro',
+                to: '/',
               },
             ],
           },

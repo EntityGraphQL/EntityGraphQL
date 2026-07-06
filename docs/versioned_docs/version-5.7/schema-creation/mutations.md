@@ -78,6 +78,8 @@ When `AutoCreateInputTypes` is true, to inject a service, pass it to the constru
 **SchemaBuilderOptions.AddNonAttributedMethodsInControllers**
 If true (default = false), EntityGraphQL will add any method in the mutation class as a mutation without needing the `[GraphQLMutation]` attribute. Methods must be **Public** and **not inherited** but can be either **static** or **instance**.
 
+`SchemaBuilderOptions` inherits from `SchemaBuilderOptions` and those options are passed to the `SchemaBuilder` methods. An important one for mutations is
+
 **SchemaBuilderOptions.AutoCreateNewComplexTypes**
 If true (default = true) any complex class types that a mutation returns is added to the schema as a query type if it is not already there.
 
@@ -139,17 +141,6 @@ var results = _schemaProvider.ExecuteRequest(query, demoContext, HttpContext.Req
 ```
 
 EntityGraphQL will use that `IServiceProvider` to resolve any services when calling your mutation method. All you need to do is make sure the service is registered and include it as a parameter of the mutation controller constructor or a mutation method.
-
-A mutation method can also declare a `CancellationToken` parameter to receive the executing request's cancellation token (`MapGraphQL()` uses `HttpContext.RequestAborted`). It is not exposed as a GraphQL argument.
-
-```cs
-[GraphQLMutation]
-public async Task<Person> AddPerson(DemoContext db, string name, CancellationToken cancellationToken)
-{
-    // pass the token to async work so an aborted request cancels it
-    ...
-}
-```
 
 ```cs
 // in Startup.cs
@@ -487,126 +478,5 @@ mutation {
     age
     email
   }
-}
-```
-
-## Async Mutations
-
-EntityGraphQL supports asynchronous mutations by returning `Task<T>` from your mutation methods. This is useful for operations that call external services, perform database operations, or other async work.
-
-```csharp
-public class PeopleMutations
-{
-    [GraphQLMutation("Add a new person asynchronously")]
-    public async Task<Expression<Func<DemoContext, Person>>> AddPersonAsync(
-        DemoContext db,
-        string firstName,
-        string lastName,
-        EmailService emailService)
-    {
-        var person = new Person
-        {
-            FirstName = firstName,
-            LastName = lastName,
-        };
-
-        db.People.Add(person);
-        await db.SaveChangesAsync();
-
-        // Send welcome email asynchronously
-        await emailService.SendWelcomeEmailAsync(person);
-
-        return (ctx) => ctx.People.First(p => p.Id == person.Id);
-    }
-
-    [GraphQLMutation("Update person with external validation")]
-    public async Task<bool> UpdatePersonWithValidationAsync(
-        int personId,
-        string newEmail,
-        ValidationService validator,
-        DemoContext db)
-    {
-        // Validate email with external service
-        var isValid = await validator.ValidateEmailAsync(newEmail);
-        if (!isValid)
-        {
-            throw new InvalidOperationException("Email validation failed");
-        }
-
-        var person = await db.People.FindAsync(personId);
-        if (person == null)
-        {
-            return false;
-        }
-
-        person.Email = newEmail;
-        await db.SaveChangesAsync();
-        return true;
-    }
-}
-```
-
-### Mutations vs. Async Fields
-
-- **Mutations**: Use `[GraphQLMutation]` on methods in mutation controller classes. Return `Task<T>` for async operations. No concurrency control as each mutation field executes in order sequently as per the spec.
-- **Async Fields**: Use `.ResolveAsync<Service>()` when adding fields to types. Supports concurrency control and hierarchical limiting.
-
-## Partial Results and Error Handling
-
-EntityGraphQL supports **partial results** according to the GraphQL specification. This means that when executing operations with multiple fields, if some fields succeed and others fail, you'll receive the successful results along with error information about the failed ones.
-
-### How Partial Results Work
-
-EntityGraphQL executes each top-level field in an operation separately. If any field fails during execution, the operation doesn't completely fail - instead, you get:
-
-1. **Partial data**: Results from fields that executed successfully
-2. **Error information**: Detailed errors with paths pointing to the failed fields
-3. **Proper null handling**: Failed nullable fields become `null`, while non-nullable field failures may bubble up
-
-### Example with Multiple Mutations
-
-```graphql
-mutation MultipleOperations {
-  # This mutation succeeds
-  addPerson(name: "Alice", age: 30) {
-    id
-    name
-  }
-
-  # This mutation fails
-  addPersonError(name: "Bob") {
-    id
-    name
-  }
-
-  # This mutation also succeeds
-  addPerson2: addPerson(name: "Charlie", age: 25) {
-    id
-    name
-  }
-}
-```
-
-**Response with partial results:**
-
-```json
-{
-  "data": {
-    "addPerson": {
-      "id": "1",
-      "name": "Alice"
-    },
-    "addPersonError": null,
-    "addPerson2": {
-      "id": "2",
-      "name": "Charlie"
-    }
-  },
-  "errors": [
-    {
-      "message": "Name can not be null (Parameter 'name')",
-      "path": ["addPersonError"]
-    }
-  ]
 }
 ```

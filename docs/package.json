@@ -5,6 +5,7 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
+    "start:https": "HTTPS=true docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@docusaurus/core": "3.10.1",
+    "@docusaurus/plugin-client-redirects": "^3.10.1",
     "@docusaurus/preset-classic": "3.10.1",
     "@mdx-js/react": "3.1.1",
     "prism-react-renderer": "2.4.1",

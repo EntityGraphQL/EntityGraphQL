@@ -1,5 +1,5 @@
 ---
-sidebar_position: 14
+sidebar_position: 12
 ---
 
 # Upgrading from 3.x to 4.x

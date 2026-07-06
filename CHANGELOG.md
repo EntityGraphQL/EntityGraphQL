@@ -394,7 +394,7 @@ public class PersonArgConstructor
 
 - Fix issue where a subscription execution had access to a disposed `IServiceProvider`
 - `Broadcaster` is thread safe when removing observers
-- Fixes in the implementation of the [GraphQL over Websockets](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md)
+- Fixes in the implementation of the [GraphQL over Websockets](https://github.com/enisdenjo/graphql-ws/blob/main/PROTOCOL.md)
   - ID is now a `string` as it does not specify that it must be a `Guid`
   - Better errors on invalid messages
 
@@ -1043,7 +1043,7 @@ schema.AddCustomTypeConverter(new JObjectTypeConverter());
 schema.AddCustomTypeConverter(new JTokenTypeConverter());
 ```
 
-See the [serialization tests for an example](https://github.com/EntityGraphQL/EntityGraphQL/blob/master/src/tests/EntityGraphQL.Tests/SerializationTests.cs).
+See the [serialization tests for an example](https://github.com/EntityGraphQL/EntityGraphQL/blob/main/src/tests/EntityGraphQL.Tests/SerializationTests.cs).
 
 - Remove the `WithService()` method used inside a field expression and replace it with `ResolveWithService<TService>()` on the field for easier discovery in your IDE. Example
 

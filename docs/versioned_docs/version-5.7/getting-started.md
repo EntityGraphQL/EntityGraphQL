@@ -1,13 +1,9 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 slug: /
 ---
 
 # Getting Started
-
-EntityGraphQL is a .NET library for building a [GraphQL API](https://graphql.org/learn/) on top of your data model, with the extensibility to bring multiple data sources together in a single GraphQL schema. Your schema maps to plain .NET objects - an Entity Framework `DbContext` or any other object graph.
-
-A core feature (with EF, although EF is not a requirement) is that queries are compiled to LINQ [`Select()`](https://learn.microsoft.com/en-us/dotnet/csharp/linq/standard-query-operators/projection-operations#select) projections of only the fields requested in the GraphQL query - Entity Framework doesn't return all columns of a table, and it works across any object tree.
 
 ## Installation
 
@@ -20,13 +16,14 @@ You can install the core [EntityGraphQL](https://www.nuget.org/packages/EntityGr
 
 ## Create a data model
 
-_Note: There is no dependency on Entity Framework. Queries are compiled to `IQueryable` or `IEnumerable` LINQ expressions. EF is not a requirement - any LINQ provider based ORM or in-memory objects will work - this example uses EF._
+_Note: There is no dependency on Entity Framework. Queries are compiled to `IQueryable` or `IEnumberable` LINQ expressions. EF is not a requirement - any ORM working with `LinqProvider` or an in-memory object will work - this example uses EF._
 
 ```cs
 public class DemoContext : DbContext
 {
     public DbSet<Movie> Movies { get; set; }
     public DbSet<Person> People { get; set; }
+    public DbSet<Actor> Actors { get; set; }
 }
 
 public class Movie
@@ -35,9 +32,26 @@ public class Movie
     public string Name { get; set; }
     public Genre Genre { get; set; }
     public DateTime Released { get; set; }
+    public List<Actor> Actors { get; set; }
+    public List<Writer> Writers { get; set; }
     public Person Director { get; set; }
     public uint? DirectorId { get; set; }
-    public double Rating { get; set; }
+    public double Rating { get; internal set; }
+}
+
+public class Actor
+{
+    public uint PersonId { get; set; }
+    public Person Person { get; set; }
+    public uint MovieId { get; set; }
+    public Movie Movie { get; set; }
+}
+public class Writer
+{
+    public uint PersonId { get; set; }
+    public Person Person { get; set; }
+    public uint MovieId { get; set; }
+    public Movie Movie { get; set; }
 }
 
 public enum Genre
@@ -55,7 +69,11 @@ public class Person
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public DateTime Dob { get; set; }
+    public List<Actor> ActorIn { get; set; }
+    public List<Writer> WriterOf { get; set; }
     public List<Movie> DirectorOf { get; set; }
+    public DateTime? Died { get; set; }
+    public bool IsDeleted { get; set; }
 }
 ```
 
@@ -83,7 +101,12 @@ app.Run();
 This sets up a `HTTP` `POST` end point at `/graphql` where the body of the post is expected to be a GraphQL query. You can change the path with the `path` argument in `MapGraphQL<T>()`
 
 :::tip
-`MapGraphQL` follows the GraphQL over HTTP behavior that EntityGraphQL adopted in v6. GraphQL execution errors are returned in the GraphQL response body rather than by changing the route shape or adding a special endpoint mode.
+Version 5.6 introduced an argument to `MapGraphQL` called `followSpec`. When set to true it will follow [this GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md). This will be the default behavior in version 6 so if you are starting a new project we suggest setting it to `true` now.
+
+```cs
+app.MapGraphQL<DemoContext>(followSpec: true);
+```
+
 :::
 
 _You can authorize the route how ever you wish using ASP.NET. See the Authorization section for more details._
@@ -101,7 +124,7 @@ To add one or more security policies when using `MapGraphQL()` you can pass a co
 services.AddAuthentication()
 services.AddAuthorization(options =>
 {
-    options.AddPolicy("authorized", policy => policy.RequireAuthenticatedUser());
+    options.AddPolicy("authorized", policy => policy.RequireAuthenticatedUser();
 });
 
 
@@ -188,8 +211,10 @@ If you need other fields or relations, just ask
     id
     name
     director {
-      firstName
-      lastName
+      name
+    }
+    writers {
+      name
     }
   }
 }
@@ -205,17 +230,25 @@ Will return the following result.
         "id": 11,
         "name": "Inception",
         "director": {
-          "firstName": "Christopher",
-          "lastName": "Nolan"
-        }
+          "name": "Christopher Nolan"
+        },
+        "writers": [
+          {
+            "name": "Christopher Nolan"
+          }
+        ]
       },
       {
         "id": 12,
         "name": "Star Wars: Episode IV - A New Hope",
         "director": {
-          "firstName": "George",
-          "lastName": "Lucas"
-        }
+          "name": "George Lucas"
+        },
+        "writers": [
+          {
+            "name": "George Lucas"
+          }
+        ]
       }
     ]
   }
@@ -233,12 +266,10 @@ We can use the helper method `SchemaBuilder.FromObject<T>>()` to build the schem
 ```cs
 var schema = SchemaBuilder.FromObject<DemoContext>();
 
-services.AddSingleton(schema);
+services.AddSingleton<SchemaProvider<DemoContext>>();
 ```
 
 _See the [Schema Creation](./schema-creation) section to learn more about `SchemaBuilder.FromObject<T>>()`_
-
-If you are already using `EntityGraphQL.AspNet`, prefer `AddGraphQLSchema<T>()` so the schema is registered consistently with the rest of the ASP.NET integration.
 
 ### Executing a Query in a custom controller
 
@@ -248,67 +279,44 @@ Here is an example of a controller that receives a `QueryRequest` and executes t
 [Route("graphql")]
 public class QueryController : Controller
 {
+    private readonly DemoContext _dbContext;
     private readonly SchemaProvider<DemoContext> _schemaProvider;
 
-    public QueryController(SchemaProvider<DemoContext> schemaProvider)
+    public QueryController(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider)
     {
+        this._dbContext = dbContext;
         this._schemaProvider = schemaProvider;
     }
 
     [HttpPost]
     public async Task<object> Post([FromBody]QueryRequest query)
     {
-        var results = await _schemaProvider.ExecuteRequestAsync(query, HttpContext.RequestServices, HttpContext.User);
+        var results = await _schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, HttpContext.RequestServices, null);
         // gql compile errors show up in results.Errors
         return results;
     }
 }
 ```
 
-If you want to inspect or export the schema that your custom controller is serving, you can expose `schema.ToGraphQLSchemaString()` from a simple endpoint:
-
-```cs
-[Route("graphql-schema")]
-public class SchemaController : Controller
-{
-    private readonly SchemaProvider<DemoContext> _schemaProvider;
-
-    public SchemaController(SchemaProvider<DemoContext> schemaProvider)
-    {
-        _schemaProvider = schemaProvider;
-    }
-
-    [HttpGet]
-    public ContentResult Get()
-    {
-        return Content(_schemaProvider.ToGraphQLSchemaString(), "text/plain");
-    }
-}
-```
-
-This is useful for verifying that the schema registered in DI contains the fields you expect and for generating SDL for tooling.
-
 ### Executing a Query in azure functions (isolated)
 
-Here is an example of a function that receives a `HttpRequestData`, deserializes a `QueryRequest` from the body, and executes it against a schema that is created once and reused.
+Here is an example of a function that receives a `HttpRequestData`, from its Body property `QueryRequest` is deserialized and graphQL query is executed.
 
 ```cs
 public class GraphQLFunctions
 {
     private readonly DemoContext _dbContext;
-    private readonly SchemaProvider<DemoContext> _schemaProvider;
-
-    public GraphQLFunctions(DemoContext dbContext, SchemaProvider<DemoContext> schemaProvider)
+    public GraphQLFunctions(DemoContext dbContext)
     {
         _dbContext = dbContext;
-        _schemaProvider = schemaProvider;
     }
 
     [Function(nameof(GraphQL))]
     public async Task<HttpResponseData> GraphQL([HttpTrigger(AuthorizationLevel.Function, "post", Route = "graphql")] HttpRequestData req)
     {
         var query = await req.GetJsonBody<QueryRequest>(); //helper method to deserialize QueryRequest from req.Body
-        var results = await _schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, null, null);
+        var schemaProvider = SchemaBuilder.FromObject<DemoContext>();
+        var results = await schemaProvider.ExecuteRequestWithContextAsync(query, _dbContext, null, null);
 
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteAsJsonAsync(results);
@@ -337,7 +345,7 @@ services.AddControllers()
 
 ## Deserialization of QueryRequest & QueryVariables
 
-If you are using your own controller/method to execute GraphQL and deserializing a GraphQL request like below into the `QueryRequest` object, you need to be aware of how your serializer handles nested `Dictionary<string, object>`.
+If you are using you're own controller/method to execute GraphQL and deserializing a GraphQL request like below into the `GraphQLRequest` object. You need to be aware of how your serializer handles nested `Dictionary<string, object>`.
 
 _Sample incoming json request_
 
@@ -366,32 +374,9 @@ See the serialization tests for [an example with Newtonsoft.Json](https://github
 
 ## Threading and async execution
 
-`EntityGraphQL` compiles the whole GraphQL request document then selects the operation to execute. For a mutation operation all top-level mutations are executed individually, in the order they appear in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). For a query operation, each top-level query field also executes sequentially in document order. Concurrency happens _within_ a field: async fields resolved for a list run per item concurrently (bounded by `ExecutionOptions.MaxQueryConcurrency`, default 100 — see [Async Fields](./schema-creation/async-fields)), and for async-capable LINQ providers like EF Core the database query is awaited asynchronously and honours the request's `CancellationToken`.
+`EntityGraphQL` executes each request (`schemaProvider.ExecuteRequest(...)`) in a single thread. First, `EntityGraphQL` compiles the whole GraphQL request document then selects the operation to execute. For a mutation operation all top-level mutations individually, in the order it appears in the document, as [required by GraphQL](https://graphql.org/learn/queries/#multiple-fields-in-mutations). For a query operation, `EntityGraphQL` starts each query in the order it appears in the document. Finally, it awaits all queries, the async portion of which is allowed to execute in parallel.
 
-Since top-level fields execute sequentially, database contexts can be scoped services like they are for ordinary web services. Note that a scoped, non-thread-safe service (like a `DbContext`) used in an _async field on a list_ will be called concurrently — see [Async Fields](./schema-creation/async-fields) for the concurrency options. Queries and mutations that call external web services can pass a `CancellationToken` through (`MapGraphQL()` uses `HttpContext.RequestAborted`) to cancel dependent work if the GraphQL request is aborted.
-
-### Async Fields
-
-EntityGraphQL provides comprehensive support for asynchronous field resolution using the `ResolveAsync` method. This allows you to integrate with external services, APIs, and perform long-running operations while maintaining control over concurrency and performance.
-
-```csharp
-// Basic async field with service injection
-schema.Type<Person>()
-    .AddField("weather", "Current weather data")
-    .ResolveAsync<WeatherService>((person, weatherService) =>
-        weatherService.GetWeatherAsync(person.Location));
-
-// With concurrency control
-schema.Type<Person>()
-    .AddField("profile", "External profile data")
-    .ResolveAsync<ProfileService>((person, service) =>
-        service.GetProfileAsync(person.Id),
-        maxConcurrency: 5); // Limit to 5 concurrent operations
-```
-
-EntityGraphQL supports hierarchical concurrency control at field, service, and query levels to help you manage resource usage effectively.
-
-For comprehensive information about async fields, concurrency control, error handling, and best practices, see [Async Fields](./schema-creation/async-fields).
+Since a GraphQL request is processed with a single thread, database contexts can be scoped services like they do for ordinary web services. Likewise, queries (and mutations) that call external web services can safely use the single-threaded `HttpContext` accessor to access `HttpContext.RequestAborted` to cancel the dependent request if the GraphQL request is aborted.
 
 ## Tracking Argument Values: IArgumentsTracker
 

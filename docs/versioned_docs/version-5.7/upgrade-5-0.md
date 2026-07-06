@@ -1,5 +1,5 @@
 ---
-sidebar_position: 13
+sidebar_position: 11
 ---
 
 # Upgrading from 4.x to 5.x

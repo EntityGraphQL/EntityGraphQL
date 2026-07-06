@@ -50,13 +50,13 @@ builder.Services.AddGraphQLSchema<MyContext>(options =>
 
 This leaves introspection available to your own developers while hiding it from unauthenticated requests.
 
-You can use `schema.ToGraphQLSchemaString()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools. If you want to expose that SDL from a custom endpoint or controller, see the custom controller example in [Getting Started](./getting-started#executing-a-query-in-a-custom-controller).
+You can use `schema.ToGraphQLSchemaString()` to produce a GraphQL schema file. This works well as input to the Apollo code gen tools. If you want to expose that SDL from a custom endpoint or controller, see the custom controller example in [Getting Started](/#executing-a-query-in-a-custom-controller).
 
 ## GraphQL IDEs
 
 EntityGraphQL does not ship its own browser IDE, but any GraphQL IDE can point at your `MapGraphQL()` endpoint as long as introspection is enabled and the tool is configured to call the same HTTP endpoint.
 
-See the full [tooling example](https://github.com/EntityGraphQL/EntityGraphQL/tree/master/src/examples/tooling) on GitHub. It hosts:
+See the full [tooling example](https://github.com/EntityGraphQL/EntityGraphQL/tree/main/src/examples/tooling) on GitHub. It hosts:
 
 - `EntityGraphQL` at `/api/graphql`
 - the `GraphiQL` app at `/graphiql/`
