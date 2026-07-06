@@ -686,7 +686,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         Delegate compiledDelegate;
         var delegateCache = compileContext.DelegateCache;
-        string? delegateKey = delegateCache != null && compileContext.DelegateCacheKeyBase != null ? $"{compileContext.DelegateCacheKeyBase}:{(isSecondExec ? 2 : 1)}" : null;
+        // the key must include the root field (response name) - the statement id and variables hash are
+        // per-operation, and an operation can have multiple root fields each compiling a different delegate.
+        // Same-named root fields are required to be mergeable (identical selections) so sharing their key is safe
+        string? delegateKey = delegateCache != null && compileContext.DelegateCacheKeyBase != null ? $"{compileContext.DelegateCacheKeyBase}:{node.Name}:{(isSecondExec ? 2 : 1)}" : null;
 
         if (delegateKey != null && delegateCache!.GetDelegate(delegateKey) is Delegate cached)
         {
