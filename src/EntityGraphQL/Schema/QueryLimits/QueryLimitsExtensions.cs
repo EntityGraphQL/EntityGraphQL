@@ -27,12 +27,7 @@ public static class QueryLimitsExtensions
     /// </summary>
     public static IField SetComplexity(this IField field, Func<FieldComplexityContext, int> calculator)
     {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(calculator);
-#else
-        if (calculator == null)
-            throw new ArgumentNullException(nameof(calculator));
-#endif
         RemoveExisting(field);
         field.AddExtension(new FieldComplexityExtension(calculator));
         return field;

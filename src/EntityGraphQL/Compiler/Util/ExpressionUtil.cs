@@ -14,12 +14,7 @@ namespace EntityGraphQL.Compiler.Util;
 
 public static partial class ExpressionUtil
 {
-#if NETSTANDARD2_1
-    public static readonly Regex GuidRegex = new(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase);
-#endif
-#if NET8_0_OR_GREATER
     public static readonly Regex GuidRegex = GuidRegexImpl();
-#endif
 
     /// <summary>
     /// List of methods that take a list and return a single item. We need to handle these differently as we need to
@@ -172,12 +167,10 @@ public static partial class ExpressionUtil
                 return DateTimeOffset.Parse((string)value, CultureInfo.InvariantCulture);
             if (toType == typeof(TimeSpan) || toType == typeof(TimeSpan?))
                 return TimeSpan.Parse((string)value, CultureInfo.InvariantCulture);
-#if NET8_0_OR_GREATER
             if (toType == typeof(DateOnly) || toType == typeof(DateOnly?))
                 return DateOnly.Parse((string)value, CultureInfo.InvariantCulture);
             if (toType == typeof(TimeOnly) || toType == typeof(TimeOnly?))
                 return TimeOnly.Parse((string)value, CultureInfo.InvariantCulture);
-#endif
         }
         else if (toType != typeof(long) && fromType == typeof(long))
         {
@@ -187,12 +180,10 @@ public static partial class ExpressionUtil
                 return new DateTimeOffset((long)value, TimeSpan.Zero);
             if (toType == typeof(TimeSpan) || toType == typeof(TimeSpan?))
                 return new TimeSpan((long)value);
-#if NET8_0_OR_GREATER
             if (toType == typeof(DateOnly) || toType == typeof(DateOnly?))
                 return DateOnly.FromDateTime(new DateTime((long)value));
             if (toType == typeof(TimeOnly) || toType == typeof(TimeOnly?))
                 return TimeOnly.FromTimeSpan(new TimeSpan((long)value));
-#endif
         }
 
         var argumentNonNullType = toType.IsNullableType() ? Nullable.GetUnderlyingType(toType)! : toType;
@@ -353,12 +344,7 @@ public static partial class ExpressionUtil
         if (type1 == null)
             return type2;
 
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(type2, nameof(type2));
-#else
-        if (type2 == null)
-            throw new ArgumentNullException(nameof(type2));
-#endif
 
         var fields = type1.GetFields().ToDictionary(f => f.Name, f => f.FieldType);
         type1.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));
@@ -730,8 +716,6 @@ public static partial class ExpressionUtil
         return expression;
     }
 
-#if NET8_0_OR_GREATER
     [GeneratedRegex(@"^[0-9A-F]{8}[-]?([0-9A-F]{4}[-]?){3}[0-9A-F]{12}$", RegexOptions.IgnoreCase, "en-AU")]
     private static partial Regex GuidRegexImpl();
-#endif
 }

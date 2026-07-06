@@ -1,9 +1,6 @@
 using System;
 using System.Reflection;
 using EntityGraphQL.Extensions;
-#if NETSTANDARD2_1
-using Nullability;
-#endif
 
 namespace EntityGraphQL.Schema;
 

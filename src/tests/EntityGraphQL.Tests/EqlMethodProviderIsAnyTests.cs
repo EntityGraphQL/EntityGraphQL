@@ -27,10 +27,8 @@ public class EqlMethodProviderIsAnyTests
         Assert.True(provider.EntityTypeHasMethod(typeof(Guid), "isAny"));
         Assert.True(provider.EntityTypeHasMethod(typeof(DateTimeOffset), "isAny"));
         Assert.True(provider.EntityTypeHasMethod(typeof(TimeSpan), "isAny"));
-#if NET8_0_OR_GREATER
         Assert.True(provider.EntityTypeHasMethod(typeof(DateOnly), "isAny"));
         Assert.True(provider.EntityTypeHasMethod(typeof(TimeOnly), "isAny"));
-#endif
     }
 
     [Theory]

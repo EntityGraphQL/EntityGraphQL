@@ -55,12 +55,7 @@ internal static class LinqRuntimeTypeBuilder
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public static Type GetDynamicType(IReadOnlyDictionary<string, Type> fields, string description, Type? parentType = null)
     {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(fields, nameof(fields));
-#else
-        if (null == fields)
-            throw new ArgumentNullException(nameof(fields));
-#endif
 
         var typeKey = GetTypeKey(fields, parentType);
         lock (lockObj)

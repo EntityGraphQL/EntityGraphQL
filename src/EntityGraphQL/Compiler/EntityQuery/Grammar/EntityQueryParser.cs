@@ -64,12 +64,7 @@ public sealed class EntityQueryParser
         .Number<decimal>(NumberOptions.AllowLeadingSign | NumberOptions.Float)
         .Then<IExpression>(static d =>
         {
-#if NET8_0_OR_GREATER
             var scale = d.Scale;
-#else
-            var bits = decimal.GetBits(d);
-            var scale = (int)((bits[3] >> 16) & 0x7F);
-#endif
             return new EqlExpression(scale == 0 ? Expression.Constant((long)d) : Expression.Constant(d));
         });
 

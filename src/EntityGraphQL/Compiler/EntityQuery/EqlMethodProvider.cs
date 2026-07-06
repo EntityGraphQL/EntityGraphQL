@@ -233,13 +233,11 @@ public class EqlMethodProvider : IMethodProvider
             typeof(DateTimeOffset?),
             typeof(TimeSpan),
             typeof(TimeSpan?)
-#if NET8_0_OR_GREATER
             ,
             typeof(DateOnly),
             typeof(DateOnly?),
             typeof(TimeOnly),
             typeof(TimeOnly?)
-#endif
         };
         foreach (var t in defaults)
         {
@@ -282,12 +280,7 @@ public class EqlMethodProvider : IMethodProvider
 
     private static void ValidateNotNull(object? value, string paramName)
     {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(value);
-#else
-        if (value == null)
-            throw new ArgumentNullException(paramName);
-#endif
     }
 
     private static void ValidateMethodName(string methodName)

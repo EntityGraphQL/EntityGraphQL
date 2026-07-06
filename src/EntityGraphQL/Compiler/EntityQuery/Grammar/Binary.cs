@@ -68,7 +68,6 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                     right = ConvertToTimeSpan(right);
                 else if ((right.Type == typeof(TimeSpan) || right.Type == typeof(TimeSpan?)) && left.Type == typeof(string))
                     left = ConvertToTimeSpan(left);
-#if NET8_0_OR_GREATER
                 else if ((left.Type == typeof(DateOnly) || left.Type == typeof(DateOnly?)) && right.Type == typeof(string))
                     right = ConvertToDateOnly(right);
                 else if ((right.Type == typeof(DateOnly) || right.Type == typeof(DateOnly?)) && left.Type == typeof(string))
@@ -77,7 +76,6 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
                     right = ConvertToTimeOnly(right);
                 else if ((right.Type == typeof(TimeOnly) || right.Type == typeof(TimeOnly?)) && left.Type == typeof(string))
                     left = ConvertToTimeOnly(left);
-#endif
                 else if (left.Type.IsEnum && right.Type == typeof(string))
                     right = ConvertToEnum(right, left.Type);
                 else if (right.Type.IsEnum && left.Type == typeof(string))
@@ -116,7 +114,6 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
         return Expression.Call(typeof(TimeSpan), nameof(TimeSpan.Parse), null, expression, Expression.Constant(CultureInfo.InvariantCulture));
     }
 
-#if NET8_0_OR_GREATER
     private static MethodCallExpression ConvertToDateOnly(Expression expression)
     {
         return Expression.Call(typeof(DateOnly), nameof(DateOnly.Parse), null, expression, Expression.Constant(CultureInfo.InvariantCulture));
@@ -126,7 +123,6 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
     {
         return Expression.Call(typeof(TimeOnly), nameof(TimeOnly.Parse), null, expression, Expression.Constant(CultureInfo.InvariantCulture));
     }
-#endif
 
     private static MethodCallExpression ConvertToGuid(Expression expression)
     {

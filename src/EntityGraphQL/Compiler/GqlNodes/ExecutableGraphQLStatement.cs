@@ -1276,8 +1276,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 if (asyncInterface == null)
                     return null;
                 var method = typeof(ExecutableGraphQLStatement).GetMethod(nameof(MaterializeAsyncEnumerable), BindingFlags.NonPublic | BindingFlags.Static)!;
-                return (Func<object, CancellationToken, Task<object>>)
-                    Delegate.CreateDelegate(typeof(Func<object, CancellationToken, Task<object>>), method.MakeGenericMethod(asyncInterface.GetGenericArguments()[0]));
+                return method.MakeGenericMethod(asyncInterface.GetGenericArguments()[0]).CreateDelegate<Func<object, CancellationToken, Task<object>>>();
             }
         );
         if (asyncMaterializer != null)
@@ -1296,7 +1295,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 if (enumerableInterface == null)
                     return static source => ((IEnumerable)source).Cast<object?>().ToList();
                 var method = typeof(ExecutableGraphQLStatement).GetMethod(nameof(MaterializeEnumerable), BindingFlags.NonPublic | BindingFlags.Static)!;
-                return (Func<object, object>)Delegate.CreateDelegate(typeof(Func<object, object>), method.MakeGenericMethod(enumerableInterface.GetGenericArguments()[0]));
+                return method.MakeGenericMethod(enumerableInterface.GetGenericArguments()[0]).CreateDelegate<Func<object, object>>();
             }
         );
         return syncMaterializer(result);

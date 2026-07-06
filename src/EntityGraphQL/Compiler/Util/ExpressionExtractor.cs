@@ -17,12 +17,7 @@ namespace EntityGraphQL.Compiler.Util;
 /// </summary>
 public partial class ExpressionExtractor : ExpressionVisitor
 {
-#if NETSTANDARD2_1
-    private readonly Regex replacePattern = new("[\\.\\(\\)\\!]");
-#endif
-#if NET8_0_OR_GREATER
     private readonly Regex replacePattern = ReplacePattern();
-#endif
 
     private Expression? rootContext;
 
@@ -141,8 +136,6 @@ public partial class ExpressionExtractor : ExpressionVisitor
         return node;
     }
 
-#if NET8_0_OR_GREATER
     [GeneratedRegex("[\\.\\(\\)\\!]")]
     private static partial Regex ReplacePattern();
-#endif
 }

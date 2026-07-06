@@ -47,12 +47,7 @@ public class FieldWithContextAndArgs<TContext, TParams> : Field
     /// </summary>
     public FieldWithContextAndArgs<TContext, TParams> SetComplexity(Func<FieldComplexityContext<TParams>, int> calculator)
     {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(calculator);
-#else
-        if (calculator == null)
-            throw new ArgumentNullException(nameof(calculator));
-#endif
         for (var i = Extensions.Count - 1; i >= 0; i--)
         {
             if (Extensions[i] is FieldComplexityExtension)

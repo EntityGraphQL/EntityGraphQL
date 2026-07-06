@@ -94,10 +94,8 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
         // default custom scalar for TimeSpan
         AddScalarType<TimeSpan>("TimeSpan", "TimeSpan scalar");
-#if NET8_0_OR_GREATER
         AddScalarType<DateOnly>("DateOnly", "Date value only scalar");
         AddScalarType<TimeOnly>("TimeOnly", "Time value only scalar");
-#endif
 
         customTypeMappings = new Dictionary<Type, GqlTypeInfo>
         {

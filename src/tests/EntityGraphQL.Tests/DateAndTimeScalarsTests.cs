@@ -12,7 +12,6 @@ public class DateAndTimeScalarsTests
 {
     private readonly EqlCompileContext compileContext = new(new CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null));
 
-#if NET8_0_OR_GREATER
     private class WithDateOnly
     {
         public WithDateOnly(DateOnly d, string name)
@@ -62,7 +61,6 @@ public class DateAndTimeScalarsTests
         Assert.Equal(expectedCount, res.Count);
         Assert.Equal(res.Last().Name, expectedCount == 2 ? "Third" : "Third");
     }
-#endif
 
     private class WithTimeSpan
     {
@@ -88,7 +86,6 @@ public class DateAndTimeScalarsTests
         Assert.Equal(expectedCount, res.Count);
     }
 
-#if NET8_0_OR_GREATER
     private class MutationContext { }
 
     private class EchoTypes
@@ -124,5 +121,4 @@ public class DateAndTimeScalarsTests
         var result = schema.ExecuteRequestWithContext(req, new MutationContext(), null, null);
         Assert.Null(result.Errors);
     }
-#endif
 }

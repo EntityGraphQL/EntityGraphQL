@@ -249,12 +249,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
         if (servicesPass && field.Services.Count == 0)
             return (expression, originalArgParam, argumentParam, arguments);
 
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(argumentParam, nameof(argumentParam));
-#else
-        if (argumentParam == null)
-            throw new ArgumentNullException(nameof(argumentParam));
-#endif
 
         var edgeExpression = OriginalFieldExpression!;
 
