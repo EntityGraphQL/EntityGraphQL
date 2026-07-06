@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <!-- EntityGraphQL: GraphQL's hexagon graph with an entity (database) at its centre -->
   <path d="M64 10 112 37.5v55L64 120 16 92.5v-55Z" fill="none" stroke="#2e8555" stroke-width="7" stroke-linejoin="round"/>
-  <!-- database cylinder -->
-  <path d="M44 52v33c0 6.9 9 11.5 20 11.5s20-4.6 20-11.5V52" fill="#2e8555"/>
-  <ellipse cx="64" cy="52" rx="20" ry="8.5" fill="#52c188"/>
-  <path d="M44 64.5c3.4 4.3 11 7 20 7s16.6-2.7 20-7" fill="none" stroke="#52c188" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M44 76.5c3.4 4.3 11 7 20 7s16.6-2.7 20-7" fill="none" stroke="#52c188" stroke-width="3.5" stroke-linecap="round"/>
   <!-- graph nodes on the hexagon vertices -->
-  <circle cx="64" cy="10" r="9" fill="#e10098"/>
-  <circle cx="112" cy="37.5" r="9" fill="#e10098"/>
-  <circle cx="112" cy="92.5" r="9" fill="#e10098"/>
-  <circle cx="64" cy="120" r="9" fill="#e10098"/>
-  <circle cx="16" cy="92.5" r="9" fill="#e10098"/>
-  <circle cx="16" cy="37.5" r="9" fill="#e10098"/>
+  <circle cx="64" cy="10" r="8" fill="#205d3b"/>
+  <circle cx="112" cy="37.5" r="8" fill="#205d3b"/>
+  <circle cx="112" cy="92.5" r="8" fill="#205d3b"/>
+  <circle cx="64" cy="120" r="8" fill="#205d3b"/>
+  <circle cx="16" cy="92.5" r="8" fill="#205d3b"/>
+  <circle cx="16" cy="37.5" r="8" fill="#205d3b"/>
+  <!-- database cylinder, optically centred in the hexagon (vertical centre y=65) -->
+  <path d="M44 48v34a20 8.5 0 0 0 40 0V48Z" fill="#29784c"/>
+  <ellipse cx="64" cy="48" rx="20" ry="8.5" fill="#52c188"/>
+  <path d="M44 62a20 8.5 0 0 0 40 0" fill="none" stroke="#52c188" stroke-width="3.5"/>
+  <path d="M44 76a20 8.5 0 0 0 40 0" fill="none" stroke="#52c188" stroke-width="3.5"/>
 </svg>

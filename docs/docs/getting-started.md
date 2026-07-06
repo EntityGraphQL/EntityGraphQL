@@ -83,7 +83,7 @@ app.Run();
 This sets up a `HTTP` `POST` end point at `/graphql` where the body of the post is expected to be a GraphQL query. You can change the path with the `path` argument in `MapGraphQL<T>()`
 
 :::tip
-`MapGraphQL` follows the GraphQL over HTTP behavior that EntityGraphQL adopted in v6. GraphQL execution errors are returned in the GraphQL response body rather than by changing the route shape or adding a special endpoint mode.
+`MapGraphQL` follows the [GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md). GraphQL errors are returned in the response body - always read `errors` there. See [Tool integration](./integration) for the status codes used.
 :::
 
 _You can authorize the route how ever you wish using ASP.NET. See the Authorization section for more details._
