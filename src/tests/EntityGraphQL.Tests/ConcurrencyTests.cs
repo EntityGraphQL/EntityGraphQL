@@ -273,13 +273,57 @@ public class ConcurrencyTests
 
         using var cts = new CancellationTokenSource(100);
         var operation = System.Linq.Expressions.Expression.Lambda(System.Linq.Expressions.Expression.Constant(System.Threading.Tasks.Task.FromResult<object?>("done")));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            ConcurrencyLimitFieldExtension.ExecuteWithConcurrencyLimitAsync(operation, [("A", 1), ("B", 1)], registry, [], cts.Token)
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ConcurrencyLimitFieldExtension.ExecuteWithConcurrencyLimitAsync<object>(operation, [("A", 1), ("B", 1)], registry, [], cts.Token)
         );
 
         // A's permit must have been released when acquiring B was cancelled
         Assert.Equal(1, registry.GetSemaphore("A", 1).CurrentCount);
         semaphoreB.Release();
+    }
+
+    [Fact]
+    public void TestDefaultMaxQueryConcurrencyIs100()
+    {
+        // an async field on a list runs per item - the default caps a large result set from becoming an
+        // unbounded number of concurrent operations. Set MaxQueryConcurrency = null for the old unbounded behavior
+        Assert.Equal(100, new ExecutionOptions().MaxQueryConcurrency);
+
+        var numMovies = 150;
+        var schema = SchemaBuilder.FromObject<TestMovieContext>();
+        var data = new TestMovieContext { Movies = Enumerable.Range(0, numMovies).Select(i => new Movie { Id = Guid.NewGuid(), Name = $"Movie {i}" }).ToList() };
+
+        var timedService = new TimedSlowService();
+        schema.Type<Movie>().AddField("slowOperation", "Slow operation").ResolveAsync<TimedSlowService>((movie, service) => service.DoTimedWorkAsync(movie.Id));
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(timedService);
+
+        // default options - no explicit concurrency configuration
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ movies { slowOperation } }" }, data, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(result.Errors);
+
+        Assert.True(timedService.MaxConcurrentOperations <= 100, $"Expected the default limit of 100, but saw {timedService.MaxConcurrentOperations} concurrent operations");
+        Assert.True(timedService.MaxConcurrentOperations > 50, $"Expected significant concurrency under the default limit, but max was only {timedService.MaxConcurrentOperations}");
+    }
+
+    [Fact]
+    public void TestMaxQueryConcurrencyNullIsUnbounded()
+    {
+        var numMovies = 150;
+        var schema = SchemaBuilder.FromObject<TestMovieContext>();
+        var data = new TestMovieContext { Movies = Enumerable.Range(0, numMovies).Select(i => new Movie { Id = Guid.NewGuid(), Name = $"Movie {i}" }).ToList() };
+
+        var timedService = new TimedSlowService();
+        schema.Type<Movie>().AddField("slowOperation", "Slow operation").ResolveAsync<TimedSlowService>((movie, service) => service.DoTimedWorkAsync(movie.Id));
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(timedService);
+
+        var options = new ExecutionOptions { MaxQueryConcurrency = null };
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ movies { slowOperation } }" }, data, serviceCollection.BuildServiceProvider(), null, options);
+        Assert.Null(result.Errors);
+
+        Assert.True(timedService.MaxConcurrentOperations > 100, $"Expected unbounded concurrency above the default limit, but max was {timedService.MaxConcurrentOperations}");
     }
 
     public class TestMovieContext

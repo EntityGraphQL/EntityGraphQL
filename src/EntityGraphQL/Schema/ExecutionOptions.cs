@@ -71,11 +71,16 @@ public class ExecutionOptions
     public Dictionary<Type, int> ServiceConcurrencyLimits { get; set; } = [];
 
     /// <summary>
-    /// Global query-level concurrency limit. If set, no more than this many async operations
-    /// will run concurrently across the entire query execution, regardless of service type.
-    /// This overrides any individual field or service limits.
+    /// Global query-level concurrency limit. No more than this many async operations will run concurrently
+    /// across the entire query execution, regardless of service type. Combines with any field or service
+    /// limits (the most restrictive applies).
+    ///
+    /// Defaults to 100 - an async field resolved for a list runs per item, so an unbounded default turns a
+    /// large result set into an unbounded number of concurrent operations. Set to null for unlimited.
+    /// Note this does not make non-thread-safe services (e.g. a scoped DbContext) safe to use in async
+    /// fields on lists - use ServiceConcurrencyLimits or maxConcurrency: 1 for those.
     /// </summary>
-    public int? MaxQueryConcurrency { get; set; }
+    public int? MaxQueryConcurrency { get; set; } = 100;
 
     /// <summary>
     /// Maximum nesting depth of a GraphQL query. Fragment spreads and inline fragments do not add depth.

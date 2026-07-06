@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -134,6 +135,11 @@ public abstract class MethodField : BaseField
             else if (p.ParameterType == context.GetType())
             {
                 allArgs.Add(context);
+            }
+            else if (p.ParameterType == typeof(CancellationToken))
+            {
+                // the executing request's cancellation token is supplied by the engine, not the service provider
+                allArgs.Add(compileContext.CancellationToken);
             }
             else if (serviceProvider != null)
             {

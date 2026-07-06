@@ -49,8 +49,11 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         var originalArgParam = context.OriginalArgumentParameter;
         var compileContext = context.CompileContext;
 
-        // Only apply concurrency control during the service pass for async expressions
-        if (!servicesPass || !IsAsyncExpression(expression))
+        // Only apply concurrency control during the service pass for async expressions.
+        // IAsyncEnumerable is excluded - creating the (lazy) stream is not the async work, its enumeration
+        // is, which happens outside this wrapper. Wrapping it also hides the IAsyncEnumerable type from the
+        // async result processing that buffers it
+        if (!servicesPass || !IsAsyncExpression(expression) || IsAsyncEnumerable(expression.Type))
         {
             return (expression, originalArgParam, argumentParam, arguments);
         }
@@ -80,6 +83,9 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
 
     private static bool IsAsyncExpression(Expression expression) => expression.Type.IsAsyncGenericType();
 
+    private static bool IsAsyncEnumerable(Type type) =>
+        (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>)) || type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+
     /// <summary>
     /// Wraps an async field expression with hierarchical concurrency limiting
     /// Similar to ExpressionUtil.WrapObjectProjectionFieldForNullCheck
@@ -92,18 +98,28 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         Expression cancellationToken
     )
     {
-        List<ParameterExpression> expArgs = [field.FieldParam!, .. field.Services];
+        // bind the expression's actual free parameters - depending on the field shape the expression may have
+        // been rebound to per-element/anonymous-type parameters that are not field.FieldParam/field.Services
+        var expArgs = FreeParameterCollector.Collect(asyncExpression);
         Expression asyncExpressionExp = Expression.Lambda(asyncExpression, expArgs);
 
-        // Create an array expression containing the dynamic arguments
-        var expArgsArray = Expression.NewArrayInit(typeof(object), expArgs.Cast<Expression>());
+        // Create an array expression containing the dynamic arguments - value types (e.g. a CancellationToken
+        // service parameter) must be boxed for the object[] array
+        var expArgsArray = Expression.NewArrayInit(typeof(object), expArgs.Select(e => e.Type.IsValueType ? Expression.Convert(e, typeof(object)) : (Expression)e));
 
         // Convert semaphore configs to a constant expression
         var semaphoreConfigsConstant = Expression.Constant(semaphoreConfigs);
 
         Expression[] arguments = [asyncExpressionExp, semaphoreConfigsConstant, concurrencyLimiterRegistry, expArgsArray, cancellationToken];
 
-        var call = Expression.Call(typeof(ConcurrencyLimitFieldExtension), nameof(ExecuteWithConcurrencyLimitAsync), null, arguments);
+        // preserve the static result type - downstream expression building (e.g. null-check Selects over
+        // nested lists) relies on the field expression's type, so the wrapper must return Task<T> not Task<object>
+        var expressionType = asyncExpression.Type;
+        var resultType =
+            expressionType.IsGenericType && (expressionType.GetGenericTypeDefinition() == typeof(Task<>) || expressionType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+                ? expressionType.GetGenericArguments()[0]
+                : expressionType;
+        var call = Expression.Call(typeof(ConcurrencyLimitFieldExtension), nameof(ExecuteWithConcurrencyLimitAsync), [resultType], arguments);
         return call;
     }
 
@@ -144,7 +160,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
     /// Runtime execution method that applies hierarchical concurrency limiting to async operations
     /// This gets called during expression execution, not compilation
     /// </summary>
-    public static async Task<object?> ExecuteWithConcurrencyLimitAsync(
+    public static async Task<TResult?> ExecuteWithConcurrencyLimitAsync<TResult>(
         LambdaExpression asyncOperationExp,
         List<(string scopeKey, int maxConcurrency)> semaphoreConfigs,
         ConcurrencyLimiterRegistry concurrencyLimiterRegistry,
@@ -172,7 +188,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
             var asyncOperation = compiledOperation.DynamicInvoke(expArgs);
             if (asyncOperation is null)
             {
-                return null;
+                return default;
             }
             if (asyncOperation is Task task)
             {
@@ -183,9 +199,9 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
                 if (taskType.IsGenericType)
                 {
                     var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
-                    return resultProperty?.GetValue(task);
+                    return (TResult?)resultProperty?.GetValue(task);
                 }
-                return null;
+                return default;
             }
             // Handle ValueTask<T>
             var type = asyncOperation.GetType();
@@ -199,12 +215,12 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
                     {
                         await taskToAwait;
                         var resultProperty = taskToAwait.GetType().GetProperty(nameof(ValueTask<object>.Result));
-                        return resultProperty?.GetValue(taskToAwait);
+                        return (TResult?)resultProperty?.GetValue(taskToAwait);
                     }
                 }
             }
 
-            return asyncOperation; // Not async, return as-is
+            return (TResult)asyncOperation; // Not async, return as-is
         }
         finally
         {
@@ -213,6 +229,36 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
             {
                 semaphores[i].Release();
             }
+        }
+    }
+
+    /// <summary>
+    /// Collects the parameters an expression references that are not declared by a lambda within it -
+    /// i.e. the parameters the surrounding expression tree must supply
+    /// </summary>
+    private sealed class FreeParameterCollector : ExpressionVisitor
+    {
+        private readonly HashSet<ParameterExpression> declared = [];
+        private readonly List<ParameterExpression> free = [];
+
+        public static List<ParameterExpression> Collect(Expression expression)
+        {
+            var collector = new FreeParameterCollector();
+            collector.Visit(expression);
+            return collector.free;
+        }
+
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            declared.UnionWith(node.Parameters);
+            return base.VisitLambda(node);
+        }
+
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            if (!declared.Contains(node) && !free.Contains(node))
+                free.Add(node);
+            return base.VisitParameter(node);
         }
     }
 }

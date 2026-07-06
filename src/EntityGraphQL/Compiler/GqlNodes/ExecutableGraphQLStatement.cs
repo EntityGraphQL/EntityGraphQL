@@ -577,7 +577,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (semaphoreConfigs.Count > 0)
         {
             // Use the existing ExecuteWithConcurrencyLimitAsync method
-            return await ConcurrencyLimitFieldExtension.ExecuteWithConcurrencyLimitAsync(
+            return await ConcurrencyLimitFieldExtension.ExecuteWithConcurrencyLimitAsync<object>(
                     lambdaExpression,
                     semaphoreConfigs,
                     compileContext.ConcurrencyLimiterRegistry,
@@ -782,6 +782,13 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             return await BufferAsyncEnumerable(obj, cancellationToken);
         }
 
+        // If the type's shape can not (transitively) contain an async value there is nothing to resolve.
+        // This avoids reflecting over (and rebuilding) plain entity graphs and typed collections - reading
+        // every property of e.g. an EF entity can also trigger lazy-loading of navigations the query never
+        // selected
+        if (!TypeCouldContainAsyncValue(type))
+            return obj;
+
         // Handle collections (but not strings)
         if (obj is IEnumerable enumerable and not string)
         {
@@ -855,6 +862,79 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             return !elementType.IsValueType || Nullable.GetUnderlyingType(elementType) != null;
 
         return elementType.IsInstanceOfType(item);
+    }
+
+    private static readonly ConcurrentDictionary<Type, bool> typeCouldContainAsyncCache = new();
+
+    /// <summary>
+    /// True if a value of the declared type could be - or could transitively hold - an async value
+    /// (Task/ValueTask/IAsyncEnumerable). Based on the declared type graph so a runtime subclass adding an
+    /// async member to a non-async declared type is not seen - engine-produced async values always live in
+    /// dynamic projection types which are detected. Results are cached per type.
+    /// </summary>
+    private static bool TypeCouldContainAsyncValue(Type type)
+    {
+        if (typeCouldContainAsyncCache.TryGetValue(type, out var cached))
+            return cached;
+        var result = TypeCouldContainAsyncValue(type, new HashSet<Type>());
+        typeCouldContainAsyncCache[type] = result;
+        return result;
+    }
+
+    private static bool TypeCouldContainAsyncValue(Type type, HashSet<Type> visiting)
+    {
+        if (typeCouldContainAsyncCache.TryGetValue(type, out var cached))
+            return cached;
+        // a cycle back to a type already being computed can not introduce an async value not found elsewhere
+        if (!visiting.Add(type))
+            return false;
+
+        try
+        {
+            if (typeof(Task).IsAssignableFrom(type) || type == typeof(ValueTask) || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>)) || ImplementsIAsyncEnumerable(type))
+                return true;
+
+            // unknown at compile time - assume it could
+            if (type == typeof(object))
+                return true;
+
+            // dynamic projection types are where the engine puts Task-typed fields
+            if (IsAnonymousOrDynamicType(type))
+                return true;
+
+            var underlying = Nullable.GetUnderlyingType(type) ?? type;
+            if (underlying.IsPrimitive || underlying.IsEnum || underlying == typeof(string) || underlying == typeof(decimal) || underlying == typeof(DateTime) || underlying == typeof(DateTimeOffset) || underlying == typeof(TimeSpan) || underlying == typeof(Guid))
+                return false;
+
+            if (type.IsArray)
+                return TypeCouldContainAsyncValue(type.GetElementType()!, visiting);
+
+            var enumerableInterface =
+                type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? type : type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            if (enumerableInterface != null)
+                // covers dictionaries too - KeyValuePair<K,V> is checked as the element type
+                return TypeCouldContainAsyncValue(enumerableInterface.GetGenericArguments()[0], visiting);
+            // non-generic IEnumerable - element type unknown, assume it could
+            if (typeof(IEnumerable).IsAssignableFrom(type))
+                return true;
+
+            // any other class/struct - check the declared types of its public members
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (prop.CanRead && TypeCouldContainAsyncValue(prop.PropertyType, visiting))
+                    return true;
+            }
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (TypeCouldContainAsyncValue(field.FieldType, visiting))
+                    return true;
+            }
+            return false;
+        }
+        finally
+        {
+            visiting.Remove(type);
+        }
     }
 
     /// <summary>

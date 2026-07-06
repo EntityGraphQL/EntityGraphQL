@@ -47,6 +47,13 @@ schema.Type<Person>()
         weatherService.GetWeatherAsync(person.Location));
 ```
 
+:::warning Async resolvers on list fields run concurrently
+When an async field is resolved for a **list** of items (e.g. an async field on each `Person` in `people`), EntityGraphQL starts the async work for every item and awaits them concurrently — up to `ExecutionOptions.MaxQueryConcurrency`, which **defaults to 100** (set it to `null` for unlimited). Two important consequences:
+
+1. **Your service must be thread-safe.** In particular an EF Core `DbContext` (or any scoped, stateful service) must not be used from concurrent resolver calls — you will get `"A second operation was started on this context instance before a previous operation completed"` under load. The default limit does **not** make this safe — either resolve data through a thread-safe service (e.g. `IDbContextFactory<T>`, an HTTP client, a cache) or serialize the calls with `maxConcurrency: 1` on the field or a `ServiceConcurrencyLimits` entry for the service.
+2. **A large result set means a large number of concurrent operations.** The default query-level limit of 100 keeps a 10,000 row result from becoming 10,000 in-flight calls — raise or lower it to suit your downstream services.
+:::
+
 ## Concurrency Control
 
 EntityGraphQL provides three levels of concurrency control to help you manage resource usage and prevent overwhelming external services.
@@ -175,6 +182,23 @@ schema.Type<Person>()
     .AddField("weather", "Current weather for this person's location")
     .ResolveAsync<WeatherService, CancellationToken>((person, weatherService, cancellationToken) =>
         weatherService.GetWeatherAsync(person.Location, cancellationToken));
+```
+
+#### In Mutations and Subscriptions
+
+Mutation and subscription methods can declare a `CancellationToken` parameter and receive the executing request's token. It is not exposed as a GraphQL argument:
+
+```csharp
+public class Mutations
+{
+    [GraphQLMutation]
+    public static async Task<Order> PlaceOrder(AppContext db, OrderArgs args, CancellationToken cancellationToken)
+    {
+        // pass the token through to your async work
+        await db.SaveChangesAsync(cancellationToken);
+        // ...
+    }
+}
 ```
 
 ### ASP.NET Core Integration

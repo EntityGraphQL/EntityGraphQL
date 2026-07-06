@@ -329,6 +329,12 @@ ExecutableDirectiveLocation.Field
 
 Introspection output still follows the GraphQL spec names (`QUERY`, `FIELD`, etc.), but C# enum references must use the new names.
 
+## Default Async Concurrency Limit
+
+`ExecutionOptions.MaxQueryConcurrency` now defaults to `100` (previously unlimited). Async fields resolved for lists run per item, so this caps how many resolver calls run concurrently within one query execution.
+
+**Impact:** if you relied on more than 100 concurrent async operations in a single query, set `MaxQueryConcurrency = null` (unlimited) or a higher value. Most workloads will not notice the default.
+
 ## Authorization Now Fails Closed
 
 A bare `[GraphQLAuthorize]` / `[Authorize]` attribute (no roles or policies) now requires an authenticated user — previously it was silently ignored, granting anonymous access. `IsAuthorized` requires `Identity.IsAuthenticated` whenever any authorization requirement is present, and in `EntityGraphQL.AspNet` a policy-protected field is denied (rather than allowed through) when no `IAuthorizationService` is registered or the user is `null`.
