@@ -3,7 +3,7 @@
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <AssemblyName>EntityGraphQL.AspNet</AssemblyName>
     <PackageId>EntityGraphQL.AspNet</PackageId>
-    <LangVersion>13</LangVersion>
+    <LangVersion>14</LangVersion>
     <PackageVersion>6.0.0-beta9</PackageVersion>
     <Description>Contains ASP.NET extensions and middleware for EntityGraphQL</Description>
     <Authors>Luke Murray</Authors>
