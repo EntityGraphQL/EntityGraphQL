@@ -163,8 +163,17 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
 
         var resultElementType = resultExpression.Type.GetEnumerableOrArrayType()!;
 
-        // Make sure lists are evaluated and not deferred otherwise the second pass with services will fail if it needs to wrap for null check above
-        if (AllowToList && Field?.IsAsync == false && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+        // Lists must be evaluated in-tree, not deferred. Nested lists have no other point where evaluation
+        // can be forced: a deferred iterator stored in the projected object breaks the second (services) pass,
+        // which re-projects over the pass-1 result in memory (re-enumeration at the wrong time loses/duplicates
+        // data), and leaks lazy iterators into the result graph where consumers expect List<T>.
+        // ToListWithNullCheck additionally implements null source -> empty list for non-nullable list fields.
+        // Exception: root fields on the database-bound pass (the plain ToList case) stay deferred - they have a
+        // single consumer, ExecuteExpressionAsync, which materializes immediately, asynchronously when the LINQ
+        // provider's query objects implement IAsyncEnumerable<T> (e.g. EF Core), so the database round-trip does
+        // not block a thread and honours the request's CancellationToken
+        var deferMaterializationToExecution = IsRootField && !contextChanged && !useNullCheckMethods;
+        if (AllowToList && !deferMaterializationToExecution && Field?.IsAsync == false && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
             resultExpression = useNullCheckMethods
                 ? Expression.Call(
                     typeof(EnumerableExtensions),

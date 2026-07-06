@@ -12,6 +12,7 @@ The final beta planned before 6.0.0.
 
 ## Changes
 
+- Root-level list fields are now materialized asynchronously when the LINQ provider's query objects implement `IAsyncEnumerable<T>` - EF Core's do, so the database round-trip no longer blocks a thread and the request's `CancellationToken` can cancel the in-flight query. No EF dependency was added; in-memory data is enumerated synchronously as before. Note for `ExecutionOptions.BeforeExecuting` users: root list fields on the database-bound pass no longer end in an in-tree `ToList()` call - the deferred query is materialized after the expression executes.
 - **September 2025 GraphQL spec compliance** (document descriptions, full Unicode and OneOf runtime behavior shipped in earlier betas):
   - `__Type.isOneOf` is now exposed per the spec (previously the non-standard name `oneField`). It is `false` for input object types, `true` for `@oneOf` types and `null` for other types.
   - `__Directive.isRepeatable` added to introspection (all built-in directives are non-repeatable). Custom `IDirectiveProcessor` implementations can override the new `IsRepeatable` property (defaults to `false`).

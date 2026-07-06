@@ -88,6 +88,10 @@ Since using EntityGraphQL against an Entity Framework Core `DbContext` is suppor
 
 _This can be disabled by setting the argument `ExecuteServiceFieldsSeparately` when executing to `false`. For example if your core context is an in memory object._
 
+:::info Async query execution
+Root-level list fields are enumerated asynchronously when the LINQ provider's query objects implement `IAsyncEnumerable<T>` — EF Core's do. The database round-trip does not block a thread and the request's `CancellationToken` cancels the in-flight query. This requires no configuration and no EF-specific package. Single-object fields (e.g. `person(id: ...)`) and root-level aggregates currently execute synchronously.
+:::
+
 If you encounter any issues when using `Resolve<TService>()` on fields and EF Core please raise an issue.
 
 Example of how EntityGraphQL handles `Resolve<TService>()`, which can help inform how you build/use other services.

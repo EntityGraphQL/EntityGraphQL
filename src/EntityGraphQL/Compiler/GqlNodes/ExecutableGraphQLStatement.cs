@@ -210,6 +210,15 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
                         }
+                        // deferred root lists are enumerated outside the compiled delegate (see
+                        // MaterializeDeferredResultAsync) so an AggregateException surfaces here bare rather
+                        // than wrapped in a TargetInvocationException - flatten it to distinct errors the same way
+                        catch (AggregateException ae)
+                        {
+                            allErrors.AddRange(Schema.GenerateErrors(ae, expandedField.Name));
+                            if (expandedField.Field?.ReturnType.TypeNotNullable == false)
+                                result[expandedField.Name] = null;
+                        }
                         catch (Exception ex)
                         {
                             allErrors.AddRange(
@@ -704,6 +713,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             res = await (dynamic?)compiledDelegate.DynamicInvoke(argsArray);
         else
             res = compiledDelegate.DynamicInvoke(argsArray);
+
+        // Root list fields on the database-bound pass are built without an in-tree ToList() so the deferred
+        // query reaches here - materialize it before further processing. string/IList/IDictionary are
+        // already-materialized shapes and pass through untouched
+        if (res is IEnumerable and not string and not IList and not IDictionary)
+            res = await MaterializeDeferredResultAsync(res, compileContext.CancellationToken);
 
         // Resolve any nested async results in the returned object graph if the query contains async fields
         if (res != null && node.HasAsyncFieldsAtOrBelow(fragments) && (!compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || isSecondExec))
@@ -1235,6 +1250,81 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             return true;
         return type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
     }
+
+    // materializer delegates cached per runtime type - the types are per-query-shape anonymous types so the
+    // reflection (interface scan + MakeGenericMethod) runs once per shape, not per request
+    private static readonly ConcurrentDictionary<Type, Func<object, CancellationToken, Task<object>>?> asyncListMaterializers = new();
+    private static readonly ConcurrentDictionary<Type, Func<object, object>> syncListMaterializers = new();
+
+    /// <summary>
+    /// Materializes a deferred root list result. Async-capable LINQ providers (e.g. EF Core) return query
+    /// objects that implement IAsyncEnumerable&lt;T&gt; - those are enumerated asynchronously so the database
+    /// round-trip does not block a thread and the request's CancellationToken can cancel the in-flight query.
+    /// Anything else (in-memory LINQ) is enumerated synchronously, matching the previous in-tree ToList()
+    /// </summary>
+    private static async Task<object> MaterializeDeferredResultAsync(object result, CancellationToken cancellationToken)
+    {
+        var type = result.GetType();
+        var asyncMaterializer = asyncListMaterializers.GetOrAdd(
+            type,
+            static t =>
+            {
+                var asyncInterface = t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+                if (asyncInterface == null)
+                    return null;
+                var method = typeof(ExecutableGraphQLStatement).GetMethod(nameof(MaterializeAsyncEnumerable), BindingFlags.NonPublic | BindingFlags.Static)!;
+                return (Func<object, CancellationToken, Task<object>>)
+                    Delegate.CreateDelegate(typeof(Func<object, CancellationToken, Task<object>>), method.MakeGenericMethod(asyncInterface.GetGenericArguments()[0]));
+            }
+        );
+        if (asyncMaterializer != null)
+            return await asyncMaterializer(result, cancellationToken);
+
+        var syncMaterializer = syncListMaterializers.GetOrAdd(
+            type,
+            static t =>
+            {
+                // find the element type via the IEnumerable<T> interface - the runtime type is a LINQ iterator
+                // (e.g. SelectEnumerableIterator<TSource, TResult>) whose generic arguments don't map to the
+                // element type directly. The List<T> element type must match the query's projected type exactly
+                // as the second (services) pass reflects over it
+                var enumerableInterface =
+                    t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? t : t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+                if (enumerableInterface == null)
+                    return static source => ((IEnumerable)source).Cast<object?>().ToList();
+                var method = typeof(ExecutableGraphQLStatement).GetMethod(nameof(MaterializeEnumerable), BindingFlags.NonPublic | BindingFlags.Static)!;
+                return (Func<object, object>)Delegate.CreateDelegate(typeof(Func<object, object>), method.MakeGenericMethod(enumerableInterface.GetGenericArguments()[0]));
+            }
+        );
+        return syncMaterializer(result);
+    }
+
+    private static async Task<object> MaterializeAsyncEnumerable<T>(object source, CancellationToken cancellationToken)
+    {
+        // both branches build the same List<T> the previous in-tree ToList() produced - the element type is
+        // typically a per-query anonymous type and the second (services) pass reflects over this exact type
+#if NET10_0_OR_GREATER
+        // in-box System.Linq.AsyncEnumerable - equivalent to the manual loop below but picks up any future
+        // BCL optimisations. Not used on older TFMs to avoid a package dependency (and the extension-method
+        // ambiguity it causes for consumers using the community System.Linq.Async package)
+        return await ((IAsyncEnumerable<T>)source).ToListAsync(cancellationToken);
+#else
+        var list = new List<T>();
+        var enumerator = ((IAsyncEnumerable<T>)source).GetAsyncEnumerator(cancellationToken);
+        try
+        {
+            while (await enumerator.MoveNextAsync())
+                list.Add(enumerator.Current);
+        }
+        finally
+        {
+            await enumerator.DisposeAsync();
+        }
+        return list;
+#endif
+    }
+
+    private static List<T> MaterializeEnumerable<T>(object source) => ((IEnumerable<T>)source).ToList();
 
     internal static async Task<object> BufferAsyncEnumerable(object asyncEnumerableObj, CancellationToken cancellationToken = default)
     {

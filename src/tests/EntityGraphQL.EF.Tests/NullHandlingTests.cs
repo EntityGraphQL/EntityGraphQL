@@ -65,7 +65,9 @@ public class NullHandlingTests
                 }",
         };
         // if ExecuteServiceFieldsSeparately = true this means two executions one without service fields, the next with. The first one
-        // will avoid SelectWithNullCheck and friends to allow EF to translate the query to SQL. EF etc handles nulls in the query
+        // will avoid SelectWithNullCheck and friends to allow EF to translate the query to SQL. EF etc handles nulls in the query.
+        // Root list fields on the database-bound pass have no in-tree ToList - the deferred query is
+        // materialized at execution (asynchronously for EF) so the expression root is the Select itself
         var result = schema.ExecuteRequestWithContext(
             gql,
             data,
@@ -76,11 +78,7 @@ public class NullHandlingTests
                 ExecuteServiceFieldsSeparately = true,
                 BeforeExecuting = (Expression expr, bool isFinal) =>
                 {
-                    var compiledExpr = AssertExpression.Call(
-                        null,
-                        nameof(Enumerable.ToList),
-                        AssertExpression.Call(null, nameof(Enumerable.Select), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any())
-                    );
+                    var compiledExpr = AssertExpression.Call(null, nameof(Enumerable.Select), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any());
                     AssertExpression.Matches(compiledExpr, expr);
                     return expr;
                 },
@@ -125,6 +123,9 @@ public class NullHandlingTests
                 ExecuteServiceFieldsSeparately = true,
                 BeforeExecuting = (Expression expr, bool isFinal) =>
                 {
+                    // the database-bound (non-final) pass has no in-tree ToList - the deferred query is
+                    // materialized at execution (asynchronously for EF). The final in-memory pass keeps its
+                    // null-check wrap
                     var compiledExpr = isFinal
                         ? AssertExpression.Call(
                             null,
@@ -132,11 +133,7 @@ public class NullHandlingTests
                             AssertExpression.Call(null, nameof(EnumerableExtensions.SelectWithNullCheck), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any()),
                             AssertExpression.Constant(true)
                         )
-                        : AssertExpression.Call(
-                            null,
-                            nameof(Enumerable.ToList),
-                            AssertExpression.Call(null, nameof(Enumerable.Select), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any())
-                        );
+                        : AssertExpression.Call(null, nameof(Enumerable.Select), AssertExpression.MemberBinding("movies", AssertExpression.Any()), AssertExpression.Any());
                     AssertExpression.Matches(compiledExpr, expr);
                     return expr;
                 },
