@@ -233,7 +233,10 @@ public abstract class MethodField : BaseField
 
         if (schemaContext != null)
         {
+            // remaining internal use until the 7.0 refactor threads the actual schema-context ParameterExpression through
+#pragma warning disable CS0618
             result = replacer.ReplaceByType(result, schemaContext.Type, schemaContext);
+#pragma warning restore CS0618
         }
         return (result, null);
     }

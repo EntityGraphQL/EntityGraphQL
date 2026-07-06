@@ -57,6 +57,7 @@ public class ParameterReplacer : ExpressionVisitor
     /// <param name="newParam"></param>
     /// <param name="newContextFieldName"></param>
     /// <returns></returns>
+    [Obsolete("Fragile - replaces any parameter of the matching type, which can capture parameters you did not intend. Will be removed in 7.0 in favour of exact-parameter replacement.")]
     public Expression ReplaceByType(Expression node, Type toReplaceType, Expression newParam, string? newContextFieldName = null)
     {
         this.newParam = newParam;

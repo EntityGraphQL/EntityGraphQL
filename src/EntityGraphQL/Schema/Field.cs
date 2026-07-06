@@ -226,7 +226,12 @@ public class Field : BaseField
         }
         // need to make sure the schema context param is correct
         if (schemaContext != null && !contextChanged)
+        {
+            // remaining internal use until the 7.0 refactor threads the actual schema-context ParameterExpression through
+#pragma warning disable CS0618
             result = replacer.ReplaceByType(result, schemaContext.Type, schemaContext);
+#pragma warning restore CS0618
+        }
 
         return (result, argumentParam);
     }
