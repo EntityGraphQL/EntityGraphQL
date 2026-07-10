@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -60,7 +62,14 @@ public class AddFieldsFromTests
         Assert.Empty(field.Services);
 
         var context = new TestDataContext().FillWithTestData();
-        context.People.Add(new Person { Id = 55, Name = "Tall", Height = 200 });
+        context.People.Add(
+            new Person
+            {
+                Id = 55,
+                Name = "Tall",
+                Height = 200,
+            }
+        );
         var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ tallPeople { name height } }" }, context, null, null);
         Assert.Null(res.Errors);
         dynamic tallPeople = res.Data!["tallPeople"]!;
@@ -74,7 +83,14 @@ public class AddFieldsFromTests
         schema.Query().AddFieldsFrom<PeopleQueries>();
 
         var context = new TestDataContext().FillWithTestData();
-        context.People.Add(new Person { Id = 66, Name = "Tall", Height = 200 });
+        context.People.Add(
+            new Person
+            {
+                Id = 66,
+                Name = "Tall",
+                Height = 200,
+            }
+        );
         // default field naming applied to the method name
         var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ peopleByHeight(minHeight: 190) { name } }" }, context, null, null);
         Assert.Null(res.Errors);
@@ -164,5 +180,110 @@ public class AddFieldsFromTests
         var scalar = schema.AddScalarType<System.DateTime>("MyDate", "date");
         var ex = Assert.Throws<EntityGraphQLSchemaException>(() => scalar.AddFieldsFrom<PeopleQueries>());
         Assert.Contains("object or interface", ex.Message);
+    }
+
+    private class PersonExpressionFields
+    {
+        // expression factory - invoked once at schema build time, the expression composes into the main query
+        [GraphQLField("nameAndHeight", "Name and height")]
+        public static Expression<Func<Person, string>> NameAndHeight() => p => p.Name + " " + p.Height;
+
+        [GraphQLField("greetingFor", "Greeting via a service")]
+        public static Expression<Func<Person, GreetingService, string>> GreetingFor() => (p, srv) => srv.Greet(p.Name);
+    }
+
+    private class RootExpressionFields
+    {
+        [GraphQLField("tallPeopleExpr", "People 180cm or taller")]
+        public static Expression<Func<TestDataContext, IEnumerable<Person>>> TallPeople() => db => db.People.Where(p => p.Height >= 180);
+    }
+
+    private class BadExpressionFields
+    {
+        [GraphQLField]
+        public static Expression<Func<Person, int>> WithParams(int notAllowed) => p => notAllowed;
+    }
+
+    private class WrongContextExpressionFields
+    {
+        [GraphQLField]
+        public static Expression<Func<Task, int>> WrongContext() => t => t.Id;
+    }
+
+    [Fact]
+    public void AddFieldsFrom_ExpressionMethod_ComposesIntoQuery()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<Person>().AddFieldsFrom<PersonExpressionFields>();
+
+        var field = schema.Type<Person>().GetField("nameAndHeight", null);
+        Assert.Equal("Name and height", field.Description);
+        // no services - the expression is part of the database-bound pass
+        Assert.Empty(field.Services);
+
+        var context = new TestDataContext().FillWithTestData();
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { name height nameAndHeight } }" }, context, null, null);
+        Assert.Null(res.Errors);
+        dynamic people = res.Data!["people"]!;
+        Assert.Equal($"{people[0].name} {people[0].height}", (string)people[0].nameAndHeight);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_ExpressionMethodWithService_ResolvesLikeResolveApi()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<Person>().AddFieldsFrom<PersonExpressionFields>();
+
+        var field = schema.Type<Person>().GetField("greetingFor", null);
+        Assert.Single(field.Services);
+        // dependencies are extracted from the visible expression like .Resolve<TService>()
+        Assert.NotNull(field.ExtractedFieldsFromServices);
+
+        var context = new TestDataContext().FillWithTestData();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new GreetingService());
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { name greetingFor } }" }, context, sp, null);
+        Assert.Null(res.Errors);
+        dynamic people = res.Data!["people"]!;
+        Assert.Equal($"Hello {people[0].name}", (string)people[0].greetingFor);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_ExpressionMethod_OnRootQuery()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddQueryFieldsFrom<RootExpressionFields>();
+
+        var context = new TestDataContext().FillWithTestData();
+        context.People.Add(
+            new Person
+            {
+                Id = 77,
+                Name = "Tall",
+                Height = 200,
+            }
+        );
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ tallPeopleExpr { name height } }" }, context, null, null);
+        Assert.Null(res.Errors);
+        dynamic people = res.Data!["tallPeopleExpr"]!;
+        Assert.All((IEnumerable<dynamic>)people, p => Assert.True(p.height >= 180));
+    }
+
+    [Fact]
+    public void AddFieldsFrom_ExpressionMethodWithParameters_ThrowsClearError()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Type<Person>().AddFieldsFrom<BadExpressionFields>());
+        Assert.Contains("must not take parameters", ex.Message);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_ExpressionMethodWrongContextType_ThrowsClearError()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Type<Person>().AddFieldsFrom<WrongContextExpressionFields>());
+        Assert.Contains("first parameter must be the context type", ex.Message);
     }
 }

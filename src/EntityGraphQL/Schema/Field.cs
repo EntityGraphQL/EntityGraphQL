@@ -48,6 +48,18 @@ public class Field : BaseField
     }
 
     /// <summary>
+    /// Set the resolve from an expression returned by a [GraphQLField] expression-factory member at schema
+    /// build time. Routes through the same SetUpField path as AddField().Resolve() so the expression fully
+    /// composes into the database-bound pass (or gets standard service two-pass handling when the expression
+    /// declares service parameters after the context parameter).
+    /// </summary>
+    internal void SetExpressionResolve(LambdaExpression resolve, List<ParameterExpression> services)
+    {
+        Services.AddRange(services);
+        SetUpField(resolve, services.Count > 0, false, false);
+    }
+
+    /// <summary>
     /// True when this field is an aggregate leaf built by <see cref="Schema.FieldExtensions.AggregateExtension"/>
     /// that reduces a collection using a service. Gates the nested reduction two-pass handling in
     /// <see cref="Compiler.GraphQLScalarField"/> so it never hijacks an ordinary service field that happens to

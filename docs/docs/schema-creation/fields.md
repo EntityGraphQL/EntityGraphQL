@@ -217,6 +217,33 @@ Methods returning `IQueryable<T>` work well with EF - the method executes return
 
 For instance (non-static) methods a single instance of the class is created at schema build time, which requires a parameterless constructor. Take per-request dependencies as method parameters (resolved from the service provider) rather than constructor parameters.
 
+### Expression fields with AddFieldsFrom
+
+A `[GraphQLField]` method can also return an `Expression<Func<TContext, ...>>` instead of a value. The method is a factory - EntityGraphQL invokes it **once at schema build time** and registers the returned expression exactly as if you had written `AddField(...).Resolve(...)`. Because the field is an expression (not an opaque method body), it composes fully into the main query - against EF the logic executes in SQL and only the columns the expression uses are selected.
+
+```cs
+public class PersonExtraFields
+{
+    // no services: the expression runs entirely in the database
+    [GraphQLField("fullName", "First and last name")]
+    public static Expression<Func<Person, string>> FullName() => p => p.FirstName + " " + p.LastName;
+
+    // parameters after the context are services - same as .Resolve<TService>(), including the
+    // two-pass execution where only the expression's dependencies (here p.Dob) are selected from the database
+    [GraphQLField("age", "Age from the age service")]
+    public static Expression<Func<Person, IAgeService, int>> Age() => (p, srv) => srv.GetAge(p.Dob);
+}
+
+schema.Type<Person>().AddFieldsFrom<PersonExtraFields>();
+```
+
+Rules:
+
+- The returned expression's first parameter must be the type you are adding the fields to (the query context for `AddQueryFieldsFrom`); any further parameters are resolved as services.
+- The factory method itself must not take parameters - it runs once at schema build time, so there is nothing to bind them to. A schema error is thrown otherwise.
+
+Prefer this style over value-returning methods when the field logic can be written as an expression - you keep the class-grouping ergonomics and get the same database composition and column selection as the `AddField().Resolve()` API.
+
 ## Helper methods
 
 ### WhereWhen()

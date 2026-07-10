@@ -234,6 +234,13 @@ public static class SchemaBuilder
         if (!ShouldIncludeMember(method, options, isInputType))
             return null;
 
+        // A [GraphQLField] method returning Expression<Func<TContext, ...>> is an expression factory -
+        // invoke it once at schema build time and register the expression like AddField().Resolve(), so it
+        // composes into the database-bound pass (no services) or gets the standard service two-pass handling
+        // (extra expression params = services).
+        if (typeof(LambdaExpression).IsAssignableFrom(method.ReturnType))
+            return ProcessExpressionMethodIntoField(fromType, method, param, schema, options, callInstance);
+
         (string name, string description) = GetNameAndDescription(method, schema);
 
         options ??= new SchemaBuilderOptions();
@@ -349,6 +356,62 @@ public static class SchemaBuilder
 
         field.ApplyAttributes(method.GetCustomAttributes());
 
+        return field;
+    }
+
+    /// <summary>
+    /// Build a field from a [GraphQLField] method that returns a LambdaExpression. The method is a factory
+    /// invoked once at schema build time; the returned expression's first parameter must be the field's
+    /// context type, any further parameters are services (mirrors .Resolve&lt;TService&gt;()).
+    /// </summary>
+    private static Field? ProcessExpressionMethodIntoField(
+        ISchemaType fromType,
+        MethodInfo method,
+        ParameterExpression param,
+        ISchemaProvider schema,
+        SchemaBuilderOptions options,
+        Expression? callInstance
+    )
+    {
+        if (method.GetParameters().Length > 0)
+            throw new EntityGraphQLSchemaException(
+                $"[GraphQLField] method '{method.Name}' returns an expression so it must not take parameters. GraphQL arguments/services belong on the returned expression's parameters."
+            );
+
+        object? instance = null;
+        if (!method.IsStatic)
+        {
+            instance = (callInstance as ConstantExpression)?.Value;
+            if (instance == null)
+                throw new EntityGraphQLSchemaException(
+                    $"[GraphQLField] instance method '{method.Name}' returning an expression requires an instance - use a static method or add the fields via AddFieldsFrom<T>()."
+                );
+        }
+
+        var lambda =
+            (LambdaExpression?)method.Invoke(instance, null)
+            ?? throw new EntityGraphQLSchemaException($"[GraphQLField] method '{method.Name}' returned a null expression.");
+
+        if (lambda.Parameters.Count == 0 || !lambda.Parameters[0].Type.IsAssignableFrom(param.Type))
+            throw new EntityGraphQLSchemaException(
+                $"[GraphQLField] method '{method.Name}': the returned expression's first parameter must be the context type '{param.Type.Name}'."
+            );
+        var services = lambda.Parameters.Skip(1).ToList();
+
+        (string name, string description) = GetNameAndDescription(method, schema);
+        var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(method);
+
+        var returnType = GetReturnType(lambda.ReturnType, out _);
+        var baseReturnType = GetBaseReturnType(schema, returnType, options);
+        if (options.IgnoreTypes.Contains(baseReturnType))
+            return null;
+        var schemaType = CacheType(baseReturnType, schema, options, false);
+        var returnTypeInfo = schema.GetCustomTypeMapping(lambda.ReturnType) ?? MakeGraphQlType(schema, false, returnType, schemaType, name, fromType);
+
+        var field = new Field(schema, fromType, name, null, description, null, returnTypeInfo, requiredClaims);
+        field.SetExpressionResolve(lambda, services);
+        options.OnFieldCreated?.Invoke(field);
+        field.ApplyAttributes(method.GetCustomAttributes());
         return field;
     }
 

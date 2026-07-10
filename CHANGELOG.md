@@ -15,6 +15,10 @@ EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 rele
 
 - `MapGraphQL()` HTTP status codes now fully follow the [GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md) for the `application/graphql-response+json` media type (the default response type): a response with no `data` entry (a request error - e.g. document parse/validation failure) returns `400` instead of `200`, and a response with both `data` and `errors` (partial success) returns `294` per the spec. Clean results remain `200`. Responses negotiated as legacy `application/json` keep returning `200` for every well-formed request. Clients following the spec read the response body regardless of status code for `application/graphql-response+json`.
 
+## Changes since Beta 9
+
+- `[GraphQLField]` methods (via `AddFieldsFrom<T>()`/`AddQueryFieldsFrom<T>()` or static on a schema type) can now return an `Expression<Func<TContext, ...>>` instead of a value. The method is a factory invoked once at schema build time and the returned expression is registered exactly like `AddField(...).Resolve(...)` - a service-free expression composes fully into the database-bound pass (translates to SQL, only the columns it uses are selected), and extra expression parameters after the context are resolved as services with the standard two-pass execution and dependency extraction. The factory method itself takes no parameters. See [Expression fields with AddFieldsFrom](https://entitygraphql.github.io/schema-creation/fields#expression-fields-with-addfieldsfrom).
+
 # 6.0.0-beta9
 
 The final beta planned before 6.0.0.

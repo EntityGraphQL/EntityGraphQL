@@ -403,4 +403,17 @@ schema.UpdateType<Movie>(type => {
 
 As `(movie, srv) => srv.CalculateAges(movie.Released, movie.Actors)` is an expression, EntityGraphQL can rewrite it to work with the first execution result. It also can visit the expression tree to know that `Released` and `Actors` needs to be selected in that first execution.
 
+If you prefer keeping such field definitions grouped in classes rather than inline `AddField()` calls, a `[GraphQLField]` method can return that same expression - see [Expression fields with AddFieldsFrom](./fields#expression-fields-with-addfieldsfrom):
+
+```cs
+public class MovieExtraFields
+{
+    [GraphQLField("agesOfActorsAtRelease", "All the actors ages")]
+    public static Expression<Func<Movie, IAgeCalculator, uint[]>> AgesOfActorsAtRelease() =>
+        (movie, srv) => srv.CalculateAges(movie.Released, movie.Actors);
+}
+
+schema.Type<Movie>().AddFieldsFrom<MovieExtraFields>();
+```
+
 If you use `ExecutionOptions.ExecuteServiceFieldsSeparately = false` you will need to make sure all data is available / handle possible `null`s.
