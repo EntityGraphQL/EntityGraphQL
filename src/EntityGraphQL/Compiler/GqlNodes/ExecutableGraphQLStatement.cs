@@ -390,6 +390,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         IArgumentsTracker? docVariables
     )
     {
+        // this statement is the first node of the selection path bulk resolvers snapshot while compiling.
+        // compileContext is reassigned below for the second (services) pass - pop from the one we pushed on
+        var pushedCompileContext = compileContext;
+        pushedCompileContext.PushSelectionPathNode(this);
         try
         {
             object? runningContext = context;
@@ -492,6 +496,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         catch (EntityGraphQLFieldException fe)
         {
             throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Field '{node.Name}' - {fe.Message}");
+        }
+        finally
+        {
+            pushedCompileContext.PopSelectionPathNode();
         }
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using EntityGraphQL.Schema;
@@ -124,7 +125,8 @@ public class CompileContext
         Type serviceType
     )
     {
-        BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, extractedFields, listExpressionPath, serviceType));
+        if (!HasBulkResolver(name, listExpressionPath))
+            BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, extractedFields, listExpressionPath, serviceType));
     }
 
     public void AddBulkResolver(
@@ -138,8 +140,32 @@ public class CompileContext
         int? maxConcurrency
     )
     {
-        BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, extractedFields, listExpressionPath, serviceType, isAsync, maxConcurrency));
+        if (!HasBulkResolver(name, listExpressionPath))
+            BulkResolvers.Add(new CompiledBulkFieldResolver(name, dataSelection, fieldExpression, extractedFields, listExpressionPath, serviceType, isAsync, maxConcurrency));
     }
+
+    /// <summary>
+    /// The same bulk field can be registered more than once for the same selection point - e.g. selected
+    /// directly and again via a fragment spread. Loading it twice is wasted service calls; the loaded data
+    /// is keyed by name so the duplicate would just overwrite the first.
+    /// </summary>
+    private bool HasBulkResolver(string name, List<IGraphQLNode> listExpressionPath) =>
+        BulkResolvers.Any(b => b.Name == name && b.ListExpressionPath.SequenceEqual(listExpressionPath));
+
+    /// <summary>
+    /// The chain of selection nodes currently being compiled (statement -> root field -> nested fields).
+    /// Bulk resolvers use a snapshot of this as their list expression path instead of walking a field's
+    /// ParentNode chain - fields selected via a fragment spread carry the fragment STATEMENT as their
+    /// parent chain, not the selection point the fragment is used at. Fragment nodes expand rather than
+    /// compile a selection, so they never appear here.
+    /// </summary>
+    private readonly List<IGraphQLNode> selectionPath = [];
+
+    internal void PushSelectionPathNode(IGraphQLNode node) => selectionPath.Add(node);
+
+    internal void PopSelectionPathNode() => selectionPath.RemoveAt(selectionPath.Count - 1);
+
+    internal List<IGraphQLNode> SelectionPathSnapshot() => [.. selectionPath];
 
     public void AddArgsToCompileContext(
         IField field,

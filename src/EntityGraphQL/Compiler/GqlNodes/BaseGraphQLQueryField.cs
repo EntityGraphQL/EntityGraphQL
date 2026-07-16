@@ -52,84 +52,129 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
         var selectionFields = new Dictionary<IFieldKey, CompiledField>();
 
-        foreach (var field in QueryFields)
+        // this node is part of the selection path bulk resolvers snapshot for their list expression path
+        compileContext.PushSelectionPathNode(this);
+        try
         {
-            // not needed if it is a list-to-single node
-            if (field.Field?.BulkResolver != null && (field.ParentNode as BaseGraphQLQueryField)?.ToSingleNode == null)
+            foreach (var field in QueryFields)
             {
                 if (withoutServiceFields)
                 {
-                    // This is where we have the information to build the bulk resolver data loading expression
-                    HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
+                    // This is where we have the information to build the bulk resolver data loading expression.
+                    // Must happen before Expand - a bulk field expands into its extracted dependency fields.
+                    // Fragment spreads / inline fragments expand into their concrete fields, so look through
+                    // them too (fragments can nest fragments).
+                    RegisterBulkResolverFields(compileContext, field, field.ParentNode, fragments, docParam, docVariables, replacer);
                 }
-            }
-            // Might be a fragment that expands into many fields hence the Expand
-            // or a service field that we expand into the required fields for input
-            foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
-            {
-                try
+                // Might be a fragment that expands into many fields hence the Expand
+                // or a service field that we expand into the required fields for input
+                foreach (var subField in field.Expand(compileContext, fragments, withoutServiceFields, nextFieldContext, docParam, docVariables))
                 {
-                    // fragments might be fragments on the actually type whereas the context is a interface
-                    // we do not need to change the context in this case
-                    var actualNextFieldContext = nextFieldContext;
-                    if (
-                        !contextChanged
-                        && subField.RootParameter != null
-                        && actualNextFieldContext.Type != subField.RootParameter.Type
-                        && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField)
-                        && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union)
-                    )
+                    try
                     {
-                        // we can do the convert here and avoid have to do a replace later
-                        actualNextFieldContext = Expression.Convert(actualNextFieldContext, subField.RootParameter.Type)!;
+                        // fragments might be fragments on the actually type whereas the context is a interface
+                        // we do not need to change the context in this case
+                        var actualNextFieldContext = nextFieldContext;
+                        if (
+                            !contextChanged
+                            && subField.RootParameter != null
+                            && actualNextFieldContext.Type != subField.RootParameter.Type
+                            && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField)
+                            && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union)
+                        )
+                        {
+                            // we can do the convert here and avoid have to do a replace later
+                            actualNextFieldContext = Expression.Convert(actualNextFieldContext, subField.RootParameter.Type)!;
+                        }
+
+                        var fieldExp = subField.GetNodeExpression(
+                            compileContext,
+                            serviceProvider,
+                            fragments,
+                            docParam,
+                            docVariables,
+                            schemaContext,
+                            withoutServiceFields,
+                            actualNextFieldContext,
+                            compileContext.GetPossibleNextContextTypes(this),
+                            contextChanged,
+                            replacer
+                        );
+                        if (fieldExp == null)
+                            continue;
+
+                        var potentialMatch = selectionFields.Keys.FirstOrDefault(f => f.Name == subField.Name);
+                        if (potentialMatch != null && subField.FromType != null)
+                        {
+                            // if we have a match, we need to check if the types are the same
+                            // if they are, we can just use the existing field
+                            if (potentialMatch.FromType?.BaseTypesReadOnly.Contains(subField.FromType) == true)
+                            {
+                                continue;
+                            }
+                            if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType))
+                            {
+                                // replace - use the non-base type field
+                                selectionFields.Remove(potentialMatch);
+                                selectionFields[subField] = new CompiledField(subField, fieldExp);
+                                continue;
+                            }
+                        }
+                        if (potentialMatch is BaseGraphQLField existingFieldNode)
+                            ValidateFieldsCanMerge(existingFieldNode, subField);
+
+                        selectionFields[subField] = new CompiledField(subField, fieldExp);
                     }
-
-                    var fieldExp = subField.GetNodeExpression(
-                        compileContext,
-                        serviceProvider,
-                        fragments,
-                        docParam,
-                        docVariables,
-                        schemaContext,
-                        withoutServiceFields,
-                        actualNextFieldContext,
-                        compileContext.GetPossibleNextContextTypes(this),
-                        contextChanged,
-                        replacer
-                    );
-                    if (fieldExp == null)
-                        continue;
-
-                    var potentialMatch = selectionFields.Keys.FirstOrDefault(f => f.Name == subField.Name);
-                    if (potentialMatch != null && subField.FromType != null)
+                    catch (EntityGraphQLFieldException ex)
                     {
-                        // if we have a match, we need to check if the types are the same
-                        // if they are, we can just use the existing field
-                        if (potentialMatch.FromType?.BaseTypesReadOnly.Contains(subField.FromType) == true)
-                        {
-                            continue;
-                        }
-                        if (potentialMatch.FromType != null && subField.FromType.BaseTypesReadOnly.Contains(potentialMatch.FromType))
-                        {
-                            // replace - use the non-base type field
-                            selectionFields.Remove(potentialMatch);
-                            selectionFields[subField] = new CompiledField(subField, fieldExp);
-                            continue;
-                        }
+                        throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Field '{Name}' - {ex.Message}", null, BuildPath(), ex);
                     }
-                    if (potentialMatch is BaseGraphQLField existingFieldNode)
-                        ValidateFieldsCanMerge(existingFieldNode, subField);
-
-                    selectionFields[subField] = new CompiledField(subField, fieldExp);
-                }
-                catch (EntityGraphQLFieldException ex)
-                {
-                    throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Field '{Name}' - {ex.Message}", null, BuildPath(), ex);
                 }
             }
         }
+        finally
+        {
+            compileContext.PopSelectionPathNode();
+        }
 
         return selectionFields;
+    }
+
+    /// <summary>
+    /// Register the bulk resolver for a selected field, looking through fragment spreads and inline
+    /// fragments to the concrete fields they select. <paramref name="parentNode"/> is the node the field
+    /// is (conceptually) selected on - for fragment fields the node containing the fragment - used for the
+    /// list-to-single check. The bulk list expression path comes from the compile context's selection path.
+    /// </summary>
+    private void RegisterBulkResolverFields(
+        CompileContext compileContext,
+        BaseGraphQLField field,
+        IGraphQLNode? parentNode,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
+        ParameterExpression? docParam,
+        IArgumentsTracker? docVariables,
+        ParameterReplacer replacer
+    )
+    {
+        // not needed if it is a list-to-single node
+        if (field.Field?.BulkResolver != null && (parentNode as BaseGraphQLQueryField)?.ToSingleNode == null)
+        {
+            HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
+        }
+        else if (field is GraphQLFragmentSpreadField)
+        {
+            var fragment = fragments.GetValueOrDefault(field.Name);
+            if (fragment != null) // unknown fragment names error later in Expand
+            {
+                foreach (var fragField in fragment.QueryFields)
+                    RegisterBulkResolverFields(compileContext, fragField, parentNode, fragments, docParam, docVariables, replacer);
+            }
+        }
+        else if (field is GraphQLInlineFragmentField)
+        {
+            foreach (var fragField in field.QueryFields)
+                RegisterBulkResolverFields(compileContext, fragField, parentNode, fragments, docParam, docVariables, replacer);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -168,14 +213,10 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
         Expression bulkFieldExpr = bulkResolver.FieldExpression;
 
         GraphQLHelper.ValidateAndReplaceFieldArgs(field.Field!, bulkFieldArgParam, replacer, ref argumentValue, ref bulkFieldExpr, validationErrors, newArgParam);
-        List<IGraphQLNode> listExpressionPath = [];
-
-        var parentNode = field.ParentNode;
-        while (parentNode != null)
-        {
-            listExpressionPath.Insert(0, parentNode);
-            parentNode = parentNode.ParentNode;
-        }
+        // The path of selection nodes from the statement to the field. Taken from the compile context's
+        // current selection path rather than walking field.ParentNode - fields selected via a fragment
+        // spread have the fragment STATEMENT as their parent chain, not the real selection point.
+        List<IGraphQLNode> listExpressionPath = compileContext.SelectionPathSnapshot();
         compileContext.AddBulkResolver(
             bulkResolver.Name,
             bulkResolver.DataSelector,

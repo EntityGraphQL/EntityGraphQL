@@ -1349,4 +1349,196 @@ public class ServiceFieldBulkTests
         Assert.Null(tasks[1].assignee.manager);
         Assert.Null(tasks[2].assignee);
     }
+
+    private static (SchemaProvider<TestDataContext> schema, TestDataContext context, UserService srv) SetupBulkCreatedBy()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy))
+                .ResolveBulk<UserService, int, User>(proj => proj.CreatedBy, (ids, srv) => srv.GetAllUsers(ids));
+        });
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2",
+                },
+            ],
+        };
+        return (schema, context, new UserService());
+    }
+
+    private static QueryResult ExecuteBulkQuery(SchemaProvider<TestDataContext> schema, TestDataContext context, UserService srv, string query)
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(srv);
+        serviceCollection.AddSingleton(context);
+        return schema.ExecuteRequest(new QueryRequest { Query = query }, serviceCollection.BuildServiceProvider(), null);
+    }
+
+    [Fact]
+    public void TestBulkResolverViaFragmentSpread()
+    {
+        var (schema, context, srv) = SetupBulkCreatedBy();
+        var res = ExecuteBulkQuery(
+            schema,
+            context,
+            srv,
+            @"query {
+                projects { id ...ProjFields }
+            }
+            fragment ProjFields on Project {
+                createdBy { id field2 }
+            }"
+        );
+        Assert.Null(res.Errors);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(1, projects[0].createdBy.id);
+        Assert.Equal(2, projects[1].createdBy.id);
+        // bulk resolver ran once for the list ("Hello" = bulk, "SingleCall" = per-item)
+        Assert.Equal("Hello", projects[0].createdBy.field2);
+        Assert.Equal(1, srv.CallCount);
+    }
+
+    [Fact]
+    public void TestBulkResolverViaInlineFragment()
+    {
+        var (schema, context, srv) = SetupBulkCreatedBy();
+        var res = ExecuteBulkQuery(
+            schema,
+            context,
+            srv,
+            @"query {
+                projects { id ... on Project { createdBy { id field2 } } }
+            }"
+        );
+        Assert.Null(res.Errors);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(1, projects[0].createdBy.id);
+        Assert.Equal("Hello", projects[0].createdBy.field2);
+        Assert.Equal(1, srv.CallCount);
+    }
+
+    [Fact]
+    public void TestBulkResolverViaNestedFragmentSpread()
+    {
+        var (schema, context, srv) = SetupBulkCreatedBy();
+        // fragment inside a fragment
+        var res = ExecuteBulkQuery(
+            schema,
+            context,
+            srv,
+            @"query {
+                projects { id ...Outer }
+            }
+            fragment Outer on Project { ...Inner }
+            fragment Inner on Project { createdBy { id field2 } }"
+        );
+        Assert.Null(res.Errors);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(1, projects[0].createdBy.id);
+        Assert.Equal("Hello", projects[0].createdBy.field2);
+        Assert.Equal(1, srv.CallCount);
+    }
+
+    [Fact]
+    public void TestBulkResolverSelectedDirectlyAndViaFragment_LoadsOnce()
+    {
+        var (schema, context, srv) = SetupBulkCreatedBy();
+        // same bulk field selected directly and via the fragment - must not load the bulk data twice
+        var res = ExecuteBulkQuery(
+            schema,
+            context,
+            srv,
+            @"query {
+                projects { id createdBy { id field2 } ...ProjFields }
+            }
+            fragment ProjFields on Project {
+                createdBy { id field2 }
+            }"
+        );
+        Assert.Null(res.Errors);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(1, projects[0].createdBy.id);
+        Assert.Equal("Hello", projects[0].createdBy.field2);
+        Assert.Equal(1, srv.CallCount);
+    }
+
+    [Fact]
+    public void TestBulkResolverNestedBelowFragmentSpread()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Person>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((person, users) => users.GetUserById(person.Id))
+                .ResolveBulk<UserService, int, User>(person => person.Id, (ids, srv) => srv.GetAllUsers(ids));
+        });
+
+        // the bulk field is nested below fields the fragment expands into - the list expression
+        // path must be the real selection chain (projects -> tasks -> assignee), not the fragment
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                projects { ...ProjFields }
+            }
+            fragment ProjFields on Project {
+                tasks { assignee { createdBy { id field2 } } }
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks =
+                    [
+                        new Task
+                        {
+                            Id = 1,
+                            Name = "Task 1",
+                            Assignee = new Person { Id = 7 },
+                        },
+                        new Task
+                        {
+                            Id = 2,
+                            Name = "Task 2",
+                            Assignee = new Person { Id = 8 },
+                        },
+                    ],
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, userService.CallCount);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(7, projects[0].tasks[0].assignee.createdBy.id);
+        Assert.Equal(8, projects[0].tasks[1].assignee.createdBy.id);
+        Assert.Equal("Hello", projects[0].tasks[0].assignee.createdBy.field2);
+    }
 }
