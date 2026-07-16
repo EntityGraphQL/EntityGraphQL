@@ -269,9 +269,15 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             foreach (var bulkResolver in compileContext.BulkResolvers)
             {
                 // rebuild list expression on new context
-                var toReplace = node.Field!.ResolveExpression!;
                 var listExpression = bulkResolver.GetBulkSelectionExpression(newContextParam, bulkResolver.ListExpressionPath.GetRange(1, bulkResolver.ListExpressionPath.Count - 1), replacer);
-                // var listExpression = replacer.Replace(bulkResolver.GetListExpression(runningContext, newContextParam, replacer), toReplace, newContextParam);
+                // When the bulk field is reached through a single object (e.g. a mutation returning a
+                // single entity, or a nested single-object navigation), the selection expression is that
+                // single object rather than a list. Wrap it in a one-element array so the same
+                // Where/Select bulk-key projection below applies uniformly.
+                if (!listExpression.Type.IsEnumerableOrArray())
+                {
+                    listExpression = Expression.NewArrayInit(listExpression.Type, listExpression);
+                }
                 var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
                 // replace the data selection expression with the new context
                 var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);

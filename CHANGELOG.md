@@ -1,3 +1,9 @@
+# 5.7.3
+
+## Fixes
+
+- #526 - Fixed `ResolveBulk` fields failing when reached through a nested single-object navigation (e.g. `tasks { project { createdBy } }`) or a mutation result selection - single-object contexts are now wrapped for the bulk key batching, object navigations off a list context project per element, and null navigations anywhere in the chain no longer throw. Thanks @alex-birch
+
 # 5.7.2
 
 ## Fixes
