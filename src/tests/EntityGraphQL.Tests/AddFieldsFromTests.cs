@@ -15,7 +15,7 @@ namespace EntityGraphQL.Tests;
 /// </summary>
 public class AddFieldsFromTests
 {
-    private class PeopleQueries
+    private class PeopleQueries : IFieldsFor<TestDataContext>
     {
         [GraphQLField("tallPeople", "People 180cm or taller")]
         public static IEnumerable<Person> TallPeople(TestDataContext db) => db.People.Where(p => p.Height >= 180);
@@ -29,19 +29,19 @@ public class AddFieldsFromTests
         public string Greet(string name) => $"Hello {name}";
     }
 
-    private class ServiceQueries
+    private class ServiceQueries : IFieldsFor<TestDataContext>
     {
         [GraphQLField("greeting", "A greeting from a service")]
         public static string Greeting(GreetingService srv) => srv.Greet("Luke");
     }
 
-    private class PersonExtraFields
+    private class PersonExtraFields : IFieldsFor<Person>
     {
         [GraphQLField("nameLength", "Length of the person's name")]
         public static int NameLength(Person person) => person.Name.Length;
     }
 
-    private class NoParameterlessCtor
+    private class NoParameterlessCtor : IFieldsFor<TestDataContext>
     {
         private NoParameterlessCtor(int _) { }
 
@@ -157,7 +157,7 @@ public class AddFieldsFromTests
         Assert.Contains("already exists", ex.Message);
     }
 
-    private class DescribedQueries
+    private class DescribedQueries : IFieldsFor<TestDataContext>
     {
         [GraphQLField("shortPeople")]
         [Description("People under 150cm")]
@@ -173,16 +173,22 @@ public class AddFieldsFromTests
         Assert.Equal("People under 150cm", field.Description);
     }
 
+    private class DateFields : IFieldsFor<DateTime>
+    {
+        [GraphQLField]
+        public static int Year(DateTime d) => d.Year;
+    }
+
     [Fact]
     public void AddFieldsFrom_OnScalarType_Throws()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
-        var scalar = schema.AddScalarType<System.DateTime>("MyDate", "date");
-        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => scalar.AddFieldsFrom<PeopleQueries>());
+        var scalar = schema.AddScalarType<DateTime>("MyDate", "date");
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => scalar.AddFieldsFrom<DateFields>());
         Assert.Contains("object or interface", ex.Message);
     }
 
-    private class PersonExpressionFields
+    private class PersonExpressionFields : IFieldsFor<Person>
     {
         // expression factory - invoked once at schema build time, the expression composes into the main query
         [GraphQLField("nameAndHeight", "Name and height")]
@@ -192,19 +198,19 @@ public class AddFieldsFromTests
         public static Expression<Func<Person, GreetingService, string>> GreetingFor() => (p, srv) => srv.Greet(p.Name);
     }
 
-    private class RootExpressionFields
+    private class RootExpressionFields : IFieldsFor<TestDataContext>
     {
         [GraphQLField("tallPeopleExpr", "People 180cm or taller")]
         public static Expression<Func<TestDataContext, IEnumerable<Person>>> TallPeople() => db => db.People.Where(p => p.Height >= 180);
     }
 
-    private class BadExpressionFields
+    private class BadExpressionFields : IFieldsFor<Person>
     {
         [GraphQLField]
         public static Expression<Func<Person, int>> WithParams(int notAllowed) => p => notAllowed;
     }
 
-    private class WrongContextExpressionFields
+    private class WrongContextExpressionFields : IFieldsFor<Person>
     {
         [GraphQLField]
         public static Expression<Func<Task, int>> WrongContext() => t => t.Id;

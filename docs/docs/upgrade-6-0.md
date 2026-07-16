@@ -407,7 +407,7 @@ Not breaking — but if you are touching your schema code anyway:
 - **Async fields** — first-class `ResolveAsync<TService>()` with end-to-end `CancellationToken` support and per-field/service/query concurrency limits. See [Async Fields](./schema-creation/async-fields).
 - **Query limits** — opt-in `MaxQueryDepth`, `MaxFieldSelections`, `MaxFieldAliases`, `MaxQueryComplexity` and per-field rate limiting. See [Query limits](./schema-creation/query-limits).
 - **`UseAggregate()`** — `count`/`min`/`max`/`sum`/`average` over collection fields, translated to a single SQL query under EF. See [Aggregates](./field-extensions/aggregate).
-- **`AddFieldsFrom<T>()` / `AddQueryFieldsFrom<T>()`** — group related field definitions into classes with `[GraphQLField]` methods. See [Fields](./schema-creation/fields#grouping-fields-with-addfieldsfrom).
+- **`AddFieldsFrom<T>()` / `AddQueryFieldsFrom<T>()`** — group related field definitions into classes with `[GraphQLField]` methods. The class declares its context type by implementing `IFieldsFor<TContext>`, so adding it to the wrong schema type is a compile error. Methods can also return `Expression<Func<TContext, ...>>` to compose fully into the database query. See [Fields](./schema-creation/fields#grouping-fields-with-addfieldsfrom).
 - **Paging performance** — `hasNextPage` uses a cheap `EXISTS` query instead of `COUNT(*)` when the total isn't requested.
 - **Filter improvements** — filters support GraphQL variables (`$var`), service fields, `selectMany` and filtering by paged child fields.
 

@@ -191,8 +191,10 @@ public uint[] AgesOfActorsAtRelease()
 
 Building a large schema often ends up as many `schema.Query().AddField(...)` calls. `AddFieldsFrom<T>()` lets you group related field definitions into classes - each public method marked with `[GraphQLField]` becomes a field on the type you call it on. `schema.AddQueryFieldsFrom<T>()` is a shortcut for `schema.Query().AddFieldsFrom<T>()`.
 
+The grouping class declares which type its fields are for by implementing the `IFieldsFor<TContext>` marker interface - the query context for root fields, or the entity type when adding to another type. Adding a class to the wrong schema type is then a compile error rather than a runtime surprise.
+
 ```cs
-public class PeopleQueries
+public class PeopleQueries : IFieldsFor<DemoContext>
 {
     [GraphQLField("adults", "People 18 or older")]
     public static IQueryable<Person> Adults(DemoContext db) => db.People.Where(p => p.Age >= 18);
@@ -202,9 +204,16 @@ public class PeopleQueries
         db.People.Where(p => p.Name.Contains(nameLike));
 }
 
+public class PersonExtraFields : IFieldsFor<Person>
+{
+    [GraphQLField("nameLength", "Length of the person's name")]
+    public static int NameLength(Person person) => person.Name.Length;
+}
+
 schema.AddQueryFieldsFrom<PeopleQueries>();
 // or on any object type
 schema.Type<Person>().AddFieldsFrom<PersonExtraFields>();
+// schema.Type<Movie>().AddFieldsFrom<PersonExtraFields>() would not compile
 ```
 
 Method parameters map as follows:
@@ -222,7 +231,7 @@ For instance (non-static) methods a single instance of the class is created at s
 A `[GraphQLField]` method can also return an `Expression<Func<TContext, ...>>` instead of a value. The method is a factory - EntityGraphQL invokes it **once at schema build time** and registers the returned expression exactly as if you had written `AddField(...).Resolve(...)`. Because the field is an expression (not an opaque method body), it composes fully into the main query - against EF the logic executes in SQL and only the columns the expression uses are selected.
 
 ```cs
-public class PersonExtraFields
+public class PersonCalculatedFields : IFieldsFor<Person>
 {
     // no services: the expression runs entirely in the database
     [GraphQLField("fullName", "First and last name")]
@@ -234,7 +243,7 @@ public class PersonExtraFields
     public static Expression<Func<Person, IAgeService, int>> Age() => (p, srv) => srv.GetAge(p.Dob);
 }
 
-schema.Type<Person>().AddFieldsFrom<PersonExtraFields>();
+schema.Type<Person>().AddFieldsFrom<PersonCalculatedFields>();
 ```
 
 Rules:

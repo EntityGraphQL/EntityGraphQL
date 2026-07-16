@@ -14,7 +14,7 @@ namespace EntityGraphQL.EF.Tests;
 /// </summary>
 public class AddFieldsFromEFTests
 {
-    private class MovieQueries
+    private class MovieQueries : IFieldsFor<TestDbContext>
     {
         [GraphQLField("moviesNamedLike", "Movies with a name containing the filter")]
         public static IQueryable<Movie> MoviesNamedLike(TestDbContext db, string filter) => db.Movies.Where(m => m.Name.Contains(filter));
@@ -60,7 +60,7 @@ public class AddFieldsFromEFTests
         Assert.Equal(1, srv.CallCount);
     }
 
-    private class MovieExpressionFields
+    private class MovieExpressionFields : IFieldsFor<Movie>
     {
         // expression factory - invoked once at schema build time, the expression is registered like
         // AddField().Resolve() so it composes into the database-bound pass

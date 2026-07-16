@@ -799,12 +799,13 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <summary>
     /// Add root query fields from methods marked with GraphQLFieldAttribute in the given class. Lets you group
     /// related query field definitions into classes instead of many Query().AddField() calls.
+    /// TType must implement IFieldsFor&lt;TContextType&gt; (the schema's query context type).
     /// Shortcut for Query().AddFieldsFrom&lt;TType&gt;(options).
     /// </summary>
-    /// <typeparam name="TType">Class containing [GraphQLField] marked methods</typeparam>
+    /// <typeparam name="TType">Class containing [GraphQLField] marked methods, implementing IFieldsFor&lt;TContextType&gt;</typeparam>
     /// <param name="options">Options for the schema builder</param>
     public void AddQueryFieldsFrom<TType>(SchemaBuilderOptions? options = null)
-        where TType : class
+        where TType : class, IFieldsFor<TContextType>
     {
         queryType.AddFieldsFrom<TType>(options);
     }

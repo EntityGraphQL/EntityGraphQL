@@ -52,17 +52,19 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
     /// <summary>
     /// Add fields to this type from methods marked with [GraphQLField] in TFrom. Lets you group related field
     /// definitions into classes instead of many AddField() calls - e.g. schema.Query().AddFieldsFrom&lt;PeopleQueries&gt;().
+    /// TFrom must implement IFieldsFor&lt;TBaseType&gt; so adding a class to the wrong schema type fails at compile time.
     /// Method parameters of this type's dotnet type bind to the field context (the query context for root fields),
     /// CancellationToken binds to the request token, other complex types resolve as services from the service
-    /// provider and remaining parameters become GraphQL arguments.
+    /// provider and remaining parameters become GraphQL arguments. Methods returning Expression&lt;Func&lt;TBaseType, ...&gt;&gt;
+    /// are expression factories - invoked once at schema build time and registered like AddField().Resolve().
     /// For instance methods a single instance of TFrom is created at schema build time (parameterless constructor
     /// required) - take per-request dependencies as method parameters, not constructor injection.
     /// </summary>
-    /// <typeparam name="TFrom">Class containing [GraphQLField] marked methods</typeparam>
+    /// <typeparam name="TFrom">Class containing [GraphQLField] marked methods, implementing IFieldsFor&lt;TBaseType&gt;</typeparam>
     /// <param name="options">Options for the schema builder</param>
     /// <returns>This type for further chaining</returns>
     public SchemaType<TBaseType> AddFieldsFrom<TFrom>(SchemaBuilderOptions? options = null)
-        where TFrom : class
+        where TFrom : class, IFieldsFor<TBaseType>
     {
         if (GqlType != GqlTypes.QueryObject && GqlType != GqlTypes.Interface)
             throw new EntityGraphQLSchemaException($"AddFieldsFrom can only be used on object or interface types. '{Name}' is a {GqlType}.");

@@ -14,6 +14,7 @@ EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 rele
 ## Breaking Changes from Beta 9
 
 - `MapGraphQL()` HTTP status codes now fully follow the [GraphQL over HTTP spec](https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md) for the `application/graphql-response+json` media type (the default response type): a response with no `data` entry (a request error - e.g. document parse/validation failure) returns `400` instead of `200`, and a response with both `data` and `errors` (partial success) returns `294` per the spec. Clean results remain `200`. Responses negotiated as legacy `application/json` keep returning `200` for every well-formed request. Clients following the spec read the response body regardless of status code for `application/graphql-response+json`.
+- `AddFieldsFrom<TFrom>()` / `AddQueryFieldsFrom<TType>()` (introduced in beta 9) now require the grouping class to implement the new `IFieldsFor<TContext>` marker interface declaring which type its `[GraphQLField]` methods are written against - the entity type for `schema.Type<Person>().AddFieldsFrom<T>()`, the query context for `AddQueryFieldsFrom<T>()`. Registering a class against the wrong schema type is now a compile error instead of a schema-build surprise, and the marker gives compile-time tooling the intended context type. The interface is contravariant, so a fields class written for a base type can be added to types deriving from it. Migration: add `: IFieldsFor<TheContextType>` to each grouping class.
 
 ## Changes since Beta 9
 

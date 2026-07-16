@@ -406,7 +406,7 @@ As `(movie, srv) => srv.CalculateAges(movie.Released, movie.Actors)` is an expre
 If you prefer keeping such field definitions grouped in classes rather than inline `AddField()` calls, a `[GraphQLField]` method can return that same expression - see [Expression fields with AddFieldsFrom](./fields#expression-fields-with-addfieldsfrom):
 
 ```cs
-public class MovieExtraFields
+public class MovieExtraFields : IFieldsFor<Movie>
 {
     [GraphQLField("agesOfActorsAtRelease", "All the actors ages")]
     public static Expression<Func<Movie, IAgeCalculator, uint[]>> AgesOfActorsAtRelease() =>
