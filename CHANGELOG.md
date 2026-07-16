@@ -24,6 +24,7 @@ EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 rele
 
 ## Bug Fixes since Beta 9
 
+- Fixed custom type converters (`AddCustomTypeConverter`) registered for a base type never matching values of derived types - the lookup was an exact type match, so the documented Newtonsoft pattern `AddCustomTypeConverter<JToken>(...)` never fired (`JToken` is abstract; runtime values are `JArray`/`JValue`/`JObject`), breaking e.g. list-of-enum variables sent through Newtonsoft.Json with `Supplied variable can not be applied to defined variable type`. From-type converter lookup now walks the base-type chain (the most derived registration wins).
 - Fixed `ResolveBulk` fields reached through chained single-object navigations (e.g. `projects { tasks { assignee { manager { bulkField } } } }`) throwing `Value cannot be null` - the null-guard built while collecting the bulk keys assumed every navigation step was a list. Single-object steps are now null-guarded properly (a null parent yields null and is filtered before the bulk key selection).
 
 # 6.0.0-beta9

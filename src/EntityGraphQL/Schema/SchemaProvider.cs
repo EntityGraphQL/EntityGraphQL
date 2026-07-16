@@ -340,9 +340,14 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
     private bool TryConvertFromTo(object? value, Type? fromType, Type toType, out object? result)
     {
-        if (fromType != null && fromToConverters.TryGetValue((fromType, toType), out var shim))
+        // walk the base-type chain so a converter registered for a base type (e.g. Newtonsoft's JToken)
+        // matches values of its subclasses (JArray/JValue/JObject) - the most derived registration wins
+        for (var type = fromType; type != null; type = type.BaseType)
         {
-            return shim(value, toType, this, out result);
+            if (fromToConverters.TryGetValue((type, toType), out var shim))
+            {
+                return shim(value, toType, this, out result);
+            }
         }
         result = null;
         return false;
@@ -360,9 +365,14 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
     private bool TryConvertFromOnly(object? value, Type? fromType, Type toType, out object? result)
     {
-        if (fromType != null && fromConverters.TryGetValue(fromType, out var shim))
+        // walk the base-type chain so a converter registered for a base type (e.g. Newtonsoft's JToken)
+        // matches values of its subclasses (JArray/JValue/JObject) - the most derived registration wins
+        for (var type = fromType; type != null; type = type.BaseType)
         {
-            return shim(value, toType, this, out result);
+            if (fromConverters.TryGetValue(type, out var shim))
+            {
+                return shim(value, toType, this, out result);
+            }
         }
         result = null;
         return false;
