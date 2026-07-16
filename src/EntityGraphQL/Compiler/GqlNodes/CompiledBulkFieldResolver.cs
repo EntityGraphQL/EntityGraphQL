@@ -37,12 +37,6 @@ public class CompiledBulkFieldResolver(
             if (i == 0 && isRoot)
             {
                 currentContextExpression = newContextParam;
-                // Mutation fields are followed by their own ResultSelection node (same name, distinct
-                // instance). Skip that structural duplicate so navigation starts at the first genuine
-                // child field rather than trying to read the root field name off its own result.
-                // Match by reference — not name — so a child aliased to the root name is not skipped.
-                if (parentNode is GraphQLMutationField mutationNode && i + 1 < listExpressionPath.Count && ReferenceEquals(listExpressionPath[i + 1], mutationNode.ResultSelection))
-                    i++;
             }
             else
             {
