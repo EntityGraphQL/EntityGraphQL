@@ -297,6 +297,20 @@ public static class SchemaBuilder
                 }
                 else if (item.IsService)
                 {
+                    // A parameter of a schema entity type (that is not the field's context) is almost always a
+                    // mistyped context parameter - classifying it as a DI service would silently resolve (or fail)
+                    // at query time. Fail at schema build instead. The query context type is excluded (a DbContext
+                    // is a legitimate service) and [GraphQLService] on the parameter opts out for the rare case
+                    // where an entity type really is a DI service.
+                    if (!item.IsExplicitService && item.ServiceType != schema.QueryContextType && schema.HasType(item.ServiceType!))
+                    {
+                        var serviceSchemaType = schema.GetSchemaType(item.ServiceType!, false, null);
+                        if (serviceSchemaType.GqlType == GqlTypes.QueryObject || serviceSchemaType.GqlType == GqlTypes.Interface)
+                            throw new EntityGraphQLSchemaException(
+                                $"Method '{method.Name}': parameter '{item.ArgName}' of type '{item.ServiceType!.Name}' is a schema entity type, not a service. "
+                                    + $"Did you mean the field's context type '{param.Type.Name}'? If it really is a service, mark the parameter with [GraphQLService]."
+                            );
+                    }
                     fieldServices.Add(item.ArgName, Expression.Parameter(item.ServiceType!, item.ArgName));
                     argsForCallExpression.Add(item.ArgName, fieldServices[item.ArgName]!);
                 }
@@ -671,7 +685,7 @@ public static class SchemaBuilder
             var inlineArgumentAttr = item.GetCustomAttribute<GraphQLInputTypeAttribute>() ?? item.ParameterType.GetTypeInfo().GetCustomAttribute<GraphQLInputTypeAttribute>();
             if (!shouldBeAddedAsArg && argumentsAttr == null && inlineArgumentAttr == null)
             {
-                arguments.Add(new FieldArgInfo(item.Name!, item.ParameterType));
+                arguments.Add(new FieldArgInfo(item.Name!, item.ParameterType, isExplicitService: item.GetCustomAttribute<GraphQLServiceAttribute>() != null));
                 continue;
             }
 
@@ -772,11 +786,18 @@ public class FieldArgInfo
         ArgType = argType;
     }
 
-    public FieldArgInfo(string argName, Type serviceType)
+    public FieldArgInfo(string argName, Type serviceType, bool isExplicitService = false)
     {
         ArgName = argName;
         ServiceType = serviceType;
+        IsExplicitService = isExplicitService;
     }
+
+    /// <summary>
+    /// The parameter was explicitly marked as a service with [GraphQLService], bypassing the
+    /// schema-entity-type-as-service check.
+    /// </summary>
+    public bool IsExplicitService { get; }
 
     public string ArgName { get; }
     public Type? FlattenType { get; }

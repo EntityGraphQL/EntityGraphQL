@@ -293,6 +293,47 @@ public class AddFieldsFromTests
         Assert.Contains("first parameter must be the context type", ex.Message);
     }
 
+    private class MistypedContextFields : IFieldsFor<Person>
+    {
+        // Project is a schema entity type - this parameter is (almost certainly) a mistyped context
+        [GraphQLField]
+        public static int ProjectCount(Project project) => project.Tasks.Count();
+    }
+
+    private class ExplicitServiceFields : IFieldsFor<Person>
+    {
+        // rare legitimate case: an entity type deliberately resolved from DI, opted in with [GraphQLService]
+        [GraphQLField]
+        public static string DefaultProjectName([GraphQLService] Project project) => project.Name;
+    }
+
+    [Fact]
+    public void AddFieldsFrom_EntityTypeParameter_ThrowsClearError()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Type<Person>().AddFieldsFrom<MistypedContextFields>());
+        Assert.Contains("'Project' is a schema entity type, not a service", ex.Message);
+        Assert.Contains("context type 'Person'", ex.Message);
+        Assert.Contains("[GraphQLService]", ex.Message);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_EntityTypeParameterMarkedGraphQLService_ResolvesFromDI()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<Person>().AddFieldsFrom<ExplicitServiceFields>();
+
+        var context = new TestDataContext().FillWithTestData();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new Project { Id = 99, Name = "DI Project" });
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { defaultProjectName } }" }, context, sp, null);
+        Assert.Null(res.Errors);
+        dynamic people = res.Data!["people"]!;
+        Assert.Equal("DI Project", (string)people[0].defaultProjectName);
+    }
+
     #region cross-type grouping - one field-group class shared across multiple types
 
     private interface IHasCapacity

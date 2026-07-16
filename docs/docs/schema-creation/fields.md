@@ -221,6 +221,7 @@ Method parameters map as follows:
 - A parameter of the type you are adding the fields to (the query context for root fields) binds to the field context - it is not resolved from the service provider, so the field still executes on the database pass.
 - `CancellationToken` binds to the request's cancellation token.
 - Other parameters follow the same rules as methods-as-fields above - scalars/known input types become GraphQL arguments, everything else resolves as a service from the service provider.
+- A parameter of a schema **entity type** that is not the field's context is a schema-build error - it is almost always a mistyped context parameter, and treating it as a service would silently resolve (or fail) at query time. In the rare case an entity type really is registered in DI as a service, mark the parameter with `[GraphQLService]`.
 
 Methods returning `IQueryable<T>` work well with EF - the method executes returning the deferred query and EntityGraphQL builds the field selection on top of it, so your filters and the selection all translate to SQL.
 
