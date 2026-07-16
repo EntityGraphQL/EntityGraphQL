@@ -1085,4 +1085,85 @@ public class ServiceFieldBulkTests
         // 1 bulk call for projects + 1 per-person call - the bulk resolver must not run again for people
         Assert.Equal(2, userService.CallCount);
     }
+
+    [Fact]
+    public void TestServicesBulkResolverDeepSingleObjectChainWithNullNavs()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Person>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((person, users) => users.GetUserById(person.Id))
+                .ResolveBulk<UserService, int, User>(person => person.Id, (ids, srv) => srv.GetAllUsers(ids));
+        });
+
+        // list -> list -> single -> single -> bulk service field, with nulls at each single hop.
+        // The chained single-object navigation hits the i > 0 null-guard in
+        // CompiledBulkFieldResolver with a non-list selection - previously that built
+        // IEnumerable<null> and threw; a null assignee then NRE'd collecting the bulk keys
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                projects {
+                    tasks {
+                        assignee {
+                            manager { createdBy { id field2 } }
+                        }
+                    }
+                }
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks =
+                    [
+                        new Task
+                        {
+                            Id = 1,
+                            Name = "Task 1",
+                            Assignee = new Person { Id = 1, Manager = new Person { Id = 7 } },
+                        },
+                        new Task
+                        {
+                            Id = 2,
+                            Name = "Task 2",
+                            Assignee = new Person { Id = 2 }, // no manager
+                        },
+                        new Task
+                        {
+                            Id = 3,
+                            Name = "Task 3",
+                            Assignee = null,
+                        },
+                    ],
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        // bulk loaded once for the only non-null manager
+        Assert.Equal(1, userService.CallCount);
+        dynamic projectsResult = res.Data!["projects"]!;
+        dynamic tasks = projectsResult[0].tasks;
+        Assert.Equal(7, tasks[0].assignee.manager.createdBy.id);
+        // "Hello" proves the bulk resolver ran (not the per-item "SingleCall" resolver)
+        Assert.Equal("Hello", tasks[0].assignee.manager.createdBy.field2);
+        Assert.Null(tasks[1].assignee.manager);
+        Assert.Null(tasks[2].assignee);
+    }
 }

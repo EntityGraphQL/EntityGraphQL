@@ -20,6 +20,10 @@ EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 rele
 
 - `[GraphQLField]` methods (via `AddFieldsFrom<T>()`/`AddQueryFieldsFrom<T>()` or static on a schema type) can now return an `Expression<Func<TContext, ...>>` instead of a value. The method is a factory invoked once at schema build time and the returned expression is registered exactly like `AddField(...).Resolve(...)` - a service-free expression composes fully into the database-bound pass (translates to SQL, only the columns it uses are selected), and extra expression parameters after the context are resolved as services with the standard two-pass execution and dependency extraction. The factory method itself takes no parameters. See [Expression fields with AddFieldsFrom](https://entitygraphql.github.io/schema-creation/fields#expression-fields-with-addfieldsfrom).
 
+## Bug Fixes since Beta 9
+
+- Fixed `ResolveBulk` fields reached through chained single-object navigations (e.g. `projects { tasks { assignee { manager { bulkField } } } }`) throwing `Value cannot be null` - the null-guard built while collecting the bulk keys assumed every navigation step was a list. Single-object steps are now null-guarded properly (a null parent yields null and is filtered before the bulk key selection).
+
 # 6.0.0-beta9
 
 The final beta planned before 6.0.0.
