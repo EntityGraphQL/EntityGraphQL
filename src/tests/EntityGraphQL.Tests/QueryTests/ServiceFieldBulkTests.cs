@@ -1089,6 +1089,75 @@ public class ServiceFieldBulkTests
     }
 
     [Fact]
+    public void TestServicesBulkResolverWithChildAliasedSameAsRootField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Person>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((person, users) => users.GetUserById(person.Id))
+                .ResolveBulk<UserService, int, User>(person => person.Id, (ids, srv) => srv.GetAllUsers(ids));
+        });
+
+        // Child field aliased to the same name as the root list must not be skipped as a "mutation duplicate"
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{ 
+                projects { 
+                    id
+                    projects: tasks {
+                        assignee {
+                            createdBy { id field2 } 
+                        }
+                    }
+                } 
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new()
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks =
+                    [
+                        new()
+                        {
+                            Id = 1,
+                            Name = "Task 1",
+                            Assignee = new Person { Id = 1 },
+                        },
+                        new()
+                        {
+                            Id = 2,
+                            Name = "Task 2",
+                            Assignee = new Person { Id = 2 },
+                        },
+                    ],
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, userService.CallCount);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(1, projects[0].projects[0].assignee.createdBy.id);
+        Assert.Equal(2, projects[0].projects[1].assignee.createdBy.id);
+        Assert.Equal("Hello", projects[0].projects[0].assignee.createdBy.field2);
+    }
+
+    [Fact]
     public void TestServicesBulkResolverThroughSingleObjectFromRootList()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

@@ -37,13 +37,11 @@ public class CompiledBulkFieldResolver(
             if (i == 0 && isRoot)
             {
                 currentContextExpression = newContextParam;
-                // A plain root field is a single node, but a mutation field is followed by its
-                // result-selection projection - both carry the root field name and both map to the
-                // already-executed context (newContextParam). Skip the whole leading run so that
-                // navigation starts at the first genuine child field rather than trying to read the
-                // root field name off its own result.
-                var rootName = parentNode.Name ?? parentNode.Field?.Name;
-                while (i + 1 < listExpressionPath.Count && (listExpressionPath[i + 1].Name ?? listExpressionPath[i + 1].Field?.Name) == rootName)
+                // Mutation fields are followed by their own ResultSelection node (same name, distinct
+                // instance). Skip that structural duplicate so navigation starts at the first genuine
+                // child field rather than trying to read the root field name off its own result.
+                // Match by reference — not name — so a child aliased to the root name is not skipped.
+                if (parentNode is GraphQLMutationField mutationNode && i + 1 < listExpressionPath.Count && ReferenceEquals(listExpressionPath[i + 1], mutationNode.ResultSelection))
                     i++;
             }
             else
