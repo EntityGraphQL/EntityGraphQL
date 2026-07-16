@@ -253,6 +253,48 @@ Rules:
 
 Prefer this style over value-returning methods when the field logic can be written as an expression - you keep the class-grouping ergonomics and get the same database composition and column selection as the `AddField().Resolve()` API.
 
+### Grouping fields across multiple types
+
+Sometimes a feature cuts across types - e.g. occupancy fields that belong on `Building`, `Floor` and `Space`. Three patterns, depending on what you can change:
+
+**One class, multiple contexts** - implement `IFieldsFor<T>` for each target type and write per-type methods. Each registration only adds the methods written for that context (a method's context is the first parameter of its returned expression, or its parameter matching a declared context). No changes to the entity types needed:
+
+```cs
+public class OccupancyFields : IFieldsFor<Building>, IFieldsFor<Floor>
+{
+    [GraphQLField("utilisation", "Building utilisation")]
+    public static Expression<Func<Building, OccupancyService, double>> BuildingUtilisation() =>
+        (b, srv) => srv.ForBuilding(b.Id);
+
+    [GraphQLField("utilisation", "Floor utilisation")]
+    public static Expression<Func<Floor, OccupancyService, double>> FloorUtilisation() =>
+        (f, srv) => srv.ForFloor(f.Id);
+}
+
+schema.Type<Building>().AddFieldsFrom<OccupancyFields>(); // gets only the Building methods
+schema.Type<Floor>().AddFieldsFrom<OccupancyFields>();    // gets only the Floor methods
+```
+
+**Shared interface** - when the entities can implement a common interface, one class written against it works for all of them. `IFieldsFor<TContext>` is contravariant, so `IFieldsFor<IHasCapacity>` satisfies `IFieldsFor<Building>` for any `Building : IHasCapacity`:
+
+```cs
+public class OccupancyFields : IFieldsFor<IHasCapacity>
+{
+    [GraphQLField("utilisation", "Utilisation")]
+    public static Expression<Func<IHasCapacity, OccupancyService, double>> Utilisation() =>
+        (e, srv) => srv.Utilisation(e.Id);
+}
+```
+
+**Generic class** - when the logic is identical but you want the expressions typed to the concrete entity (best for EF translation), close a generic grouping class per type:
+
+```cs
+public class OccupancyFields<T> : IFieldsFor<T> where T : IHasCapacity { ... }
+
+schema.Type<Building>().AddFieldsFrom<OccupancyFields<Building>>();
+schema.Type<Floor>().AddFieldsFrom<OccupancyFields<Floor>>();
+```
+
 ## Helper methods
 
 ### WhereWhen()

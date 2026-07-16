@@ -292,4 +292,146 @@ public class AddFieldsFromTests
         var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Type<Person>().AddFieldsFrom<WrongContextExpressionFields>());
         Assert.Contains("first parameter must be the context type", ex.Message);
     }
+
+    #region cross-type grouping - one field-group class shared across multiple types
+
+    private interface IHasCapacity
+    {
+        int Id { get; }
+        int Capacity { get; }
+    }
+
+    private class Building : IHasCapacity
+    {
+        public int Id { get; set; }
+        public int Capacity { get; set; }
+        public List<Floor> Floors { get; set; } = [];
+    }
+
+    private class Floor : IHasCapacity
+    {
+        public int Id { get; set; }
+        public int Capacity { get; set; }
+    }
+
+    private class SiteContext
+    {
+        public List<Building> Buildings { get; set; } = [];
+    }
+
+    public class OccupancyService
+    {
+        public double Utilisation(int entityId) => entityId * 0.1;
+    }
+
+    // one class written against a shared abstraction - IFieldsFor<in TContext> is contravariant so
+    // IFieldsFor<IHasCapacity> satisfies IFieldsFor<Building> and IFieldsFor<Floor>
+    private class OccupancyFieldsShared : IFieldsFor<IHasCapacity>
+    {
+        [GraphQLField("utilisation", "Utilisation from the occupancy service")]
+        public static Expression<Func<IHasCapacity, OccupancyService, double>> Utilisation() => (e, srv) => srv.Utilisation(e.Id);
+    }
+
+    // generic grouping class, closed per type at registration - expressions typed to the concrete entity
+    private class OccupancyFieldsGeneric<T> : IFieldsFor<T>
+        where T : IHasCapacity
+    {
+        [GraphQLField("halfCapacity", "Half the capacity")]
+        public static Expression<Func<T, int>> HalfCapacity() => e => e.Capacity / 2;
+    }
+
+    // one class declaring multiple contexts with per-type methods - no shared interface needed on the
+    // entities. Each registration only adds the methods written for that context
+    private class OccupancyFieldsMulti : IFieldsFor<Building>, IFieldsFor<Floor>
+    {
+        [GraphQLField("utilisationM", "Building utilisation")]
+        public static Expression<Func<Building, OccupancyService, double>> BuildingUtilisation() => (b, srv) => srv.Utilisation(b.Id);
+
+        [GraphQLField("utilisationM", "Floor utilisation")]
+        public static Expression<Func<Floor, OccupancyService, double>> FloorUtilisation() => (f, srv) => srv.Utilisation(f.Id * 2);
+
+        [GraphQLField("floorLabel", "Label")]
+        public static string FloorLabel(Floor floor) => $"Floor {floor.Id}";
+    }
+
+    private static SiteContext SiteData() =>
+        new()
+        {
+            Buildings =
+            [
+                new Building
+                {
+                    Id = 1,
+                    Capacity = 100,
+                    Floors = [new Floor { Id = 10, Capacity = 40 }],
+                },
+            ],
+        };
+
+    [Fact]
+    public void AddFieldsFrom_SharedInterfaceGroup_AddedToMultipleTypes_ViaContravariance()
+    {
+        var schema = SchemaBuilder.FromObject<SiteContext>();
+        schema.Type<Building>().AddFieldsFrom<OccupancyFieldsShared>();
+        schema.Type<Floor>().AddFieldsFrom<OccupancyFieldsShared>();
+
+        var services = new ServiceCollection();
+        services.AddSingleton(new OccupancyService());
+
+        var res = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ buildings { utilisation floors { utilisation } } }" },
+            SiteData(),
+            services.BuildServiceProvider(),
+            null
+        );
+        Assert.Null(res.Errors);
+        dynamic buildings = res.Data!["buildings"]!;
+        Assert.Equal(0.1, buildings[0].utilisation, 3);
+        Assert.Equal(1.0, buildings[0].floors[0].utilisation, 3);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_GenericGroup_ClosedPerType()
+    {
+        var schema = SchemaBuilder.FromObject<SiteContext>();
+        schema.Type<Building>().AddFieldsFrom<OccupancyFieldsGeneric<Building>>();
+        schema.Type<Floor>().AddFieldsFrom<OccupancyFieldsGeneric<Floor>>();
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ buildings { halfCapacity floors { halfCapacity } } }" }, SiteData(), null, null);
+        Assert.Null(res.Errors);
+        dynamic buildings = res.Data!["buildings"]!;
+        Assert.Equal(50, buildings[0].halfCapacity);
+        Assert.Equal(20, buildings[0].floors[0].halfCapacity);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_MultiContextGroup_EachRegistrationAddsOnlyMatchingMethods()
+    {
+        var schema = SchemaBuilder.FromObject<SiteContext>();
+        schema.Type<Building>().AddFieldsFrom<OccupancyFieldsMulti>();
+        schema.Type<Floor>().AddFieldsFrom<OccupancyFieldsMulti>();
+
+        // each type has its own utilisationM; floorLabel only landed on Floor
+        Assert.True(schema.Type<Building>().HasField("utilisationM", null));
+        Assert.True(schema.Type<Floor>().HasField("utilisationM", null));
+        Assert.False(schema.Type<Building>().HasField("floorLabel", null));
+        Assert.True(schema.Type<Floor>().HasField("floorLabel", null));
+
+        var services = new ServiceCollection();
+        services.AddSingleton(new OccupancyService());
+
+        var res = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ buildings { utilisationM floors { utilisationM floorLabel } } }" },
+            SiteData(),
+            services.BuildServiceProvider(),
+            null
+        );
+        Assert.Null(res.Errors);
+        dynamic buildings = res.Data!["buildings"]!;
+        Assert.Equal(0.1, buildings[0].utilisationM, 3);
+        Assert.Equal(2.0, buildings[0].floors[0].utilisationM, 3);
+        Assert.Equal("Floor 10", (string)buildings[0].floors[0].floorLabel);
+    }
+
+    #endregion
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
@@ -71,11 +72,28 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
 
         options ??= new SchemaBuilderOptions();
         var contextParam = Expression.Parameter(TypeDotnet, $"ctx_{TypeDotnet.Name}");
+        // A class may implement IFieldsFor<> for several contexts to group a feature across types
+        // (e.g. occupancy fields for Building, Floor & Space in one class). Each registration then only
+        // adds the methods written for that context - methods targeting one of the OTHER declared
+        // contexts are skipped. With a single declared context nothing is filtered, so a mismatched
+        // method still fails loudly rather than silently disappearing.
+        var declaredContexts = typeof(TFrom)
+            .GetInterfaces()
+            .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IFieldsFor<>))
+            .Select(i => i.GetGenericArguments()[0])
+            .ToList();
         object? instance = null;
         foreach (var method in typeof(TFrom).GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static))
         {
             if (method.GetCustomAttribute<GraphQLFieldAttribute>() == null)
                 continue;
+
+            if (declaredContexts.Count > 1)
+            {
+                var methodContext = GetDeclaredMethodContext(method, declaredContexts);
+                if (methodContext != null && !methodContext.IsAssignableFrom(TypeDotnet) && declaredContexts.Contains(methodContext))
+                    continue;
+            }
 
             Expression? callInstance = null;
             if (!method.IsStatic)
@@ -99,6 +117,32 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
                 AddField(field);
         }
         return this;
+    }
+
+    /// <summary>
+    /// The context type a [GraphQLField] method in a multi-context grouping class is written for - the first
+    /// parameter of the returned expression's delegate for expression factories, otherwise the first method
+    /// parameter whose type is one of the class's declared IFieldsFor&lt;&gt; contexts. Null when the method
+    /// declares no context (context-free fields are added to every registration).
+    /// </summary>
+    private static Type? GetDeclaredMethodContext(MethodInfo method, List<Type> declaredContexts)
+    {
+        if (typeof(LambdaExpression).IsAssignableFrom(method.ReturnType))
+        {
+            if (method.ReturnType.IsGenericType)
+            {
+                var delegateArgs = method.ReturnType.GetGenericArguments()[0].GetGenericArguments();
+                if (delegateArgs.Length > 0)
+                    return delegateArgs[0];
+            }
+            return null;
+        }
+        foreach (var param in method.GetParameters())
+        {
+            if (declaredContexts.Contains(param.ParameterType))
+                return param.ParameterType;
+        }
+        return null;
     }
 
     /// <summary>
