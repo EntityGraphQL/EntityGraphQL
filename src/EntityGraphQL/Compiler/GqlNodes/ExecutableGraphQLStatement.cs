@@ -447,7 +447,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     // new context
                     var prevDelegateCache = compileContext.DelegateCache;
                     var prevDelegateCacheKeyBase = compileContext.DelegateCacheKeyBase;
-                    var newCompileContext = new CompileContext(compileContext.ExecutionOptions, bulkData, compileContext.RequestContext, OpVariableParameter, docVariables, compileContext.CancellationToken)
+                    var newCompileContext = new CompileContext(
+                        compileContext.ExecutionOptions,
+                        bulkData,
+                        compileContext.RequestContext,
+                        OpVariableParameter,
+                        docVariables,
+                        compileContext.CancellationToken
+                    )
                     {
                         DelegateCache = prevDelegateCache,
                         DelegateCacheKeyBase = prevDelegateCacheKeyBase,
@@ -508,9 +515,16 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 compileContext.CancellationToken.ThrowIfCancellationRequested();
 
                 // rebuild list expression on new context
-                var toReplace = node.Field!.ResolveExpression!;
                 var listExpression = bulkResolver.GetBulkSelectionExpression(newContextParam, bulkResolver.ListExpressionPath.GetRange(1, bulkResolver.ListExpressionPath.Count - 1), replacer);
                 // var listExpression = replacer.Replace(bulkResolver.GetListExpression(runningContext, newContextParam, replacer), toReplace, newContextParam);
+                // When the bulk field is reached through a single object (e.g. a mutation returning a
+                // single entity, or a nested single-object navigation), the selection expression is that
+                // single object rather than a list. Wrap it in a one-element array so the same
+                // Where/Select bulk-key projection below applies uniformly.
+                if (!listExpression.Type.IsEnumerableOrArray())
+                {
+                    listExpression = Expression.NewArrayInit(listExpression.Type, listExpression);
+                }
                 var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
                 // replace the data selection expression with the new context
                 var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);
@@ -938,14 +952,25 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             // an async value are walked, so non-async branches of a result are returned untouched
 
             var underlying = Nullable.GetUnderlyingType(type) ?? type;
-            if (underlying.IsPrimitive || underlying.IsEnum || underlying == typeof(string) || underlying == typeof(decimal) || underlying == typeof(DateTime) || underlying == typeof(DateTimeOffset) || underlying == typeof(TimeSpan) || underlying == typeof(Guid))
+            if (
+                underlying.IsPrimitive
+                || underlying.IsEnum
+                || underlying == typeof(string)
+                || underlying == typeof(decimal)
+                || underlying == typeof(DateTime)
+                || underlying == typeof(DateTimeOffset)
+                || underlying == typeof(TimeSpan)
+                || underlying == typeof(Guid)
+            )
                 return false;
 
             if (type.IsArray)
                 return TypeCouldContainAsyncValue(type.GetElementType()!, visiting);
 
             var enumerableInterface =
-                type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? type : type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+                type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                    ? type
+                    : type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
             if (enumerableInterface != null)
                 // covers dictionaries too - KeyValuePair<K,V> is checked as the element type
                 return TypeCouldContainAsyncValue(enumerableInterface.GetGenericArguments()[0], visiting);
@@ -1291,7 +1316,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 // element type directly. The List<T> element type must match the query's projected type exactly
                 // as the second (services) pass reflects over it
                 var enumerableInterface =
-                    t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? t : t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+                    t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                        ? t
+                        : t.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
                 if (enumerableInterface == null)
                     return static source => ((IEnumerable)source).Cast<object?>().ToList();
                 var method = typeof(ExecutableGraphQLStatement).GetMethod(nameof(MaterializeEnumerable), BindingFlags.NonPublic | BindingFlags.Static)!;

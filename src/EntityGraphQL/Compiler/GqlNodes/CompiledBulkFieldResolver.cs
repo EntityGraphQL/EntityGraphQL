@@ -37,6 +37,12 @@ public class CompiledBulkFieldResolver(
             if (i == 0 && isRoot)
             {
                 currentContextExpression = newContextParam;
+                // Mutation fields are followed by their own ResultSelection node (same name, distinct
+                // instance). Skip that structural duplicate so navigation starts at the first genuine
+                // child field rather than trying to read the root field name off its own result.
+                // Match by reference — not name — so a child aliased to the root name is not skipped.
+                if (parentNode is GraphQLMutationField mutationNode && i + 1 < listExpressionPath.Count && ReferenceEquals(listExpressionPath[i + 1], mutationNode.ResultSelection))
+                    i++;
             }
             else
             {
@@ -114,7 +120,25 @@ public class CompiledBulkFieldResolver(
                 }
                 else if (parentNode is GraphQLObjectProjectionField parentObjectNode)
                 {
-                    if (isSelectionList)
+                    if (isCurrentContextList)
+                    {
+                        // The context is a list (e.g. a root list field, or the result of an earlier list
+                        // navigation) and we are navigating an object/collection field on each element.
+                        // Project it out per element (and flatten if the field itself is a collection) so
+                        // the bulk data selector still sees a flat list of the target objects. Without this
+                        // the single-object handling below produced an expression referencing an unbound
+                        // element parameter (or threw building IEnumerable<null>).
+                        string selectMethod = isSelectionList ? nameof(EnumerableExtensions.SelectManyWithNullCheck) : nameof(EnumerableExtensions.SelectWithNullCheck);
+                        currentContextExpression = Expression.Call(
+                            typeof(EnumerableExtensions),
+                            selectMethod,
+                            [param.Type, isSelectionList ? selectElementType! : selection.Type],
+                            currentContextExpression,
+                            Expression.Lambda(selection, (ParameterExpression)param),
+                            Expression.Constant(true)
+                        );
+                    }
+                    else if (isSelectionList)
                     {
                         var nullCheck = Expression.MakeBinary(ExpressionType.Equal, currentContextExpression, Expression.Constant(null, currentContextExpression.Type));
                         currentContextExpression = Expression.Condition(
