@@ -66,7 +66,7 @@ public class EnumListVariableTests
             ""variables"": { ""description"": ""d"", ""key"": ""k"", ""claims"": [""Female""], ""customerId"": ""1b4082d8-171e-4a6a-9e4f-58bec9c6b3ce"" }
         }";
         var gql = Newtonsoft.Json.JsonConvert.DeserializeObject<QueryRequest>(q)!;
-        var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null, new ExecutionOptions { IncludeDebugInfo = true });
+        var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         if (result.Errors != null)
             Assert.Fail(string.Join("\n---\n", result.Errors.Select(e => e.Message)));
         Assert.Equal(1, result.Data!["addThing"]);
