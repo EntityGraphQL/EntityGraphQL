@@ -1,20 +1,13 @@
 #!/bin/bash
 
-if [ -z "$1" ]
-then
+# Builds the docs site (current + versioned snapshots - see docusaurus.config.js for versioning)
+# and pushes it to the entitygraphql.github.io repo.
+# Optional argument: a label for the publish commit message, e.g. ./publish.sh 6.0.0-beta9
 
-  echo
-  echo ERROR: Please provide a version
-  echo
+MSG=${1:-$(date +%Y-%m-%d)}
 
-else
+echo Building documentation site
+npm run build || exit 1
 
-  echo Generating documentation for Version $1
-
-  npm run build
-
-  echo Publishing
-
-  npx gh-pages -d build -b main -r git@github.com:entitygraphql/entitygraphql.github.io.git -m "Documentation update for $1"
-
-fi
+echo Publishing
+npx gh-pages -d build -b main -r git@github.com:entitygraphql/entitygraphql.github.io.git -m "Documentation update: $MSG"
