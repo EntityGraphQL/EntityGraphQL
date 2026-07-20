@@ -1,3 +1,9 @@
+# 6.0.1
+
+## Fixes
+
+- Package dependencies now use per-target-framework versions - the `net8.0` build asks for `Microsoft.Extensions.Logging.Abstractions`/`System.Runtime.Caching` 8.x and `net9.0` for 9.x, instead of all target frameworks demanding 10.x. 6.0.0 forced net8/net9 consumers onto 10.x runtime libraries, which collided with other packages' version bounds (e.g. `NU1608` warning floods via transitive `System.Diagnostics.DiagnosticSource` where a dependency caps it below 9.0). No API changes.
+
 # 6.0.0
 
 EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 releases. The beta sections below carry the full, detailed lists of changes, fixes and migration notes - and see the [upgrade guide](https://entitygraphql.github.io/upgrade-6-0) for a consolidated migration path from 5.x.

@@ -4,7 +4,7 @@
     <LangVersion>14.0</LangVersion>
     <AssemblyName>EntityGraphQL</AssemblyName>
     <PackageId>EntityGraphQL</PackageId>
-    <PackageVersion>6.0.0</PackageVersion>
+    <PackageVersion>6.0.1</PackageVersion>
     <Description>A GraphQL library for .NET. Compiles queries into .NET Expressions (LinqProvider) for runtime execution against object graphs. E.g. against an ORM data model (EntityFramework or others) or just an in-memory object.</Description>
     <Authors>Luke Murray</Authors>
     <PackageProjectUrl>https://github.com/lukemurray/EntityGraphQL</PackageProjectUrl>
@@ -26,8 +26,21 @@
   <ItemGroup>
     <PackageReference Include="Parlot" Version="1.5.7" />
     <PackageReference Include="Humanizer.Core" Version="3.0.10" />
-    <PackageReference Include="System.Runtime.Caching" Version="10.0.9" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+  </ItemGroup>
+  <!-- Runtime-library dependencies use per-TFM floors: a net8.0 consumer should get 8.x minimums, not be
+       forced up to the newest ring (which collides with other packages' upper bounds, e.g. NU1608 noise
+       via transitive System.Diagnostics.DiagnosticSource). Keep each group on its own version line. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="System.Runtime.Caching" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <PackageReference Include="System.Runtime.Caching" Version="9.0.18" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.18" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="System.Runtime.Caching" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="" />
