@@ -5,6 +5,10 @@ slug: /
 
 # Getting Started
 
+:::info Upgrading from 5.x?
+EntityGraphQL 6.0 includes some breaking changes - see the [5.x to 6.0 upgrade guide](./upgrade-6-0). The [5.7 documentation](/5.7/) remains available if you are not ready to upgrade.
+:::
+
 EntityGraphQL is a .NET library for building a [GraphQL API](https://graphql.org/learn/) on top of your data model, with the extensibility to bring multiple data sources together in a single GraphQL schema. Your schema maps to plain .NET objects - an Entity Framework `DbContext` or any other object graph.
 
 A core feature (with EF, although EF is not a requirement) is that queries are compiled to LINQ [`Select()`](https://learn.microsoft.com/en-us/dotnet/csharp/linq/standard-query-operators/projection-operations#select) projections of only the fields requested in the GraphQL query - Entity Framework doesn't return all columns of a table, and it works across any object tree.

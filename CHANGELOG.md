@@ -1,6 +1,6 @@
 # 6.0.0
 
-EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 releases. The beta sections below carry the full, detailed lists of changes, fixes and migration notes - and see the [upgrade guide](https://entitygraphql.github.io/6.0/upgrade-6-0) for a consolidated migration path from 5.x.
+EntityGraphQL 6.0 is the culmination of the 6.0.0-beta1 through 6.0.0-beta9 releases. The beta sections below carry the full, detailed lists of changes, fixes and migration notes - and see the [upgrade guide](https://entitygraphql.github.io/upgrade-6-0) for a consolidated migration path from 5.x.
 
 ## 6.0 Highlights
 

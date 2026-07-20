@@ -58,19 +58,17 @@ const config = {
           sidebarPath: require.resolve('./sidebars.js'),
           // docs are the site - no separate landing page. Root '/' is getting-started
           routeBasePath: '/',
-          // While 6.0 is in beta, 5.7 (snapshotted from the 5.7.2 tag under versioned_docs) is the
-          // default version served at the root and the 6.0 beta docs live under /6.0/ with an
-          // "unreleased" banner. When 6.0 goes final: set lastVersion to 'current', remove the
-          // current.path so 6.0 docs serve at the root, and re-point the announcement bar
-          lastVersion: '5.7',
+          // 6.0 (the working docs under docs/) is the default version served at the root.
+          // 5.7 (snapshotted from the 5.7.2 tag under versioned_docs) remains browsable at /5.7/.
+          // Cut the next snapshot (docs:version 6.0) only when 6.x-stable and next-major docs diverge
+          lastVersion: 'current',
           versions: {
             current: {
               label: '6.0',
-              path: '6.0',
-              banner: 'unreleased',
             },
             5.7: {
               label: '5.7',
+              banner: 'unmaintained',
             },
           },
           editUrl:
@@ -87,8 +85,8 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       announcementBar: {
-        id: 'v6-beta',
-        content: 'EntityGraphQL 6.0.0-beta9 is available - see the <a href="/6.0/">6.0 beta docs</a> and the <a href="/6.0/upgrade-6-0">upgrade guide</a>.',
+        id: 'v6-release',
+        content: 'EntityGraphQL 6.0 is here! Upgrading from 5.x? See the <a href="/upgrade-6-0">upgrade guide</a>.',
         isCloseable: true,
       },
       navbar: {
