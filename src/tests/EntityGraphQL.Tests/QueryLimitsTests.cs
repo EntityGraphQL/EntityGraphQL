@@ -1,6 +1,7 @@
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.QueryLimits;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -422,5 +423,58 @@ public class QueryLimitsTests
         var fail = schema.ExecuteRequestWithContext(gqlNoSkip, data, null, null, new ExecutionOptions { MaxFieldAliases = 3 });
         Assert.NotNull(fail.Errors);
         Assert.Contains(fail.Errors!, e => e.Message.Contains("alias"));
+    }
+
+    [Fact]
+    public void MaxQueryDepth_RejectsAsDocumentErrorBeforeAnyResolverRuns()
+    {
+        var schema = BuildSchema();
+        // a counting service resolver at depth 2 - it must never run when the document is rejected
+        var userService = new UserService();
+        schema.UpdateType<Project>(type => type.AddField("createdByUser", "The user").Resolve<UserService>((proj, srv) => srv.GetUserById(proj.CreatedBy)));
+
+        var data = new TestDataContext().FillWithTestData();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(data);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        // depth 16: projects(1) createdByUser+tasks(2) assignee(3) manager x12 (4..15) id(16)
+        var managers = string.Concat(Enumerable.Repeat("manager { ", 12)) + "id" + string.Concat(Enumerable.Repeat(" }", 12));
+        var gql = new QueryRequest { Query = "{ projects { createdByUser { id } tasks { assignee { " + managers + " } } } }" };
+
+        var result = schema.ExecuteRequest(gql, sp, null, new ExecutionOptions { MaxQueryDepth = 15 });
+
+        Assert.NotNull(result.Errors);
+        Assert.Contains(result.Errors!, e => e.Message.Contains("maximum allowed depth"));
+        // a document (request) error - no data entry at all, not a partial result
+        Assert.Null(result.Data);
+        // rejected before execution - the shallow service resolver never ran
+        Assert.Equal(0, userService.CallCount);
+    }
+
+    [Fact]
+    public void MaxFieldSelections_RejectsAsDocumentErrorBeforeAnyResolverRuns()
+    {
+        var schema = BuildSchema();
+        var userService = new UserService();
+        schema.UpdateType<Project>(type => type.AddField("createdByUser", "The user").Resolve<UserService>((proj, srv) => srv.GetUserById(proj.CreatedBy)));
+
+        var data = new TestDataContext().FillWithTestData();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(data);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        // 503 selections: projects + createdByUser + id + 500 aliased scalar fields
+        var aliased = string.Join(" ", Enumerable.Range(0, 500).Select(i => $"f{i}: name"));
+        var gql = new QueryRequest { Query = "{ projects { createdByUser { id } " + aliased + " } }" };
+
+        var result = schema.ExecuteRequest(gql, sp, null, new ExecutionOptions { MaxFieldSelections = 500 });
+
+        Assert.NotNull(result.Errors);
+        Assert.Contains(result.Errors!, e => e.Message.Contains("maximum allowed node count"));
+        Assert.Null(result.Data);
+        Assert.Equal(0, userService.CallCount);
     }
 }
