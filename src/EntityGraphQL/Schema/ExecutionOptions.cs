@@ -121,6 +121,22 @@ public class ExecutionOptions
     public IQueryComplexityAnalyzer? QueryComplexityAnalyzer { get; set; }
 
     /// <summary>
+    /// How exceeded query limits are handled. <see cref="QueryLimits.QueryLimitsMode.Enforce"/> (the default)
+    /// rejects the query with a document error before any execution. <see cref="QueryLimits.QueryLimitsMode.ReportOnly"/>
+    /// reports exceeded limits via <see cref="OnQueryLimitExceeded"/> and lets the query execute - use it to
+    /// observe real client behavior before enforcing.
+    /// </summary>
+    public QueryLimitsMode QueryLimitsMode { get; set; } = QueryLimitsMode.Enforce;
+
+    /// <summary>
+    /// Called for each exceeded query limit (depth, field selections, aliases, complexity) - e.g. to log it.
+    /// In <see cref="QueryLimits.QueryLimitsMode.Enforce"/> mode it is called just before the query is rejected.
+    /// In <see cref="QueryLimits.QueryLimitsMode.ReportOnly"/> mode it is the only signal - the query still executes.
+    /// Keep implementations fast and non-throwing; an exception thrown here fails the request.
+    /// </summary>
+    public Action<QueryLimitExceededContext>? OnQueryLimitExceeded { get; set; }
+
+    /// <summary>
     /// When enabled, caches the compiled <see cref="Delegate"/> produced by <c>LambdaExpression.Compile()</c> for
     /// each unique (query, variable-set, pass) combination. Cache hits skip IL codegen and reuse the compiled
     /// delegate, passing fresh context, service, and argument values positionally. Expected improvement: 15-25 %

@@ -37,6 +37,33 @@ schema.ExecuteRequest(gql, serviceProvider, user, options);
 
 Tune the numbers against your real traffic. Start permissive and tighten if you see abuse; logs on the `DocumentError` tell you which limit fired.
 
+## Report-only mode and logging
+
+Instead of guessing the numbers, measure them. `QueryLimitsMode.ReportOnly` reports exceeded limits via a callback but lets the query execute, so you can deploy limits without breaking a single client and watch what real traffic does:
+
+```cs
+var options = new ExecutionOptions
+{
+    MaxQueryDepth = 10,
+    MaxFieldSelections = 500,
+    MaxQueryComplexity = 1000,
+    QueryLimitsMode = QueryLimitsMode.ReportOnly,
+    OnQueryLimitExceeded = ctx =>
+        logger.LogWarning("GraphQL query limit {Limit} exceeded: {Actual} > {Maximum} (operation {Operation})",
+            ctx.Limit, ctx.Actual, ctx.Maximum, ctx.OperationName),
+};
+```
+
+The rollout pattern: deploy with `ReportOnly`, watch the logs for what legitimate clients actually hit, adjust the numbers, then switch to `QueryLimitsMode.Enforce` (the default) with confidence.
+
+Details:
+
+- In `ReportOnly` the validator walks the full document, so `ctx.Actual` is the query's real depth/count - useful for choosing the right limit, not just knowing one was exceeded. The callback fires once per exceeded limit.
+- `OnQueryLimitExceeded` also fires in `Enforce` mode, just before the query is rejected - set it in production so rejections are logged with structured detail instead of matching error message text. In enforce mode validation stops at the first violation, so `ctx.Actual` is the value at the point the limit tripped.
+- Keep the callback fast and non-throwing - it runs in the request path and an exception from it fails the request.
+- The [parse-depth backstop](#built-in-parse-depth-backstop) is not affected by `ReportOnly` - it guards the parser stack and always rejects.
+- For **per-field rate limiting** the same pattern is achieved by wrapping the service: implement `IFieldRateLimitService` to delegate to a real limiter, log when `IsAcquired` would be false, and return an acquired lease anyway.
+
 ## Depth
 
 Depth counts how many levels of selection sets you traverse from the root. Fragments don't add a level — their contents are evaluated at the depth of the spread.

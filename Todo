@@ -1,0 +1,167 @@
+## Test coverage
+
+20 Jul 2026
+
+EntityGraphQL: 88.19%
+EntityGraphQL.AspNet: 80.99
+
+# 6.1
+
+- [x] SHIPPED (2026-07-20, on main for 6.1.0): Report-only mode + logging hook for query limits (fully additive, verified 6.x-safe). Today: depth/
+      selections/aliases (QueryLimitsValidator) are enforce-only - throw on first hit, no callback, internal
+      static, nothing to intercept; complexity is bendable (custom IQueryComplexityAnalyzer + MaxQueryComplexity
+      = int.MaxValue, hacky); field rate limiting already supports report-only cleanly in user land (wrap
+      IFieldRateLimitService, log denials, return acquired lease).
+      Design: ExecutionOptions.QueryLimitsMode { Enforce (default) | ReportOnly } +
+      ExecutionOptions.OnQueryLimitExceeded(ctx) with limit kind, actual vs max, operation name.
+      ReportOnly: validator completes the FULL walk (report actual depth/counts, not just "exceeded"), fires
+      callback per exceeded limit, query runs. Enforce + callback: fire before throwing (fixes the logging
+      blind spot for enforcing users - today they can only match error message text in the HTTP layer).
+      COMPAT: keep exception type/category/message text identical in Enforce mode (users match on
+      "exceeds maximum allowed depth" etc.). Wire complexity check through the same callback. Docs: the
+      rollout pattern (deploy ReportOnly -> watch logs for what legit clients do -> flip to Enforce).
+      Part of the "Better execution hooks - additive only" theme below.
+
+From the 6.0 async review (remaining items; the review file itself is done and deleted):
+
+- [ ] Async DB execution phase 2: to-single root fields (`person(id: ...)`). The terminal `First/FirstOrDefault()`
+      executes synchronously mid-expression and `FirstOrDefaultAsync` is EF-only. Dependency-free approach:
+      detect the terminal list-to-single call in `GraphQLCollectionToSingleField`, strip it, async-enumerate the
+      first element (`Take(1)` + `IAsyncEnumerable`), re-apply null/not-null semantics. Phase 1 (root lists) is in
+      `ExecuteExpressionAsync.MaterializeDeferredResultAsync` - same pattern.
+
+- [ ] Async DB execution phase 3 (only if demanded): root-level scalar aggregates (`Count()` etc. and root
+      UseAggregate fields) have no dependency-free async equivalent. Would need an execution hook
+      (e.g. `ExecutionOptions.QueryExecutor`) that an optional EF adapter package implements with the real
+      EF async methods. Aggregates inside projections are already covered by the single async enumeration.
+
+- [ ] Deferred materialization for null-check-wrapped root list shapes (single pass with services /
+      `ExecuteServiceFieldsSeparately=false`). Currently keep in-tree `ToListWithNullCheck` because the executor-side
+      materializer doesn't know field nullability (null source -> empty list for non-nullable). Needs nullability
+      plumbed to `MaterializeDeferredResultAsync`. Low value (these paths are in-memory) - do only if tidying.
+
+- [ ] Opt-in parallel root query fields: `ExecutionOptions.ExecuteQueryFieldsInParallel` (default false),
+      `Task.WhenAll` over root fields. Prerequisites: per-root-field `CompileContext` (constants/services/bulk
+      state are per-field mutable - we already clear BulkResolvers between fields), synchronized errors list,
+      response ordering by query order (result dict is already ConcurrentDictionary). Document: context +
+      services must be thread-safe (EF via `IDbContextFactory`). Nice variant: engine creates a DI scope per
+      root field so scoped DbContext is safe automatically (visible semantics change - scoped services no longer
+      shared across root fields, hence opt-in). Mutations must stay serial per spec. Delegate-cache key already
+      includes the field name (collision fixed in beta9).
+      Possible later layer: auto-parallelize root fields that never reference the query context (pure service roots).
+
+- [ ] Fragment-definition directives: variable arguments ($var) don't resolve - they are visited at parse time
+      on the cached document (`GraphQLParser.ParseFragmentDefinition`) where per-request variables don't exist;
+      only literal directive args work. Fix is deferring the visit to execution/fragment expansion with
+      docParam/docVariables (same class of issue as the inline-fragment `@include(if: $var)` bug fixed in beta9).
+      Niche: @skip/@include aren't valid on FRAGMENT_DEFINITION, so this only affects custom directives.
+
+- [ ] Replace the vacuous `TestNextIsSent` websocket test (closes the socket before the event fires; its Moq
+      callback assertions never run). `TestMultipleEventsAreDeliveredInOrder` is the non-vacuous version.
+
+Feature backlog (additive, from the old "Maybe 6.0" list):
+
+- [ ] `[GraphQLField]` methods with services on NON-ROOT entity types. The root-context case already works and
+      is tested (SchemaBuilder.FromObject + AddFieldsFrom/AddQueryFieldsFrom - see GraphQLFieldAttributeTests +
+      AddFieldsFromTests). The gap: a service method on a nested entity (e.g. `Movie.AgesOfActorsAtRelease(ICalc c)`
+      queried via `movies { ... }`) - skipped test TestGraphQLFieldAttributeWithServiceNotRoot, documented
+      limitation in other-data-sources.md. Failure mode: pass 2 invokes the method on the pass-1 anonymous type
+      ("Method ... cannot be called with instance of type 'Dynamic_...'") because the method body is opaque IL -
+      no extracted deps, no call-target rewrite.
+      VALIDATED DESIGN (prototyped 2026-07-09/10 in working tree; in-memory + EF/SQLite pass incl. SQL column
+      assertions; full core 1047 + EF + AspNet suites green). Two modes by call target, no compiler changes:
+      1. INSTANCE method on the entity: body is opaque and needs `this`, so capture the WHOLE entity as the
+         pass-1 dependency - ExtractedFieldsFromServices = [bare context param]; pass 1 projects
+         `egql_ctx_X = entity` (EF materializes entities inside anon types fine), and the existing
+         ExpressionReplacer.VisitParameter rewrites the call target in pass 2. MUST DOCUMENT: all mapped
+         columns of that entity are selected (no pruning) and navigation properties the body reads are NOT
+         loaded (silently empty) - scalar-only bodies, else use .Resolve()/bulk resolvers.
+      2. STATIC method (or AddFieldsFrom method - call target is the TFrom singleton, not the entity) with
+         DECLARED dependencies: new [GraphQLFromContext(nameof(X))] parameter attribute (member name defaults
+         to the parameter name) binds the parameter to a context member instead of a GraphQL arg/service. The
+         built call expression then contains plain member accesses (`m.Name`), so the STANDARD
+         ExpressionExtractor extracts/rewrites them exactly like .Resolve() deps - column pruning preserved
+         (verified: undeclared column absent from generated SQL). Static is the honesty guarantee: the method
+         physically cannot read undeclared entity state, so the declaration cannot lie. A whole-entity param
+         (`Product me`) also works and extracts as whole capture.
+      3. EXPRESSION-FACTORY members - SHIPPED (2026-07-10: real tests in AddFieldsFromTests +
+         AddFieldsFromEFTests incl. SQL assertions; documented in fields.md "Expression fields with
+         AddFieldsFrom" + linked from the other-data-sources.md limitation section): a [GraphQLField] method
+         returning Expression<Func<TContext, ...>> is invoked ONCE at schema build time and registered
+         through the same SetUpField path as AddField().Resolve() - service-free expressions compose fully
+         into the DB-bound pass; extra expression params are services and get standard .Resolve() two-pass
+         with auto-extracted deps. Factory method takes no parameters (GraphQL args would need
+         Expression<Func<TContext, TArgs, ...>> support - future).
+      COMPILE-TIME SAFETY plan (goal: stop/fix accidental whole-entity select + wrong context at build):
+      - IFieldsFor<in TContext> marker - SHIPPED MANDATORY (2026-07-10, OK because AddFieldsFrom is new in
+        the 6.0 beta): AddFieldsFrom<TFrom>() where TFrom : class, IFieldsFor<TBaseType> and
+        AddQueryFieldsFrom<TType>() where TType : class, IFieldsFor<TContextType>. Wrong-type registration
+        now fails to COMPILE. Contravariant so a fields class for a base type works on derived. Docs updated
+        (fields.md, other-data-sources.md, upgrade-6-0.md). Still possible later: instance overload
+        AddFieldsFrom(IFieldsFor<TBaseType> fields) for DI-constructed grouping classes.
+      - ANALYZER package (EntityGraphQL.Analyzers, dev dependency) - analyzers+code fixes are the right tool
+        for "stop or fix mistakes" (a generator can only ADD code, it cannot alter user methods). Diagnostics:
+        EGQL001 error: expression field's context param type != the IFieldsFor<T> type;
+        EGQL002 warn(configurable error): [GraphQLField] instance method on an entity with service params ->
+          silently selects the whole entity; CODE FIX: rewrite to expression factory (if body is a single
+          expression) or to static + [GraphQLFromContext] params;
+        EGQL003 error: [GraphQLFromContext(nameof(X))] member missing/type-mismatched on the context type;
+        EGQL004 info: value-returning method whose body is expression-able -> suggest expression factory
+          (code fix does the mechanical rewrite - Projectables-DX via a one-time VISIBLE rewrite, debuggable,
+          no invisible codegen).
+      - Runtime belt-and-braces: SchemaBuilderOptions flag to disallow whole-entity capture (clear startup
+        error pointing at the alternatives) for teams that want a hard guarantee without the analyzer.
+      To productionize: attribute naming (GraphQLFromContext? user sketched GraphQLFromType); un-skip
+      TestGraphQLFieldAttributeWithServiceNotRoot; test/dedupe MULTIPLE service methods on one type (shared
+      context param -> same captured member name); deeper nesting, fragments/interfaces, paging extensions,
+      async methods; behavior of [GraphQLFromContext] on root-context/mutation methods; rewrite the
+      "Limitation" section in other-data-sources.md. Rejected alternatives: declared deps on instance methods
+      via stub entity reconstruction (declaration can lie -> silent wrong data); name-convention auto-binding
+      (too magic). ExecuteServiceFieldsSeparately=false already works today (verified). Long-term the
+      source-gen/Projectables item (7.0) subsumes mode 1's caveats (body becomes an expression).
+
+- [ ] `.WithCache()` for service fields + dedupe when multiple fields use the same service. These are the same
+      problem - design together: a request-lifetime (or injectable/TTL) cache keyed by e.g. `.WithCache(u => u.Id)`
+      solves both the explicit-cache and the duplicate-service-call cases.
+
+- [ ] Bulk service within a bulk service (nested bulk resolvers). Bulk machinery was hardened in the 6.0 cycle
+      (state leak between root fields fixed, delegate-cache key fixed) so the foundation is fresh.
+
+- [ ] `@auth` schema directive
+
+- [ ] Mutation methods from SchemaBuilder
+
+- [ ] Schema filter extension
+
+- [ ] Better SDL comments/docs including args etc. Caution: changing SDL output breaks users' schema-snapshot
+      tests - ship with a clear release note.
+
+- [ ] Better execution hooks - additive only (new optional properties on ExecutionOptions don't break anyone).
+      Needs concrete scope before scheduling. Note 6.0 already adjusted the `BeforeExecuting` contract slightly
+      (no root ToList on the database-bound pass - see 6.0.0-beta9 CHANGELOG).
+
+# 7.0
+
+- [ ] Remove `ParameterReplacer.ReplaceByType` (marked `[Obsolete]` in 6.0). The real fix: thread the actual
+      schema-context `ParameterExpression` through `Field.GetExpression`/`MethodField` so the two internal call
+      sites (see `#pragma warning disable CS0618` markers) can use exact-parameter replacement - by-type
+      replacement rewrites any parameter of the matching type (the schema-context type is the query-context type,
+      so a field expression with a second parameter of that type mis-replaces).
+
+- [ ] Fully-async query compilation path so query-field argument validators can be awaited (they currently bridge
+      sync via `GetResult` in `GraphQLHelper.ValidateAndReplaceFieldArgs` - documented in validation.md as "no I/O in
+      query-field validators"). Mutation/subscription validators are already genuinely awaited. Large change to the
+      compile pipeline, likely breaking for extensions.
+
+- [ ] When the TFM floor reaches net10+: drop the manual `await foreach` branch in
+      `ExecutableGraphQLStatement.MaterializeAsyncEnumerable` (the `#if NET10_0_OR_GREATER` branch using the in-box
+      `System.Linq.AsyncEnumerable.ToListAsync` becomes the only path), and consider the BCL async LINQ operators
+      elsewhere in the engine.
+
+- [ ] Source generator projects (design projects, likely a standalone package on its own schedule rather than a
+      version-gated item): Projectables-style `[GraphQLField]` support (or depend on Projectables), `WhereWhen`
+      etc. in non-top-level EF expressions, services with lazy loading/Projectables.
+
+# Parked
+
+- Redis pub/sub subscription example - docs-only, zero risk, no version gate. Do any time.
