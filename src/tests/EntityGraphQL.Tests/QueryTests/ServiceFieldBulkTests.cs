@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -1313,7 +1315,11 @@ public class ServiceFieldBulkTests
                         {
                             Id = 1,
                             Name = "Task 1",
-                            Assignee = new Person { Id = 1, Manager = new Person { Id = 7 } },
+                            Assignee = new Person
+                            {
+                                Id = 1,
+                                Manager = new Person { Id = 7 },
+                            },
                         },
                         new Task
                         {
@@ -1540,5 +1546,226 @@ public class ServiceFieldBulkTests
         Assert.Equal(7, projects[0].tasks[0].assignee.createdBy.id);
         Assert.Equal(8, projects[0].tasks[1].assignee.createdBy.id);
         Assert.Equal("Hello", projects[0].tasks[0].assignee.createdBy.field2);
+    }
+
+    /// <summary>
+    /// Regression for root lists that use WhereWhen (and optionally OrderBy / UseFilter) with a
+    /// scalar ResolveBulk field on the list element — mirrors customers { totalActiveSensors }.
+    /// Two-pass service execution must not rewrite Queryable.WhereWhen against the materialised list.
+    /// </summary>
+    [Fact]
+    public void TestScalarBulkOnWhereWhenRootList_WithSiblingRootField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Query()
+            .ReplaceField(
+                "projects",
+                new { like = (string?)null, withName = (bool?)null },
+                (ctx, args) =>
+                    ctx
+                        .QueryableProjects.WhereWhen(p => p.Name.ToLower().Contains(args.like!.ToLower()), !string.IsNullOrEmpty(args.like))
+                        .WhereWhen(p => p.Name != null, args.withName == true)
+                        .OrderBy(p => p.Name),
+                "Get projects"
+            )
+            .UseFilter();
+
+        schema.UpdateType<Project>(type =>
+        {
+            type.AddField("totalActiveSensors", "Active sensor count")
+                .Resolve<ProjectSensorTotalsService>((p, svc) => svc.GetActive(p.Id))
+                .ResolveBulk<ProjectSensorTotalsService, int, int>(p => p.Id, (ids, svc) => svc.GetActiveMany(ids))
+                .IsNullable(false);
+        });
+
+        // Sibling root field (like customers + currentUserPreference) exercises BulkResolvers.Clear()
+        schema.Query().AddField("favoriteProjectIds", "Favorite project ids").Resolve<FavoriteProjectsService>((_, svc) => svc.GetFavoriteIds()).IsNullable(false);
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                projects(like: """") {
+                    id
+                    name
+                    totalActiveSensors
+                }
+                favoriteProjectIds
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "Project 2",
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        var totals = new ProjectSensorTotalsService();
+        serviceCollection.AddSingleton(totals);
+        serviceCollection.AddSingleton(new FavoriteProjectsService());
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, totals.CallCount);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(2, projects.Count);
+        Assert.Equal(10, projects[0].totalActiveSensors);
+        Assert.Equal(20, projects[1].totalActiveSensors);
+        Assert.Equal(new[] { 1, 2 }, ((IEnumerable<int>)res.Data!["favoriteProjectIds"]!).ToArray());
+    }
+
+    /// <summary>
+    /// Same as above but with an AsSplitQuery-style directive that rebuilds the list node
+    /// (xynger @asSplitQuery). Historically that dropped IsRootField and second-pass execution
+    /// tried to re-apply Queryable.WhereWhen against the materialised List&lt;Dynamic&gt;.
+    /// </summary>
+    [Fact]
+    public void TestScalarBulkOnWhereWhenRootList_WithAsSplitQueryStyleDirective()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddDirective(new AsSplitQueryStyleDirective(preserveIsRootField: false));
+        schema
+            .Query()
+            .ReplaceField(
+                "projects",
+                new { like = (string?)null },
+                (ctx, args) => ctx.QueryableProjects.WhereWhen(p => p.Name.ToLower().Contains(args.like!.ToLower()), !string.IsNullOrEmpty(args.like)).OrderBy(p => p.Name),
+                "Get projects"
+            );
+
+        schema.UpdateType<Project>(type =>
+        {
+            type.AddField("totalActiveSensors", "Active sensor count")
+                .Resolve<ProjectSensorTotalsService>((p, svc) => svc.GetActive(p.Id))
+                .ResolveBulk<ProjectSensorTotalsService, int, int>(p => p.Id, (ids, svc) => svc.GetActiveMany(ids))
+                .IsNullable(false);
+        });
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                projects(like: """") @asSplitQueryStyle {
+                    id
+                    totalActiveSensors
+                }
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "A",
+                },
+                new Project
+                {
+                    Id = 2,
+                    CreatedBy = 2,
+                    Name = "B",
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        var totals = new ProjectSensorTotalsService();
+        serviceCollection.AddSingleton(totals);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, totals.CallCount);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(2, projects.Count);
+        Assert.Equal(10, projects[0].totalActiveSensors);
+        Assert.Equal(20, projects[1].totalActiveSensors);
+    }
+}
+
+/// <summary>Mirrors xynger's SensorTotalsProvider customer aggregate used via ResolveBulk.</summary>
+public class ProjectSensorTotalsService
+{
+    public int CallCount { get; private set; }
+
+    public int GetActive(int projectId) => GetActiveMany([projectId])[projectId];
+
+    public IDictionary<int, int> GetActiveMany(IEnumerable<int> projectIds)
+    {
+        CallCount++;
+        return projectIds.Distinct().ToDictionary(id => id, id => id * 10);
+    }
+}
+
+/// <summary>Sibling root service field stand-in (like currentUserPreference).</summary>
+public class FavoriteProjectsService
+{
+    public IEnumerable<int> GetFavoriteIds() => [1, 2];
+}
+
+/// <summary>
+/// Stand-in for EF Core RelationalQueryableExtensions.AsSplitQuery — same Expression.Call shape
+/// the xynger @asSplitQuery directive injects into the list expression.
+/// </summary>
+public static class AsSplitQueryStyleExtensions
+{
+    public static IQueryable<T> AsSplitQuery<T>(this IQueryable<T> source) => source;
+}
+
+/// <summary>
+/// Mirrors xynger's AsSplitQueryDirective: wraps ListExpression and rebuilds the list node.
+/// When <paramref name="preserveIsRootField"/> is false, reproduces the bug that dropped IsRootField.
+/// </summary>
+public class AsSplitQueryStyleDirective(bool preserveIsRootField) : DirectiveProcessor<object>
+{
+    public override string Name => "asSplitQueryStyle";
+    public override string Description => "Test stand-in for asSplitQuery";
+    public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.Field];
+
+    public override IGraphQLNode? VisitNode(ExecutableDirectiveLocation location, IGraphQLNode? node, object? arguments)
+    {
+        if (node is not GraphQLListSelectionField listField)
+            return node;
+
+        var listExpression = Expression.Call(
+            typeof(AsSplitQueryStyleExtensions),
+            nameof(AsSplitQueryStyleExtensions.AsSplitQuery),
+            [listField.ListExpression.Type.GetGenericArguments()[0]],
+            listField.ListExpression
+        );
+        var rebuilt = new GraphQLListSelectionField(
+            listField.Schema,
+            listField.Field,
+            listField.Name,
+            (ParameterExpression)listField.NextFieldContext!,
+            listField.RootParameter,
+            listExpression,
+            listField.ParentNode!,
+            listField.Arguments.ToDictionary(x => x.Key, x => x.Value)
+        );
+        if (preserveIsRootField)
+            rebuilt.IsRootField = listField.IsRootField;
+        foreach (var item in listField.QueryFields)
+            rebuilt.QueryFields.Add(item);
+        return rebuilt;
     }
 }

@@ -329,8 +329,11 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             nextFieldContext = Expression.Field(replacementNextFieldContext, possibleField);
         else // need to replace context expressions in the service expression with the new context
         {
-            // If this is a root field, we replace the whole expression unless there is services at the root level
-            if (IsRootField && !HasServices)
+            // Root list/object fields materialise to the first-pass result itself (not a property on a parent).
+            // Prefer IsRootField, but also treat ParentNode being the operation statement as root — custom
+            // directives that rebuild GraphQLListSelectionField often forget to copy IsRootField.
+            var treatAsRootField = IsRootField || ParentNode is ExecutableGraphQLStatement;
+            if (treatAsRootField && !HasServices)
                 nextFieldContext = replacementNextFieldContext;
             else if (HasServices)
             {
@@ -342,7 +345,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
                 // if ParentNode?.HasServices == true the above has been done and we just need to replace the
                 // expression, not rebuild it with a different name
 
-                var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, IsRootField && HasServices, possibleNextContextTypes);
+                var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, treatAsRootField && HasServices, possibleNextContextTypes);
                 nextFieldContext = expReplacer.Replace(nextFieldContext!);
             }
             // may need to replace the field's original parameter
@@ -394,11 +397,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
                     $"Fields with the same response name '{newField.Name}' must be the same field with identical arguments. Use different aliases."
                 );
         }
-        else if (
-            existingField.Field != null
-            && newField.Field != null
-            && existingField.Field.ReturnType.GqlTypeForReturnOrArgument != newField.Field.ReturnType.GqlTypeForReturnOrArgument
-        )
+        else if (existingField.Field != null && newField.Field != null && existingField.Field.ReturnType.GqlTypeForReturnOrArgument != newField.Field.ReturnType.GqlTypeForReturnOrArgument)
         {
             throw new EntityGraphQLException(
                 GraphQLErrorCategory.DocumentError,

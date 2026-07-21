@@ -279,7 +279,8 @@ public class ParameterReplacer : ExpressionVisitor
 
             var callBaseType = callBase.Type.IsEnumerableOrArray() ? callBase.Type.GetEnumerableOrArrayType()! : callBase.Type;
             var oldCallBaseType = baseCallIsEnumerable ? node.Arguments[0].Type.GetEnumerableOrArrayType()! : node.Arguments[0].Type;
-            if (callBaseType != oldCallBaseType)
+            var sourceBecameNonQueryable = node.Arguments[0].Type.IsGenericTypeQueryable() && !callBase.Type.IsGenericTypeQueryable();
+            if (callBaseType != oldCallBaseType || sourceBecameNonQueryable)
             {
                 var replaceAgain = new ParameterReplacer();
                 var newTypeArgs = new List<Type>(node.Arguments.Count) { callBaseType };
@@ -307,7 +308,12 @@ public class ParameterReplacer : ExpressionVisitor
                 }
                 if (oldTypeArgs.Length != newTypeArgs.Count)
                     throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Post service object selection contains a method call with mismatched generic type arguments.");
-                var newCall = Expression.Call(node.Method.DeclaringType!, node.Method.Name, newTypeArgs.ToArray(), newArgs.ToArray());
+                // When the source is no longer IQueryable (first-pass materialised List<>), swap the
+                // declaring type to its Enumerable twin (Queryable -> Enumerable, QueryableExtensions ->
+                // EnumerableExtensions). Resolve via Expression.Call(type, name, typeArgs, args) so the
+                // framework picks the correct overload from the actual argument types.
+                var declaringType = DeclaringTypeForSource(node.Method, callBase);
+                var newCall = Expression.Call(declaringType, node.Method.Name, newTypeArgs.ToArray(), newArgs.ToArray());
                 return newCall;
             }
         }
@@ -353,5 +359,22 @@ public class ParameterReplacer : ExpressionVisitor
         }
 
         return base.VisitConstant(node);
+    }
+
+    /// <summary>
+    /// After the first (sans-services) pass, list sources are often List&lt;T&gt; / IEnumerable&lt;T&gt; while the
+    /// original field expression used IQueryable methods (Where, OrderBy, WhereWhen, …). Returns the
+    /// Enumerable-side declaring type so the rebuilt call binds to the in-memory twin; the original
+    /// declaring type is kept while the source is still IQueryable.
+    /// </summary>
+    private static Type DeclaringTypeForSource(MethodInfo original, Expression newSource)
+    {
+        if (newSource.Type.IsGenericTypeQueryable())
+            return original.DeclaringType!;
+        if (original.DeclaringType == typeof(Queryable))
+            return typeof(Enumerable);
+        if (original.DeclaringType == typeof(QueryableExtensions))
+            return typeof(EnumerableExtensions);
+        return original.DeclaringType!;
     }
 }
