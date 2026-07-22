@@ -37,6 +37,97 @@ schema.ExecuteRequest(gql, serviceProvider, user, options);
 
 Tune the numbers against your real traffic. Start permissive and tighten if you see abuse; logs on the `DocumentError` tell you which limit fired.
 
+## Report-only mode and logging
+
+Instead of guessing the numbers, measure them. `QueryLimitsMode.ReportOnly` reports exceeded limits via a callback but lets the query execute, so you can deploy limits without breaking a single client and watch what real traffic does:
+
+```cs
+var options = new ExecutionOptions
+{
+    MaxQueryDepth = 10,
+    MaxFieldSelections = 500,
+    MaxQueryComplexity = 1000,
+    QueryLimitsMode = QueryLimitsMode.ReportOnly,
+    OnQueryLimitExceeded = ctx =>
+        logger.LogWarning("GraphQL query limit {Limit} exceeded: {Actual} > {Maximum} (operation {Operation})",
+            ctx.Limit, ctx.Actual, ctx.Maximum, ctx.OperationName),
+};
+```
+
+The rollout pattern: deploy with `ReportOnly`, watch the logs for what legitimate clients actually hit, adjust the numbers, then switch to `QueryLimitsMode.Enforce` (the default) with confidence.
+
+Details:
+
+- In `ReportOnly` the validator walks the full document, so `ctx.Actual` is the query's real depth/count - useful for choosing the right limit, not just knowing one was exceeded. The callback fires once per exceeded limit.
+- `OnQueryLimitExceeded` also fires in `Enforce` mode, just before the query is rejected - set it in production if you wish to log with structured detail instead of matching error message text. In enforce mode validation stops at the first violation, so `ctx.Actual` is the value at the point the limit tripped.
+- Keep the callback fast and non-throwing - it runs in the request path and an exception from it fails the request.
+- Prefer dependency injection? Register an `IQueryLimitObserver` in the service provider instead of setting the callback - useful when the observer wants injected dependencies (a logger, `IHttpContextAccessor` for the current user, a metrics sink). When both are present the `OnQueryLimitExceeded` callback wins - the same precedence as `options.FieldRateLimitService` vs a service-provider-registered `IFieldRateLimitService`.
+
+```cs
+builder.Services.AddSingleton<IQueryLimitObserver, LoggingQueryLimitObserver>();
+
+public class LoggingQueryLimitObserver(ILogger<LoggingQueryLimitObserver> logger, IHttpContextAccessor http) : IQueryLimitObserver
+{
+    public void OnQueryLimitExceeded(QueryLimitExceededContext ctx) =>
+        logger.LogWarning("GraphQL limit {Limit} exceeded: {Actual} > {Maximum} (operation {Operation}, user {User})",
+            ctx.Limit, ctx.Actual, ctx.Maximum, ctx.OperationName, http.HttpContext?.User?.Identity?.Name);
+}
+```
+
+- The [parse-depth backstop](#built-in-parse-depth-backstop) is not affected by `ReportOnly` - it guards the parser stack and always rejects.
+- For **per-field rate limiting** the same pattern is achieved by wrapping the service: implement `IFieldRateLimitService` to delegate to a real limiter, log when `IsAcquired` would be false, and return an acquired lease anyway.
+
+### Introducing limits to an existing API - a complete example
+
+Adding limits to an API with live clients? Use the example below to measure how you might impact current API users. Deploy this, watch the warnings for a week or two, and the logs tell you what your users do:
+
+```cs
+// Program.cs
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+var gqlOptions = new ExecutionOptions
+{
+    // candidate numbers - nothing is rejected while in ReportOnly
+    MaxQueryDepth = 12,
+    MaxFieldSelections = 500,
+    MaxFieldAliases = 30,
+    MaxQueryComplexity = 1000,
+
+    QueryLimitsMode = QueryLimitsMode.ReportOnly,
+    OnQueryLimitExceeded = ctx =>
+        logger.LogWarning("GraphQL limit {Limit} exceeded: {Actual} > {Maximum} (operation: {Operation})",
+            ctx.Limit, ctx.Actual, ctx.Maximum, ctx.OperationName),
+
+    // rate limiting in log-only: wrap the real limiter, log denials, always allow
+    FieldRateLimitService = new ReportOnlyRateLimitService(realRateLimitService, logger),
+};
+
+app.MapGraphQL<MyDbContext>(options: gqlOptions);
+```
+
+```cs
+public class ReportOnlyRateLimitService(IFieldRateLimitService inner, ILogger logger) : IFieldRateLimitService
+{
+    public async ValueTask<IFieldRateLimitLease> TryAcquireAsync(FieldRateLimitRequest request)
+    {
+        var lease = await inner.TryAcquireAsync(request);
+        if (!lease.IsAcquired)
+            logger.LogWarning("Rate limit '{Policy}' would have blocked user {User} ({Permits} permits)",
+                request.PolicyName, request.UserKey, request.PermitCount);
+        return new AlwaysAllowLease(lease);
+    }
+
+    // reports acquired; disposes the inner lease so the real limiter's tracking stays correct
+    private sealed class AlwaysAllowLease(IFieldRateLimitLease inner) : IFieldRateLimitLease
+    {
+        public bool IsAcquired => true;
+        public void Dispose() => inner.Dispose();
+    }
+}
+```
+
+Because `ReportOnly` reports the query's real depth and counts, the warnings are the data: if your heaviest legitimate operation logs `FieldSelections 611 > 500`, you know to set the limit above 611, not below it. Flipping to enforcement is then two small changes - remove the `QueryLimitsMode` line and unwrap the rate-limit service - and you keep `OnQueryLimitExceeded`, which now gives you a structured log entry for every rejected query.
+
 ## Depth
 
 Depth counts how many levels of selection sets you traverse from the root. Fragments don't add a level — their contents are evaluated at the depth of the spread.

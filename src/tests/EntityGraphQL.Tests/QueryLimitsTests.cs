@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.QueryLimits;
@@ -423,6 +424,229 @@ public class QueryLimitsTests
         var fail = schema.ExecuteRequestWithContext(gqlNoSkip, data, null, null, new ExecutionOptions { MaxFieldAliases = 3 });
         Assert.NotNull(fail.Errors);
         Assert.Contains(fail.Errors!, e => e.Message.Contains("alias"));
+    }
+
+    [Fact]
+    public void ReportOnly_DepthExceeded_QueryExecutesAndCallbackGetsActualDepth()
+    {
+        var schema = BuildSchema();
+        var data = new TestDataContext().FillWithTestData();
+        var reported = new List<QueryLimitExceededContext>();
+        // depth 5 > limit 3
+        var gql = new QueryRequest { Query = @"query DeepOne { projects { tasks { assignee { manager { id } } } } }" };
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            null,
+            null,
+            new ExecutionOptions
+            {
+                MaxQueryDepth = 3,
+                QueryLimitsMode = QueryLimitsMode.ReportOnly,
+                OnQueryLimitExceeded = reported.Add,
+            }
+        );
+
+        // the query executed - no errors, data returned
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
+        var ctx = Assert.Single(reported);
+        Assert.Equal(QueryLimitKind.QueryDepth, ctx.Limit);
+        // report-only completes the walk - the real depth, not just "exceeded"
+        Assert.Equal(5, ctx.Actual);
+        Assert.Equal(3, ctx.Maximum);
+        Assert.Equal("DeepOne", ctx.OperationName);
+    }
+
+    [Fact]
+    public void ReportOnly_MultipleLimitsExceeded_CallbackFiresPerLimit()
+    {
+        var schema = BuildSchema();
+        var data = new TestDataContext().FillWithTestData();
+        var reported = new List<QueryLimitExceededContext>();
+        // depth 5, 5 selections, 0 aliases
+        var gql = new QueryRequest { Query = @"{ projects { tasks { assignee { manager { id } } } } }" };
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            null,
+            null,
+            new ExecutionOptions
+            {
+                MaxQueryDepth = 3,
+                MaxFieldSelections = 4,
+                QueryLimitsMode = QueryLimitsMode.ReportOnly,
+                OnQueryLimitExceeded = reported.Add,
+            }
+        );
+
+        Assert.Null(result.Errors);
+        Assert.Equal(2, reported.Count);
+        Assert.Contains(reported, c => c.Limit == QueryLimitKind.QueryDepth && c.Actual == 5 && c.Maximum == 3);
+        Assert.Contains(reported, c => c.Limit == QueryLimitKind.FieldSelections && c.Actual == 5 && c.Maximum == 4);
+        // anonymous operation - no name
+        Assert.All(reported, c => Assert.Null(c.OperationName));
+    }
+
+    [Fact]
+    public void ReportOnly_ComplexityExceeded_CallbackGetsCost()
+    {
+        var schema = BuildSchema();
+        var data = new TestDataContext().FillWithTestData();
+        var reported = new List<QueryLimitExceededContext>();
+        // cost = projects(1) + id + name + tasks + (id + name) = 6
+        var gql = new QueryRequest { Query = @"{ projects { id name tasks { id name } } }" };
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            null,
+            null,
+            new ExecutionOptions
+            {
+                MaxQueryComplexity = 3,
+                QueryLimitsMode = QueryLimitsMode.ReportOnly,
+                OnQueryLimitExceeded = reported.Add,
+            }
+        );
+
+        Assert.Null(result.Errors);
+        var ctx = Assert.Single(reported);
+        Assert.Equal(QueryLimitKind.QueryComplexity, ctx.Limit);
+        Assert.Equal(6, ctx.Actual);
+        Assert.Equal(3, ctx.Maximum);
+    }
+
+    [Fact]
+    public void Enforce_WithCallback_StillRejectsWithSameErrorAndFiresCallbackFirst()
+    {
+        var schema = BuildSchema();
+        var data = new TestDataContext().FillWithTestData();
+        var reported = new List<QueryLimitExceededContext>();
+        var gql = new QueryRequest { Query = @"{ projects { tasks { assignee { manager { id } } } } }" };
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryDepth = 3, OnQueryLimitExceeded = reported.Add });
+
+        // rejected exactly as without the callback - same message, no data
+        Assert.NotNull(result.Errors);
+        Assert.Contains(result.Errors!, e => e.Message.Contains("maximum allowed depth"));
+        Assert.Null(result.Data);
+        var ctx = Assert.Single(reported);
+        Assert.Equal(QueryLimitKind.QueryDepth, ctx.Limit);
+        // enforce stops at the first violation - actual is the depth at the trip point
+        Assert.Equal(4, ctx.Actual);
+        Assert.Equal(3, ctx.Maximum);
+    }
+
+    [Fact]
+    public void ReportOnly_UnderLimits_NoCallback()
+    {
+        var schema = BuildSchema();
+        var data = new TestDataContext().FillWithTestData();
+        var reported = new List<QueryLimitExceededContext>();
+        var gql = new QueryRequest { Query = @"{ projects { id name } }" };
+        var result = schema.ExecuteRequestWithContext(
+            gql,
+            data,
+            null,
+            null,
+            new ExecutionOptions
+            {
+                MaxQueryDepth = 5,
+                MaxFieldSelections = 100,
+                MaxQueryComplexity = 100,
+                QueryLimitsMode = QueryLimitsMode.ReportOnly,
+                OnQueryLimitExceeded = reported.Add,
+            }
+        );
+
+        Assert.Null(result.Errors);
+        Assert.Empty(reported);
+    }
+
+    private class RecordingObserver : IQueryLimitObserver
+    {
+        public readonly List<QueryLimitExceededContext> Reported = [];
+
+        public void OnQueryLimitExceeded(QueryLimitExceededContext context) => Reported.Add(context);
+    }
+
+    [Fact]
+    public void ObserverFromServiceProvider_IsUsedWhenNoCallbackSet()
+    {
+        var schema = BuildSchema();
+        var observer = new RecordingObserver();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IQueryLimitObserver>(observer);
+        serviceCollection.AddSingleton(new TestDataContext().FillWithTestData());
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var gql = new QueryRequest { Query = @"{ projects { tasks { assignee { manager { id } } } } }" };
+        var result = schema.ExecuteRequest(gql, sp, null, new ExecutionOptions { MaxQueryDepth = 3, QueryLimitsMode = QueryLimitsMode.ReportOnly });
+
+        Assert.Null(result.Errors);
+        var ctx = Assert.Single(observer.Reported);
+        Assert.Equal(QueryLimitKind.QueryDepth, ctx.Limit);
+        Assert.Equal(5, ctx.Actual);
+        Assert.Equal(3, ctx.Maximum);
+    }
+
+    [Fact]
+    public void OptionsCallback_WinsOverServiceProviderObserver()
+    {
+        var schema = BuildSchema();
+        var observer = new RecordingObserver();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IQueryLimitObserver>(observer);
+        serviceCollection.AddSingleton(new TestDataContext().FillWithTestData());
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var fromCallback = new List<QueryLimitExceededContext>();
+        var gql = new QueryRequest { Query = @"{ projects { tasks { assignee { manager { id } } } } }" };
+        var result = schema.ExecuteRequest(
+            gql,
+            sp,
+            null,
+            new ExecutionOptions
+            {
+                MaxQueryDepth = 3,
+                QueryLimitsMode = QueryLimitsMode.ReportOnly,
+                OnQueryLimitExceeded = fromCallback.Add,
+            }
+        );
+
+        Assert.Null(result.Errors);
+        Assert.Single(fromCallback);
+        Assert.Empty(observer.Reported);
+    }
+
+    [Fact]
+    public void ObserverFromServiceProvider_FiresInEnforceModeBeforeRejection()
+    {
+        var schema = BuildSchema();
+        var observer = new RecordingObserver();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IQueryLimitObserver>(observer);
+        serviceCollection.AddSingleton(new TestDataContext().FillWithTestData());
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var gql = new QueryRequest { Query = @"{ projects { tasks { assignee { manager { id } } } } }" };
+        var result = schema.ExecuteRequest(gql, sp, null, new ExecutionOptions { MaxQueryDepth = 3 });
+
+        Assert.NotNull(result.Errors);
+        Assert.Contains(result.Errors!, e => e.Message.Contains("maximum allowed depth"));
+        var ctx = Assert.Single(observer.Reported);
+        Assert.Equal(QueryLimitKind.QueryDepth, ctx.Limit);
+    }
+
+    [Fact]
+    public void ReportOnly_NoCallback_QueryJustExecutes()
+    {
+        var schema = BuildSchema();
+        var data = new TestDataContext().FillWithTestData();
+        var gql = new QueryRequest { Query = @"{ projects { tasks { assignee { manager { id } } } } }" };
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryDepth = 3, QueryLimitsMode = QueryLimitsMode.ReportOnly });
+
+        Assert.Null(result.Errors);
+        Assert.NotNull(result.Data);
     }
 
     [Fact]

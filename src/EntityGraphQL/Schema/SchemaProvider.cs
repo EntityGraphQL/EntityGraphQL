@@ -548,7 +548,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                 compiledQuery = GraphQLParser.Parse(gql, this);
             }
 
-            QueryLimitsValidator.Validate(compiledQuery, gql.OperationName, gql.Variables, options);
+            QueryLimitsValidator.Validate(compiledQuery, gql.OperationName, gql.Variables, options, serviceProvider);
 
             var fieldRateLimiter = options.FieldRateLimitService ?? (IFieldRateLimitService?)serviceProvider?.GetService(typeof(IFieldRateLimitService));
             AggregateFieldRateLimitLease? leases = null;
