@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Fixed `ResolveAsync<TService>()` fields returning an object type with sub-selections (e.g. `widget(id: ...) { id name }`) not propagating a `null` resolver result to the field - the response held a non-null object with default/null sub-fields instead of a `null` field. The two-pass service-field execution rebuilds the field's expression with `contextChanged: true`, which was used as a (incorrect) proxy for "this field's value is already resolved, not still a raw `Task<T>`" - for a field whose own resolver is the async work (not a value read back from a prior pass), the expression here is still genuinely `Task<T>` even though `contextChanged` is `true`, so the code built the object selection directly against the `Task<T>` parameter instead of its awaited result, and `Expression.Call` silently bound to the wrong (synchronous, always-"not null") overload of `ProjectWithNullCheck`. Now checked via the expression's actual type (`IsAwaitableGenericType()`) instead of `contextChanged`. `.Resolve<TService>()` (the sync API wrapping `.GetAwaiter().GetResult()`) was unaffected.
+
 # 6.0.1
 
 ## Fixes

@@ -141,9 +141,13 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         var selectionContext = nextFieldContext;
         bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields) || ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && IsRootField);
 
-        if (Field?.IsAsync == true && !contextChanged)
+        if (Field?.IsAsync == true && nextFieldContext.Type.IsAwaitableGenericType())
         {
-            // for async fields we need to build the selection on the result of the task
+            // for async fields we need to build the selection on the result of the task. Checking the
+            // expression's actual type (rather than !contextChanged) matters for the two-pass service-field
+            // execution: the second pass sets contextChanged=true even when this field's own expression is
+            // still a raw Task<T> that hasn't been awaited yet (it's only "already resolved" for fields whose
+            // value came from a prior pass via ReplaceContext, in which case the type here won't be Task<T>).
             var resultType = nextFieldContext.Type.GetGenericArguments()[0];
             selectionContext = Expression.Parameter(resultType, $"{Name}_result");
         }
