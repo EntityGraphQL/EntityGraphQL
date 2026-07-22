@@ -1,3 +1,9 @@
+# 6.1.0 (unreleased)
+
+## Changes
+
+- New report-only mode and logging hook for query limits: `ExecutionOptions.QueryLimitsMode` (`Enforce`, the default, or `ReportOnly`) and `ExecutionOptions.OnQueryLimitExceeded` callback (or register an `IQueryLimitObserver` in the service provider for DI-injected observers - the explicit callback wins when both are present) with the limit kind, actual vs maximum value and operation name. `ReportOnly` reports the query's real depth/counts and lets the query execute. Use it to observe real client behavior, then flip to `Enforce` with confident numbers. The callback also fires in `Enforce` mode just before rejection, so enforced rejections can be logged with structured detail instead of matching error message text. Fully additive - defaults are unchanged.
+
 # 6.0.1
 
 ## Fixes

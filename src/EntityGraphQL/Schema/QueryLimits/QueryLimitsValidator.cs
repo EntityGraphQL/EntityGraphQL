@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
@@ -9,12 +10,15 @@ namespace EntityGraphQL.Schema.QueryLimits;
 /// complexity calculation to <see cref="IQueryComplexityAnalyzer"/>. Called pre-execution so exceeded
 /// limits abort before any resolver runs.
 ///
-/// Runs once per request and produces a <see cref="EntityGraphQLException"/> with
-/// <see cref="GraphQLErrorCategory.DocumentError"/> on the first limit hit.
+/// In <see cref="QueryLimitsMode.Enforce"/> (the default) validation stops at the first limit hit and throws
+/// an <see cref="EntityGraphQLException"/> with <see cref="GraphQLErrorCategory.DocumentError"/>, calling
+/// <see cref="ExecutionOptions.OnQueryLimitExceeded"/> first when set. In <see cref="QueryLimitsMode.ReportOnly"/>
+/// the full document is walked (so the callback receives the query's actual depth/counts, not just "exceeded"),
+/// the callback fires once per exceeded limit and the query executes.
 /// </summary>
 internal static class QueryLimitsValidator
 {
-    internal static void Validate(GraphQLDocument document, string? operationName, QueryVariables? variables, ExecutionOptions options)
+    internal static void Validate(GraphQLDocument document, string? operationName, QueryVariables? variables, ExecutionOptions options, IServiceProvider? serviceProvider)
     {
         var depthLimit = Nz(options.MaxQueryDepth);
         var nodeLimit = Nz(options.MaxFieldSelections);
@@ -28,12 +32,31 @@ internal static class QueryLimitsValidator
         if (op == null)
             return;
 
+        var reportOnly = options.QueryLimitsMode == QueryLimitsMode.ReportOnly;
+        // explicit callback wins over a service-provider-registered observer - same precedence as
+        // options.FieldRateLimitService vs IFieldRateLimitService from the service provider
+        var report = options.OnQueryLimitExceeded;
+        if (report == null && serviceProvider?.GetService(typeof(IQueryLimitObserver)) is IQueryLimitObserver observer)
+            report = observer.OnQueryLimitExceeded;
+        var opName = string.IsNullOrEmpty(op.Name) ? null : op.Name;
+
         if (depthLimit is not null || nodeLimit is not null || aliasLimit is not null)
         {
             var (docParam, docVariables) = DefaultQueryComplexityAnalyzer.BuildDocVariables(op, variables);
-            var state = new WalkState(document.Fragments, depthLimit, nodeLimit, aliasLimit, docParam, docVariables);
+            // in report-only mode the walk completes with no limits applied so the totals are the real ones
+            var state = new WalkState(document.Fragments, reportOnly ? null : depthLimit, reportOnly ? null : nodeLimit, reportOnly ? null : aliasLimit, docParam, docVariables, report, opName);
             foreach (var field in op.QueryFields)
                 Walk(field, 1, ref state);
+
+            if (reportOnly && report != null)
+            {
+                if (depthLimit is int d && state.MaxDepth > d)
+                    report(new QueryLimitExceededContext(QueryLimitKind.QueryDepth, state.MaxDepth, d, opName));
+                if (nodeLimit is int n && state.NodeCount > n)
+                    report(new QueryLimitExceededContext(QueryLimitKind.FieldSelections, state.NodeCount, n, opName));
+                if (aliasLimit is int a && state.AliasCount > a)
+                    report(new QueryLimitExceededContext(QueryLimitKind.FieldAliases, state.AliasCount, a, opName));
+            }
         }
 
         if (complexityLimit is int cLimit)
@@ -41,7 +64,11 @@ internal static class QueryLimitsValidator
             var analyzer = options.QueryComplexityAnalyzer ?? new DefaultQueryComplexityAnalyzer();
             var cost = analyzer.CalculateComplexity(document, operationName, variables, options);
             if (cost > cLimit)
-                throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Query complexity {cost} exceeds maximum allowed complexity {cLimit}");
+            {
+                report?.Invoke(new QueryLimitExceededContext(QueryLimitKind.QueryComplexity, cost, cLimit, opName));
+                if (!reportOnly)
+                    throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Query complexity {cost} exceeds maximum allowed complexity {cLimit}");
+            }
         }
     }
 
@@ -71,9 +98,10 @@ internal static class QueryLimitsValidator
         state.CountNode();
         if (field.Name != field.SchemaName)
             state.CountAlias();
+        state.RecordDepth(depth);
 
         if (state.DepthLimit is int d && depth > d)
-            WalkState.Fail($"Query exceeds maximum allowed depth of {d}");
+            state.Fail(QueryLimitKind.QueryDepth, depth, d, $"Query exceeds maximum allowed depth of {d}");
 
         if (field.QueryFields.Count > 0)
         {
@@ -92,9 +120,12 @@ internal static class QueryLimitsValidator
         public readonly int? AliasLimit;
         public readonly ParameterExpression? DocParam;
         public readonly IArgumentsTracker? DocVariables;
+        private readonly Action<QueryLimitExceededContext>? report;
+        private readonly string? operationName;
         private HashSet<string>? visitedFragments;
         private int nodeCount;
         private int aliasCount;
+        private int maxDepth;
 
         public WalkState(
             IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
@@ -102,7 +133,9 @@ internal static class QueryLimitsValidator
             int? nodeLimit,
             int? aliasLimit,
             ParameterExpression? docParam,
-            IArgumentsTracker? docVariables
+            IArgumentsTracker? docVariables,
+            Action<QueryLimitExceededContext>? report,
+            string? operationName
         )
         {
             Fragments = fragments;
@@ -111,23 +144,36 @@ internal static class QueryLimitsValidator
             AliasLimit = aliasLimit;
             DocParam = docParam;
             DocVariables = docVariables;
+            this.report = report;
+            this.operationName = operationName;
             visitedFragments = null;
             nodeCount = 0;
             aliasCount = 0;
+            maxDepth = 0;
         }
+
+        public readonly int NodeCount => nodeCount;
+        public readonly int AliasCount => aliasCount;
+        public readonly int MaxDepth => maxDepth;
 
         public void CountNode()
         {
             nodeCount++;
             if (NodeLimit is int n && nodeCount > n)
-                Fail($"Query exceeds maximum allowed node count of {n}");
+                Fail(QueryLimitKind.FieldSelections, nodeCount, n, $"Query exceeds maximum allowed node count of {n}");
         }
 
         public void CountAlias()
         {
             aliasCount++;
             if (AliasLimit is int a && aliasCount > a)
-                Fail($"Query exceeds maximum allowed alias count of {a}");
+                Fail(QueryLimitKind.FieldAliases, aliasCount, a, $"Query exceeds maximum allowed alias count of {a}");
+        }
+
+        public void RecordDepth(int depth)
+        {
+            if (depth > maxDepth)
+                maxDepth = depth;
         }
 
         /// <summary>
@@ -141,6 +187,10 @@ internal static class QueryLimitsValidator
             return visitedFragments.Add(name);
         }
 
-        public static void Fail(string message) => throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, message);
+        public readonly void Fail(QueryLimitKind kind, int actual, int maximum, string message)
+        {
+            report?.Invoke(new QueryLimitExceededContext(kind, actual, maximum, operationName));
+            throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, message);
+        }
     }
 }
