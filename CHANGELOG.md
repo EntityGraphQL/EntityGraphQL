@@ -1,4 +1,4 @@
-# 6.1.0 (unreleased)
+# 6.1.0
 
 ## Changes
 
