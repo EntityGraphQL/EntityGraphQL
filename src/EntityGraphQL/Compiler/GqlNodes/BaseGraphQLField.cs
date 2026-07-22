@@ -304,9 +304,22 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     protected IGraphQLNode? ProcessDirectivesVisitNode(ExecutableDirectiveLocation location, BaseGraphQLField field, ParameterExpression? docParam, IArgumentsTracker? docVariables)
     {
         IGraphQLNode? result = field;
+        BaseGraphQLField previousField = field;
         foreach (var directive in Directives)
         {
-            result = directive.VisitNode(location, Schema, field, Arguments, docParam, docVariables);
+            // chain - each directive visits the previous directive's result, not the original node
+            result = directive.VisitNode(location, Schema, result, Arguments, docParam, docVariables);
+            // null means the field is excluded (e.g. @skip) - later directives cannot re-include it
+            if (result == null)
+                return null;
+            if (result is BaseGraphQLField newNode && !ReferenceEquals(newNode, previousField))
+            {
+                // a directive may return a rebuilt node - preserve position-derived state the directive
+                // author cannot be expected to copy. IsRootField drives root-vs-nested handling in
+                // second-pass service execution (see ReplaceContext)
+                newNode.IsRootField = previousField.IsRootField;
+                previousField = newNode;
+            }
         }
         return result;
     }

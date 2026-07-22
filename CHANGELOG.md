@@ -4,6 +4,11 @@
 
 - New report-only mode and logging hook for query limits: `ExecutionOptions.QueryLimitsMode` (`Enforce`, the default, or `ReportOnly`) and `ExecutionOptions.OnQueryLimitExceeded` callback (or register an `IQueryLimitObserver` in the service provider for DI-injected observers - the explicit callback wins when both are present) with the limit kind, actual vs maximum value and operation name. `ReportOnly` reports the query's real depth/counts and lets the query execute. Use it to observe real client behavior, then flip to `Enforce` with confident numbers. The callback also fires in `Enforce` mode just before rejection, so enforced rejections can be logged with structured detail instead of matching error message text. Fully additive - defaults are unchanged.
 
+## Fixes
+
+- Custom directives (`DirectiveProcessor.VisitNode`) that return a rebuilt field node no longer lose root-field handling - position-derived state (`IsRootField`) is now preserved on the returned node automatically. Previously a rebuilt root list node fell into nested-field handling on the second (services) pass and the engine tried to re-apply the root list expression (e.g. `WhereWhen`/`OrderBy`) against the already-materialised first-pass result, failing with `No generic method 'WhereWhen' on type 'Queryable'...`. Repro and regression tests from [#527](https://github.com/EntityGraphQL/EntityGraphQL/pull/527) - thanks [@alex-birch](https://github.com/alex-birch).
+- Multiple node-modifying directives on one field now chain correctly - each directive receives the previous directive's result instead of all receiving the original node (previously only the last directive's rebuild took effect), and a `null` (excluded) result short-circuits so a later directive cannot re-include a field excluded by e.g. `@skip`.
+
 # 6.0.1
 
 ## Fixes
