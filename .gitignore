@@ -23,3 +23,7 @@ node_modules/
 *.db-wal
 
 BenchmarkDotNet.Artifacts/
+
+# Test/coverage output
+TestResults/
+coverage/

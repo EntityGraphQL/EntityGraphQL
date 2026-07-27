@@ -24,7 +24,22 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
       - name: Test
-        run: dotnet test -c Release --no-restore --no-build --verbosity normal
+        run: dotnet test -c Release --no-restore --no-build --verbosity normal --collect:"Code Coverage" -s coverage.runsettings
+      - name: Coverage gate
+        env:
+          MIN_LINE_RATE: 87.5
+        run: |
+          report=$(find coverage -name '*.cobertura.xml' | head -1)
+          [ -n "$report" ] || { echo "::error::No coverage report was produced"; exit 1; }
+          read -r covered valid <<< "$(sed -n 's/.*lines-covered="\([0-9]*\)" lines-valid="\([0-9]*\)".*/\1 \2/p' "$report" | head -1)"
+          pct=$(awk "BEGIN { printf \"%.2f\", $covered * 100 / $valid }")
+          echo "Line coverage of shipped packages: **$pct%** ($covered/$valid), minimum $MIN_LINE_RATE%" >> "$GITHUB_STEP_SUMMARY"
+          awk "BEGIN { exit ($pct < $MIN_LINE_RATE) }" || { echo "::error::Line coverage $pct% is below the $MIN_LINE_RATE% minimum"; exit 1; }
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: Coverage report
+          path: coverage/**/*.cobertura.xml
       - name: Package
         run: dotnet pack -c Release --no-restore --no-build
       - name: Upload EntityGraphQL packages

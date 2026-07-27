@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Usage: dotnet test EntityGraphQL.sln -f net10.0 -s coverage.runsettings -->
+<RunSettings>
+  <RunConfiguration>
+    <ResultsDirectory>./coverage</ResultsDirectory>
+  </RunConfiguration>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <CodeCoverage>
+            <ModulePaths>
+              <!-- Only the shipped packages, so the root line-rate is the number we care about -->
+              <Include>
+                <ModulePath>.*\bEntityGraphQL\.dll$</ModulePath>
+                <ModulePath>.*\bEntityGraphQL\.AspNet\.dll$</ModulePath>
+                <ModulePath>.*\bEntityGraphQL\.Analyzers\.dll$</ModulePath>
+                <ModulePath>.*\bEntityGraphQL\.Analyzers\.CodeFixes\.dll$</ModulePath>
+              </Include>
+            </ModulePaths>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
