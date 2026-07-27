@@ -32,7 +32,10 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     protected BaseGraphQLQueryField(BaseGraphQLQueryField context, Expression? nextFieldContext)
         : base(context, nextFieldContext)
     {
-        // we don't populate ToSingleNode as GraphQLCollectionToSingleField handles that
+        // a copy still belongs to the same list-to-single selection. GraphQLCollectionToSingleField sets
+        // this on the nodes it wraps, but the per-compile copy made to build the Select().First() chain
+        // never goes through that constructor and would otherwise look like a plain list selection
+        ToSingleNode = context.ToSingleNode;
     }
 
     protected bool NeedsServiceWrap(bool withoutServiceFields) => !withoutServiceFields && HasServices;
@@ -64,7 +67,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                     // Must happen before Expand - a bulk field expands into its extracted dependency fields.
                     // Fragment spreads / inline fragments expand into their concrete fields, so look through
                     // them too (fragments can nest fragments).
-                    RegisterBulkResolverFields(compileContext, field, field.ParentNode, fragments, docParam, docVariables, replacer);
+                    RegisterBulkResolverFields(compileContext, field, fragments, docParam, docVariables, replacer);
                 }
                 // Might be a fragment that expands into many fields hence the Expand
                 // or a service field that we expand into the required fields for input
@@ -142,22 +145,20 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
 
     /// <summary>
     /// Register the bulk resolver for a selected field, looking through fragment spreads and inline
-    /// fragments to the concrete fields they select. <paramref name="parentNode"/> is the node the field
-    /// is (conceptually) selected on - for fragment fields the node containing the fragment - used for the
-    /// list-to-single check. The bulk list expression path comes from the compile context's selection path.
+    /// fragments to the concrete fields they select. Every field found this way is selected on this node
+    /// (the one compiling its selection set), whatever its own ParentNode says. The bulk list expression
+    /// path comes from the compile context's selection path.
     /// </summary>
     private void RegisterBulkResolverFields(
         CompileContext compileContext,
         BaseGraphQLField field,
-        IGraphQLNode? parentNode,
         IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
         ParameterExpression? docParam,
         IArgumentsTracker? docVariables,
         ParameterReplacer replacer
     )
     {
-        // not needed if it is a list-to-single node
-        if (field.Field?.BulkResolver != null && (parentNode as BaseGraphQLQueryField)?.ToSingleNode == null)
+        if (field.Field?.BulkResolver != null && !IsSelectedOnToSingleNode(compileContext))
         {
             HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
         }
@@ -167,13 +168,13 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
             if (fragment != null) // unknown fragment names error later in Expand
             {
                 foreach (var fragField in fragment.QueryFields)
-                    RegisterBulkResolverFields(compileContext, fragField, parentNode, fragments, docParam, docVariables, replacer);
+                    RegisterBulkResolverFields(compileContext, fragField, fragments, docParam, docVariables, replacer);
             }
         }
         else if (field is GraphQLInlineFragmentField)
         {
             foreach (var fragField in field.QueryFields)
-                RegisterBulkResolverFields(compileContext, fragField, parentNode, fragments, docParam, docVariables, replacer);
+                RegisterBulkResolverFields(compileContext, fragField, fragments, docParam, docVariables, replacer);
         }
     }
 

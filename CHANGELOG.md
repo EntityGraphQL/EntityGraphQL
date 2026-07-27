@@ -1,3 +1,9 @@
+# 6.1.1 (unreleased)
+
+## Fixes
+
+- Fixed `ResolveBulk` fields selected through a fragment spread failing with `KeyNotFoundException` (`The given key 'bulk_Type.field' was not present in the dictionary`) anywhere below a list-to-single selection - e.g. a mutation returning `ctx.Things.First(...)` selected as `thing { child { ...ChildFields } }`, or `thing(id: 1) { ...ThingFields }`. A fragment spread is parsed with the parent of the node it is spread on, so the "is this field selected directly on a list-to-single node?" check read the wrong node: bulk loading was skipped for the field while the second pass still compiled the lookup, leaving it reading data that was never loaded. Both the registration and the lookup now ask the compile context which node is compiling its selection set, so they always agree, and the per-compile copy of a list-to-single node keeps its to-single marker instead of looking like a plain list selection. A bulk field selected via a fragment directly on a list-to-single field now uses the per-item resolver, matching how it already behaved when selected directly.
+
 # 6.1.0
 
 ## Changes

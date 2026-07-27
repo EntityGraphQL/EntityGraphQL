@@ -165,6 +165,12 @@ public class CompileContext
 
     internal void PopSelectionPathNode() => selectionPath.RemoveAt(selectionPath.Count - 1);
 
+    /// <summary>
+    /// The node whose selection set is currently being compiled - i.e. the selection point of the fields
+    /// being visited. Null while compiling the statement's own root fields.
+    /// </summary>
+    internal IGraphQLNode? CurrentSelectionNode => selectionPath.Count > 0 ? selectionPath[selectionPath.Count - 1] : null;
+
     internal List<IGraphQLNode> SelectionPathSnapshot() => [.. selectionPath];
 
     public void AddArgsToCompileContext(

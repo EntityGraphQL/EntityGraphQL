@@ -368,9 +368,19 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return nextFieldContext;
     }
 
+    /// <summary>
+    /// A field selected directly on a list-to-single selection (e.g. <c>person(id: 1) { bulkField }</c>)
+    /// does not use its bulk resolver - there is a single item, so the per-item resolver runs instead.
+    /// Ask the compile context for the selection point rather than reading the field's ParentNode: fields
+    /// reached through a fragment spread carry the fragment's parse-time parent, not where it is used.
+    /// Registering the bulk load and building the lookup below must make the same call, or the lookup
+    /// misses and throws for a key that was never loaded.
+    /// </summary>
+    protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) => (compileContext.CurrentSelectionNode as BaseGraphQLQueryField)?.ToSingleNode != null;
+
     protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
     {
-        if (Field?.BulkResolver != null && (ParentNode as BaseGraphQLQueryField)?.ToSingleNode == null)
+        if (Field?.BulkResolver != null && !IsSelectedOnToSingleNode(compileContext))
         {
             if (!withoutServiceFields)
             {

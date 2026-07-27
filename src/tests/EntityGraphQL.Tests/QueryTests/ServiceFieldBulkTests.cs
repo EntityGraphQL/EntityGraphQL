@@ -1544,6 +1544,151 @@ public class ServiceFieldBulkTests
         Assert.Equal("Hello", projects[0].tasks[0].assignee.createdBy.field2);
     }
 
+    [Fact]
+    public void TestBulkResolverViaFragmentBelowMutationResult()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Project>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy))
+                .ResolveBulk<UserService, int, User>(proj => proj.CreatedBy, (ids, srv) => srv.GetAllUsers(ids));
+        });
+        schema.Mutation().Add("updateTask", UpdateTask);
+
+        // mutation returning a single entity -> single object navigation -> fragment -> bulk service field.
+        // The fragment is selected on project, not on the to-single mutation result above it
+        var gql = new QueryRequest
+        {
+            Query =
+                @"mutation { 
+                updateTask(id: 1) { 
+                    id
+                    project { ...ProjFields } 
+                } 
+            }
+            fragment ProjFields on Project {
+                createdBy { id field2 }
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Tasks =
+            [
+                new Task
+                {
+                    Id = 1,
+                    Name = "Task 1",
+                    Project = new Project { Id = 1, CreatedBy = 1 },
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, userService.CallCount);
+        dynamic result = res.Data!["updateTask"]!;
+        Assert.Equal(1, result.project.createdBy.id);
+        // "Hello" proves the bulk resolver ran (not the per-item "SingleCall" resolver)
+        Assert.Equal("Hello", result.project.createdBy.field2);
+    }
+
+    [Fact]
+    public void TestBulkResolverViaFragmentBelowToSingleField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.UpdateType<Person>(type =>
+        {
+            type.ReplaceField("createdBy", "Get user that created it")
+                .Resolve<UserService>((person, users) => users.GetUserById(person.Id))
+                .ResolveBulk<UserService, int, User>(person => person.Id, (ids, srv) => srv.GetAllUsers(ids));
+        });
+
+        // to-single root field -> list -> single -> fragment -> bulk service field
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                project(id: 1) {
+                    tasks { assignee { ...PersonFields } }
+                }
+            }
+            fragment PersonFields on Person {
+                createdBy { id field2 }
+            }",
+        };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 1,
+                    Name = "Project 1",
+                    Tasks =
+                    [
+                        new Task
+                        {
+                            Id = 1,
+                            Name = "Task 1",
+                            Assignee = new Person { Id = 7 },
+                        },
+                        new Task
+                        {
+                            Id = 2,
+                            Name = "Task 2",
+                            Assignee = new Person { Id = 8 },
+                        },
+                    ],
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        UserService userService = new();
+        serviceCollection.AddSingleton(userService);
+        serviceCollection.AddSingleton(context);
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(gql, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal(1, userService.CallCount);
+        dynamic project = res.Data!["project"]!;
+        Assert.Equal(7, project.tasks[0].assignee.createdBy.id);
+        Assert.Equal(8, project.tasks[1].assignee.createdBy.id);
+        Assert.Equal("Hello", project.tasks[0].assignee.createdBy.field2);
+    }
+
+    [Fact]
+    public void TestBulkResolverViaFragmentOnToSingleField()
+    {
+        var (schema, context, srv) = SetupBulkCreatedBy();
+        // selected directly on a to-single field the bulk resolver is not used (see
+        // TestServicesBulkResolverWithinToSingle) - selecting it via a fragment must behave the same
+        var res = ExecuteBulkQuery(
+            schema,
+            context,
+            srv,
+            @"query {
+                project(id: 1) { name ...ProjFields }
+            }
+            fragment ProjFields on Project {
+                createdBy { id field2 }
+            }"
+        );
+        Assert.Null(res.Errors);
+        dynamic project = res.Data!["project"]!;
+        Assert.Equal(1, project.createdBy.id);
+        Assert.Equal("SingleCall", project.createdBy.field2);
+    }
+
     /// <summary>
     /// Regression for root lists that use WhereWhen (and optionally OrderBy / UseFilter) with a
     /// scalar ResolveBulk field on the list element. Two-pass service execution must not rewrite
