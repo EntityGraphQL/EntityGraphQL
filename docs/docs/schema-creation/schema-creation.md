@@ -232,6 +232,36 @@ schema.RemoveType("TypeName");
 schema.RemoveTypeAndAllFields<Type>();
 ```
 
+## Validating your schema
+
+Call `schema.Validate()` once you have finished setting your schema up - after all your `AddType()`, `AddField()`, `AddMutationsFrom()`, `AddScalarType()`, `AddTypeMapping()` and `AddCustomTypeConverter()` calls. It walks the whole schema and throws `EntityGraphQLSchemaException` for problems that otherwise wait until a query hits the field at runtime:
+
+- a field returns a dotnet type that is not in the schema (and has no type mapping)
+- a field argument's type is not in the schema
+- a field argument can never be built from a query variable, because the GraphQL type it is declared as is
+  registered against a different dotnet type - a variable is built as the dotnet type of its GraphQL type, and
+  `AddTypeMapping` only affects the other direction. See [Scalar types](./scalar-types)
+
+```cs
+services.AddGraphQLSchema<DemoContext>()
+    .ConfigureGraphQLSchema<DemoContext>(schema =>
+    {
+        schema.AddType<Person>("Person", "A person").AddAllFields();
+        schema.AddMutationsFrom<PeopleMutations>();
+        // ... the rest of your schema
+
+        // last - everything it checks needs to be registered first
+        schema.Validate();
+    });
+```
+
+Outside ASP.NET, call it at the end of wherever you build the schema. Either way this turns a mistake that would
+surface as a confusing error on the first request that touches the field into an exception at startup.
+
+:::note
+`Validate()` is not called for you - only you know when you have finished. It is cheap (it walks the schema once, at startup).
+:::
+
 ## More details
 
 See more details for each schema item in the following sections:

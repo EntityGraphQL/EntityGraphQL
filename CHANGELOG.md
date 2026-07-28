@@ -1,3 +1,9 @@
+# 6.1.2
+
+## Fixes
+
+- `schema.Validate()` now checks field arguments as well as return types. An argument whose type is not in the schema, or that can never be built from a query variable because its GraphQL type is registered against a different dotnet type (`AddTypeMapping` is one-way), now fails at validate time naming the dotnet types and the fix, instead of on the first request with a message naming only the GraphQL types. Built-in mappings and list arguments are unaffected. `Validate()` is opt-in - call it once your schema is set up, see [Validating your schema](https://entitygraphql.github.io/schema-creation/schema-creation#validating-your-schema). A schema with either problem that passed `Validate()` before will now throw from it.
+
 # 6.1.1
 
 ## Fixes
