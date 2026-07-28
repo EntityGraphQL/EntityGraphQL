@@ -9,13 +9,7 @@ namespace EntityGraphQL.Tests;
 
 /// <summary>
 /// Regression for ResolveBulk on service-resolved root lists with nullable string keys
-/// (apiKeys-style: list from Resolve&lt;TService&gt;, nested bulk fields). These used to fail with
-/// "Static property requires null instance..." reaching the client as "Field 'apiKeys' - Error occurred".
-/// A bulk field below a root field that is resolved from services currently resolves per-item, not in bulk:
-/// the first (no-service) pass produces no expression for the root field, so there is nothing to collect the
-/// bulk keys from and no load is registered. Hence the one-call-per-item counts asserted below - they become
-/// a single bulk call if root service lists ever take part in the two-pass flow.
-/// Tests from https://github.com/EntityGraphQL/EntityGraphQL/pull/538
+/// (apiKeys-style: list from Resolve&lt;TService&gt;, nested bulk fields).
 /// </summary>
 public class ServiceRootListBulkTests
 {
@@ -163,7 +157,7 @@ public class ServiceRootListBulkTests
 
         if (res.Errors != null)
             Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
-        Assert.Equal(3, names.CallCount); // per-item fallback - one call per API key
+        Assert.Equal(1, names.CallCount);
         dynamic keys = res.Data!["apiKeys"]!;
         Assert.Equal(3, keys.Count);
         Assert.Equal("Alice", keys[0].createdByName);
@@ -205,7 +199,7 @@ public class ServiceRootListBulkTests
 
         if (res.Errors != null)
             Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
-        Assert.Equal(3, names.CallCount); // per-item fallback - one call per API key
+        Assert.Equal(1, names.CallCount);
         dynamic keys = res.Data!["apiKeys"]!;
         Assert.Equal(3, keys.Count);
         Assert.Equal("Alice", keys[0].createdByName);
@@ -245,7 +239,7 @@ public class ServiceRootListBulkTests
 
         if (res.Errors != null)
             Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
-        Assert.Equal(3, names.CallCount); // per-item fallback - one call per API key
+        Assert.Equal(1, names.CallCount);
         dynamic keys = res.Data!["apiKeys"]!;
         Assert.Equal("Alice", keys[0].createdByName);
         Assert.Null(keys[1].createdByName);
@@ -279,7 +273,7 @@ public class ServiceRootListBulkTests
 
         if (res.Errors != null)
             Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
-        Assert.Equal(3, customers.CallCount); // per-item fallback - one call per API key
+        Assert.Equal(1, customers.CallCount);
         dynamic keys = res.Data!["apiKeys"]!;
         Assert.Equal("Acme", keys[0].customer.name);
         Assert.Equal("Beta", keys[1].customer.name);
@@ -288,8 +282,7 @@ public class ServiceRootListBulkTests
 
     /// <summary>
     /// Async bulk via ResolveBulkAsync (native) on a service-resolved root list — preferred over
-    /// closure-capturing sync wrappers around per-key async callbacks. Falls back to the per-item
-    /// ResolveAsync resolver, whose Task must still be awaited before the response is built.
+    /// closure-capturing sync wrappers around per-key async callbacks.
     /// </summary>
     [Fact]
     public void ServiceRootList_BulkAsyncCreatedByName_Works()
@@ -319,7 +312,7 @@ public class ServiceRootListBulkTests
 
         if (res.Errors != null)
             Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
-        Assert.Equal(3, names.CallCount); // per-item fallback - one call per API key
+        Assert.Equal(1, names.CallCount);
         dynamic keys = res.Data!["apiKeys"]!;
         Assert.Equal("Alice", keys[0].createdByName);
         Assert.Equal("Bob", keys[1].createdByName);

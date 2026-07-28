@@ -382,8 +382,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// mean "not to-single" - matched explicitly rather than left to a cast quietly returning null for
     /// either, so the two passes can not start disagreeing if those node types change.
     /// </summary>
-    protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) =>
-        compileContext.CurrentSelectionNode is BaseGraphQLQueryField selectionPoint && selectionPoint.ToSingleNode != null;
+    protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) => compileContext.CurrentSelectionNode is BaseGraphQLQueryField selectionPoint && selectionPoint.ToSingleNode != null;
 
     /// <summary>
     /// True when the bulk load for this field ran and its data is available to look up. The bulk data is
@@ -459,11 +458,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
                     $"Fields with the same response name '{newField.Name}' must be the same field with identical arguments. Use different aliases."
                 );
         }
-        else if (
-            existingField.Field != null
-            && newField.Field != null
-            && existingField.Field.ReturnType.GqlTypeForReturnOrArgument != newField.Field.ReturnType.GqlTypeForReturnOrArgument
-        )
+        else if (existingField.Field != null && newField.Field != null && existingField.Field.ReturnType.GqlTypeForReturnOrArgument != newField.Field.ReturnType.GqlTypeForReturnOrArgument)
         {
             throw new EntityGraphQLException(
                 GraphQLErrorCategory.DocumentError,

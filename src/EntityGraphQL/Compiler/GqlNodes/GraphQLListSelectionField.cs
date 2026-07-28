@@ -76,8 +76,12 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         ParameterReplacer replacer
     )
     {
-        if (withoutServiceFields && IsRootField && HasServices)
-            return null;
+        // Root service fields used to return null here so the statement fell through to a single-pass
+        // execution (no EF "first pass"). That skipped ResolveBulkLoadersAsync and left BulkParameter
+        // null, so nested ResolveBulk fields then threw when building the bulk dictionary lookup
+        // ("Static property requires null instance..." from MakeIndex on a null BulkParameter).
+        // Fall through instead: execute the service list selecting non-service / extracted key fields,
+        // run bulk loaders, then the second pass resolves nested bulk fields.
 
         var listContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, ListExpression)!;
 
