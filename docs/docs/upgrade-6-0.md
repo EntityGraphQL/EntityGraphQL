@@ -276,6 +276,20 @@ type Person {
 2. If you have custom schema introspection or code generation tools, update them to recognize `DateTime`
 3. The CLR type remains `System.DateTime` - only the GraphQL scalar name has changed
 
+If clients can't be updated (e.g. a public API), keep the old name by re-registering the scalar against
+`DateTime`:
+
+```cs
+schema.RemoveType("DateTime");
+schema.AddScalarType<DateTime>("Date", "Date with time scalar");
+```
+
+:::caution
+Don't register `Date` against a different CLR type and map `DateTime` onto it with `AddTypeMapping<DateTime>("Date!")`
+- output works, but a variable declared as `Date!` is then built as that other type and can't be used for a
+`DateTime` argument. See [Scalar types](schema-creation/scalar-types).
+:::
+
 ## Authorization Refactoring
 
 The authorization system has been refactored to use a keyed data structure for better extensibility. This allows any package to add custom authorization requirements without modifying core classes. **Role-based authorization methods are now extension methods**, following the same pattern as policy-based authorization.

@@ -113,4 +113,10 @@ public interface ISchemaProvider
     ISchemaType CheckTypeAccess(ISchemaType schemaType, QueryRequestContext? requestContext);
     IEnumerable<GraphQLError> GenerateErrors(Exception exception, string? fieldName = null);
     string AllowedExceptionMessage(Exception exception, string? fieldName = null);
+
+    /// <summary>
+    /// True if the exception's message may be shown to the caller - the schema is in development mode, or the
+    /// exception type is registered in AllowedExceptions / marked with AllowedExceptionAttribute.
+    /// </summary>
+    bool IsAllowedException(Exception exception);
 }
