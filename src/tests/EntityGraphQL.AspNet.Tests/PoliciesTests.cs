@@ -375,6 +375,142 @@ public class PoliciesTests
         }
     }
 
+    // ── [Authorize(Roles = "...")] ────────────────────────────────────────────
+    // AspNet's [Authorize] can carry roles as well as policies. Those roles are converted to role
+    // requirements and enforced by the RoleBasedAuthorization base class.
+
+    private static SchemaProvider<RoleAttrDataContext> BuildRoleAttrSchema(params string[] passingPolicies)
+    {
+        var policies = passingPolicies.ToDictionary(p => p, p => new Func<ClaimsPrincipal, bool>(_ => true));
+        var services = new ServiceCollection().AddSingleton<IAuthorizationService>(new DummyAuthService(policies)).BuildServiceProvider();
+        return SchemaBuilder.FromObject<RoleAttrDataContext>(
+            new SchemaProviderOptions { AuthorizationService = new PolicyOrRoleBasedAuthorization(services.GetService<IAuthorizationService>()!) }
+        );
+    }
+
+    [Fact]
+    public void AuthorizeRoles_OnType_AreConvertedToRoleRequirements()
+    {
+        var schema = BuildRoleAttrSchema();
+
+        var roles = schema.Type<RoleAttrThing>().RequiredAuthorization!.GetRoles()!;
+        Assert.Single(roles);
+        Assert.Equal(["admin"], roles.ElementAt(0));
+    }
+
+    [Fact]
+    public void AuthorizeRoles_OnType_IsEnforced()
+    {
+        var schema = BuildRoleAttrSchema();
+        var services = new ServiceCollection().AddSingleton<IAuthorizationService, DummyAuthService>().BuildServiceProvider();
+        var gql = new QueryRequest { Query = @"{ things { id } }" };
+
+        var wrongRole = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "not-admin")], "authed"));
+        var fail = schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, wrongRole);
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("RoleAttrThing"));
+
+        var admin = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed"));
+        var pass = schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, admin);
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void AuthorizeRoles_CommaSeparated_IsASingleOrGroup()
+    {
+        var schema = BuildRoleAttrSchema();
+
+        // Roles = "a,b" means "a OR b" - one group holding both
+        var roles = schema.Type<RoleAttrThing>().GetField("type", null).RequiredAuthorization!.GetRoles()!;
+        Assert.Single(roles);
+        Assert.Equal(["can-type", "can-type2"], roles.ElementAt(0));
+
+        var services = new ServiceCollection().AddSingleton<IAuthorizationService, DummyAuthService>().BuildServiceProvider();
+        var gql = new QueryRequest { Query = @"{ things { type } }" };
+
+        foreach (var role in new[] { "can-type", "can-type2" })
+        {
+            var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, role)], "authed"));
+            Assert.Null(schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, user).Errors);
+        }
+
+        var neither = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed"));
+        Assert.NotNull(schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, neither).Errors);
+    }
+
+    [Fact]
+    public void GraphQLAuthorize_And_AuthorizeRoles_OnSameField_AreMerged()
+    {
+        // [GraphQLAuthorize] is read by the base class, [Authorize(Roles)] by PolicyOrRoleBasedAuthorization -
+        // the two are Concat'd, so both are required
+        var schema = BuildRoleAttrSchema();
+
+        var roles = schema.Type<RoleAttrThing>().GetField("both", null).RequiredAuthorization!.GetRoles()!;
+        Assert.Equal(2, roles.Count());
+        Assert.Contains(roles, g => g.SequenceEqual(new[] { "gql-role" }));
+        Assert.Contains(roles, g => g.SequenceEqual(new[] { "attr-role" }));
+
+        var services = new ServiceCollection().AddSingleton<IAuthorizationService, DummyAuthService>().BuildServiceProvider();
+        var gql = new QueryRequest { Query = @"{ things { both } }" };
+
+        var onlyOne = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "gql-role")], "authed"));
+        Assert.NotNull(schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, onlyOne).Errors);
+
+        var both = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "gql-role"), new Claim(ClaimTypes.Role, "attr-role")], "authed")
+        );
+        Assert.Null(schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, both).Errors);
+    }
+
+    [Fact]
+    public void AuthorizeRoles_And_AuthorizePolicy_OnSameField_AreMerged()
+    {
+        // roles come from [Authorize(Roles)], the policy from [GraphQLAuthorizePolicy] - Concat keeps both keys
+        var schema = BuildRoleAttrSchema("policy-y");
+        var fieldAuth = schema.Type<RoleAttrThing>().GetField("roleAndPolicy", null).RequiredAuthorization!;
+
+        Assert.Equal(["role-x"], fieldAuth.GetRoles()!.ElementAt(0));
+        Assert.Equal(["policy-y"], fieldAuth.GetPolicies()!.ElementAt(0));
+
+        var services = new ServiceCollection()
+            .AddSingleton<IAuthorizationService>(new DummyAuthService(new Dictionary<string, Func<ClaimsPrincipal, bool>> { { "policy-y", _ => true } }))
+            .BuildServiceProvider();
+        var gql = new QueryRequest { Query = @"{ things { roleAndPolicy } }" };
+
+        // the policy passes but the role is missing
+        var noRole = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed"));
+        Assert.NotNull(schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, noRole).Errors);
+
+        var withRole = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "role-x")], "authed"));
+        Assert.Null(schema.ExecuteRequestWithContext(gql, new RoleAttrDataContext(), services, withRole).Errors);
+    }
+
+    internal class RoleAttrDataContext
+    {
+        public IEnumerable<RoleAttrThing> Things { get; set; } = [];
+    }
+
+    // AspNet's [Authorize] is only valid on classes and methods, so the guarded fields are methods
+    [Authorize(Roles = "admin")]
+    internal class RoleAttrThing
+    {
+        public int Id { get; set; }
+
+        [Authorize(Roles = "can-type,can-type2")]
+        [GraphQLField("type")]
+        public int GetTypeCode() => 7;
+
+        [EntityGraphQL.Authorization.GraphQLAuthorize("gql-role")]
+        [Authorize(Roles = "attr-role")]
+        [GraphQLField("both")]
+        public string GetBoth() => "both";
+
+        [Authorize(Roles = "role-x")]
+        [GraphQLAuthorizePolicy("policy-y")]
+        [GraphQLField("roleAndPolicy")]
+        public string GetRoleAndPolicy() => "rp";
+    }
+
     internal class PolicyDataContext
     {
         public IEnumerable<Project> Projects { get; set; } = new List<Project>();

@@ -19,6 +19,12 @@
                 <ModulePath>.*\bEntityGraphQL\.Analyzers\.CodeFixes\.dll$</ModulePath>
               </Include>
             </ModulePaths>
+            <Sources>
+              <!-- Source-generated code (regex, etc) lives under obj/ and is not ours to test -->
+              <Exclude>
+                <Source>.*[/\\]obj[/\\].*</Source>
+              </Exclude>
+            </Sources>
           </CodeCoverage>
         </Configuration>
       </DataCollector>

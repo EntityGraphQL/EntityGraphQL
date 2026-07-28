@@ -450,6 +450,263 @@ public class RoleAuthorizationTests
         Assert.True(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed")), required));
     }
 
+    // ── RequiresAllRoles (AND) ────────────────────────────────────────────────
+    // These guard the shape difference against RequiresAnyRole: AddAnyRole puts every role in ONE group
+    // (OR), AddAllRoles puts each role in its OWN group (AND). RoleBasedAuthorization ANDs the groups and
+    // ORs within them, so swapping the two implementations turns "all of" into "any of" - i.e. it grants
+    // access to users holding a single role.
+
+    [Fact]
+    public void RequiresAllRoles_OnField_AddsOneGroupPerRole()
+    {
+        var schema = new SchemaProvider<object>();
+        schema.AddType<Task>("Task", "All about tasks").AddField(p => p.IsActive, "Is it active").RequiresAllRoles("admin", "something-else");
+
+        var roles = schema.Type<Task>().GetField("isActive", null).RequiredAuthorization!.GetRoles()!;
+        // AND = one group per role, each with a single role in it
+        Assert.Equal(2, roles.Count());
+        Assert.Equal(["admin"], roles.ElementAt(0));
+        Assert.Equal(["something-else"], roles.ElementAt(1));
+    }
+
+    [Fact]
+    public void RequiresAnyRole_AddsSingleGroup_UnlikeRequiresAllRoles()
+    {
+        var any = new RequiredAuthorization();
+        any.RequiresAnyRole("admin", "something-else");
+        var all = new RequiredAuthorization();
+        all.RequiresAllRoles("admin", "something-else");
+
+        // OR: one group holding both roles
+        Assert.Single(any.GetRoles()!);
+        Assert.Equal(["admin", "something-else"], any.GetRoles()!.ElementAt(0));
+        // AND: two groups, one role each
+        Assert.Equal(2, all.GetRoles()!.Count());
+    }
+
+    [Fact]
+    public void RequiresAllRoles_OnField_UserMustHoldEveryRole()
+    {
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        schema.Type<Task>().ReplaceField("name", t => t.Name, "Task name").RequiresAllRoles("admin", "half-admin");
+
+        var gql = new QueryRequest { Query = @"{ tasks { id name } }" };
+
+        // holding only one of the two required roles is not enough
+        var onlyAdmin = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(onlyAdmin));
+        Assert.NotNull(fail.Errors);
+        Assert.Equal("Field 'tasks' - You are not authorized to access the 'name' field on type 'Task'.", fail.Errors!.First().Message);
+
+        var onlyHalf = new ClaimsIdentity([new Claim(ClaimTypes.Role, "half-admin")], "authed");
+        var fail2 = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(onlyHalf));
+        Assert.NotNull(fail2.Errors);
+
+        // both roles - allowed
+        var both = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "half-admin")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(both));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void RequiresAllRoles_OnType_UserMustHoldEveryRole()
+    {
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        schema.Type<Task>().RequiresAllRoles("admin", "half-admin");
+
+        var gql = new QueryRequest { Query = @"{ tasks { id } }" };
+
+        var onlyAdmin = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(onlyAdmin));
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("'Task' type"));
+
+        var both = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "half-admin")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(both));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void RequiresAllRoles_OnRequiredAuthorization_IsEnforced()
+    {
+        var auth = new RoleBasedAuthorization();
+        var required = new RequiredAuthorization();
+        required.RequiresAllRoles("admin", "half-admin");
+
+        Assert.False(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed")), required));
+        Assert.True(
+            auth.IsAuthorized(
+                new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "half-admin")], "authed")),
+                required
+            )
+        );
+    }
+
+    [Fact]
+    public void ClearRoles_RemovesRoleRequirement()
+    {
+        var required = new RequiredAuthorization();
+        required.RequiresAnyRole("admin");
+        Assert.True(required.Any());
+
+        required.ClearRoles();
+
+        Assert.Null(required.GetRoles());
+        Assert.False(required.Any());
+        // an empty-but-present RequiredAuthorization still requires authentication, but no longer a role
+        var auth = new RoleBasedAuthorization();
+        Assert.True(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([], "authed")), required));
+        Assert.False(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity()), required));
+    }
+
+    [Fact]
+    public void Clear_RemovesAllAuthorizationData()
+    {
+        var required = new RequiredAuthorization();
+        required.RequiresAnyRole("admin");
+        required.SetData("other-impl", [["x"]]);
+        Assert.Equal(2, required.AuthData.Count);
+
+        required.Clear();
+
+        Assert.False(required.Any());
+        Assert.Empty(required.AuthData);
+        Assert.False(required.TryGetData("other-impl", out _));
+    }
+
+    // ── Concat: the only place auth requirements merge ────────────────────────
+
+    [Fact]
+    public void Concat_SameKey_KeepsBothRequirements()
+    {
+        var left = new RequiredAuthorization();
+        left.RequiresAnyRole("admin");
+        var right = new RequiredAuthorization();
+        right.RequiresAnyRole("can-type");
+
+        var merged = left.Concat(right);
+
+        // both groups survive - the user must satisfy each (AND)
+        var roles = merged.GetRoles()!;
+        Assert.Equal(2, roles.Count());
+        Assert.Equal(["admin"], roles.ElementAt(0));
+        Assert.Equal(["can-type"], roles.ElementAt(1));
+
+        var auth = new RoleBasedAuthorization();
+        Assert.False(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin")], "authed")), merged));
+        Assert.True(
+            auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin"), new Claim(ClaimTypes.Role, "can-type")], "authed")), merged)
+        );
+    }
+
+    [Fact]
+    public void Concat_DifferentKeys_KeepsBoth()
+    {
+        var left = new RequiredAuthorization();
+        left.RequiresAnyRole("admin");
+        var right = new RequiredAuthorization();
+        right.SetData("other-impl", [["policy-a"]]);
+
+        var merged = left.Concat(right);
+
+        Assert.Equal(2, merged.AuthData.Count);
+        Assert.Single(merged.GetRoles()!);
+        Assert.True(merged.TryGetData("other-impl", out var other));
+        Assert.Equal(["policy-a"], other!.ElementAt(0));
+    }
+
+    [Fact]
+    public void Concat_DoesNotMutateEitherOperand()
+    {
+        // Concat is called while building the schema (class-level + method-level auth, [Authorize] +
+        // [GraphQLAuthorize]) and the operands are shared - a class-level RequiredAuthorization is passed to
+        // every method on that class. Mutating an operand would leak one field's requirements onto another.
+        var classLevel = new RequiredAuthorization();
+        classLevel.RequiresAnyRole("class-role");
+        var methodA = new RequiredAuthorization();
+        methodA.RequiresAnyRole("method-a");
+        var methodB = new RequiredAuthorization();
+        methodB.RequiresAnyRole("method-b");
+
+        var mergedA = methodA.Concat(classLevel);
+        var mergedB = methodB.Concat(classLevel);
+
+        Assert.Single(classLevel.GetRoles()!);
+        Assert.Single(methodA.GetRoles()!);
+        Assert.Single(methodB.GetRoles()!);
+        Assert.Equal(2, mergedA.GetRoles()!.Count());
+        Assert.Equal(2, mergedB.GetRoles()!.Count());
+        Assert.DoesNotContain(mergedA.GetRoles()!, g => g.Contains("method-b"));
+    }
+
+    [Fact]
+    public void Concat_EmptyOperands_StillRequiresAuthentication()
+    {
+        // a bare [GraphQLAuthorize] on the class and on the method - present but empty, must stay present
+        var merged = new RequiredAuthorization().Concat(new RequiredAuthorization());
+        var auth = new RoleBasedAuthorization();
+        Assert.False(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity()), merged));
+        Assert.True(auth.IsAuthorized(new ClaimsPrincipal(new ClaimsIdentity([], "authed")), merged));
+    }
+
+    // ── class-level auth on a mutation/subscription controller ────────────────
+
+    [Fact]
+    public void MutationAuth_ClassLevelRole_AppliesToMethodWithNoOwnAuth()
+    {
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        schema.AddMutationsFrom<ClassLevelRolesMutations>();
+
+        var gql = new QueryRequest { Query = @"mutation T { classOnly }" };
+
+        var wrongRole = new ClaimsIdentity([new Claim(ClaimTypes.Role, "not-it")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(wrongRole));
+        Assert.NotNull(fail.Errors);
+        Assert.Equal("You are not authorized to access the 'classOnly' field on type 'Mutation'.", fail.Errors!.First().Message);
+
+        var classRole = new ClaimsIdentity([new Claim(ClaimTypes.Role, "class-role")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(classRole));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void MutationAuth_ClassLevelAndMethodLevelRoles_BothRequired()
+    {
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        schema.AddMutationsFrom<ClassLevelRolesMutations>();
+
+        var gql = new QueryRequest { Query = @"mutation T { classAndMethod }" };
+
+        // the class-level role alone is not enough
+        var classOnly = new ClaimsIdentity([new Claim(ClaimTypes.Role, "class-role")], "authed");
+        var fail = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(classOnly));
+        Assert.NotNull(fail.Errors);
+
+        // nor is the method-level role alone
+        var methodOnly = new ClaimsIdentity([new Claim(ClaimTypes.Role, "method-role")], "authed");
+        var fail2 = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(methodOnly));
+        Assert.NotNull(fail2.Errors);
+
+        var both = new ClaimsIdentity([new Claim(ClaimTypes.Role, "class-role"), new Claim(ClaimTypes.Role, "method-role")], "authed");
+        var pass = schema.ExecuteRequestWithContext(gql, new RolesDataContext(), null, new ClaimsPrincipal(both));
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void MutationAuth_ClassLevelRole_DoesNotLeakBetweenMethods()
+    {
+        // classAndMethod requires "method-role" on top of the class role - classOnly must not pick that up
+        var schema = SchemaBuilder.FromObject<RolesDataContext>();
+        schema.AddMutationsFrom<ClassLevelRolesMutations>();
+
+        var classOnlyRoles = schema.Mutation().SchemaType.GetField("classOnly", null).RequiredAuthorization!.GetRoles()!;
+        Assert.Single(classOnlyRoles);
+        Assert.Equal(["class-role"], classOnlyRoles.ElementAt(0));
+
+        var bothRoles = schema.Mutation().SchemaType.GetField("classAndMethod", null).RequiredAuthorization!.GetRoles()!;
+        Assert.Equal(2, bothRoles.Count());
+    }
+
     internal class RolesDataContext
     {
         public IEnumerable<Project> Projects { get; set; } = new List<Project>();
@@ -493,5 +750,17 @@ public class RoleAuthorizationTests
         {
             return true;
         }
+    }
+
+    // class-level auth is merged into every method's requirements (ControllerType.AddMethodAsField)
+    [GraphQLAuthorize("class-role")]
+    internal class ClassLevelRolesMutations
+    {
+        [GraphQLMutation]
+        public static bool ClassOnly() => true;
+
+        [GraphQLAuthorize("method-role")]
+        [GraphQLMutation]
+        public static bool ClassAndMethod() => true;
     }
 }

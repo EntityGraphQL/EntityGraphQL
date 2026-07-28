@@ -186,6 +186,52 @@ public class QueryLimitsTests
         var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxFieldAliases = 4 });
         Assert.NotNull(fail.Errors);
         Assert.Contains(fail.Errors!, e => e.Message.Contains("maximum allowed alias count"));
+
+        // and the same for complexity - 5 totalPeople selections cost 5, of which 3 are inside the fragment.
+        // A limit of 4 must be exceeded, otherwise the fragment's contents were not costed at all
+        var complexityFail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 4 });
+        Assert.NotNull(complexityFail.Errors);
+        Assert.Contains(complexityFail.Errors!, e => e.Message.Contains("complexity"));
+
+        var complexityPass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 5 });
+        Assert.Null(complexityPass.Errors);
+    }
+
+    [Fact]
+    public void FragmentSpread_PerFieldComplexityOverride_IsCounted()
+    {
+        // an expensive field must stay expensive when reached through a fragment
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetComplexity(50);
+        var data = new TestDataContext();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query { ...Counts }
+                fragment Counts on Query { totalPeople }",
+        };
+
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 49 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("complexity"));
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 50 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void FragmentSpread_UnknownFragment_CostsNothing()
+    {
+        // a spread of a fragment that is not defined must not throw while costing
+        var schema = BuildSchema();
+        var data = new TestDataContext();
+        var gql = new QueryRequest { Query = @"query { totalPeople ...NotDefined }" };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 100 });
+        // the query itself is invalid, but costing it must not blow up with something other than a GraphQL error
+        Assert.NotNull(result.Errors);
+        Assert.DoesNotContain(result.Errors!, e => e.Message.Contains("complexity"));
     }
 
     [Fact]
@@ -208,6 +254,14 @@ public class QueryLimitsTests
         Assert.Null(pass.Errors);
         var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxFieldSelections = 2 });
         Assert.NotNull(fail.Errors);
+
+        // cost is the same 3 - the inline fragment passes through, adding no base cost of its own but not
+        // hiding its contents either
+        var costPass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 3 });
+        Assert.Null(costPass.Errors);
+        var costFail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 2 });
+        Assert.NotNull(costFail.Errors);
+        Assert.Contains(costFail.Errors!, e => e.Message.Contains("complexity"));
     }
 
     [Fact]
@@ -339,6 +393,151 @@ public class QueryLimitsTests
         };
         var zeroPass = schema.ExecuteRequestWithContext(zeroGql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1 });
         Assert.Null(zeroPass.Errors);
+    }
+
+    [Fact]
+    public void SetComplexity_VariableArg_InsideFragment_UsesRealValue()
+    {
+        // args parsed inside a fragment definition have no operation context yet, so they are held as a
+        // VariableReference rather than an expression. The cost analyser must still resolve them - otherwise
+        // moving the field into a fragment makes an expensive query look free.
+        var schema = BuildSchema();
+        schema.Query().ReplaceField("projects", new { take = 10 }, (ctx, args) => ctx.Projects.Take(args.take), "projects").SetComplexity(ctx => ctx.Args.take * (1 + ctx.ChildComplexity));
+        var data = new TestDataContext();
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"
+                query Q($pageSize: Int!) { ...Page }
+                fragment Page on Query { projects(take: $pageSize) { id name } }",
+            Variables = new QueryVariables { { "pageSize", 50 } },
+        };
+
+        // 50 * (1 + id + name) = 150
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 149 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("complexity"));
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 150 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void SetComplexity_VariableArg_NotSupplied_UsesDeclaredDefault()
+    {
+        // $pageSize is declared with a default and not passed with the request - the cost must come from the
+        // default (30), not from the CLR default of 0 which would make the query look free
+        var schema = BuildSchema();
+        schema.Query().ReplaceField("projects", new { take = 10 }, (ctx, args) => ctx.Projects.Take(args.take), "projects").SetComplexity(ctx => ctx.Args.take * (1 + ctx.ChildComplexity));
+        var data = new TestDataContext();
+
+        var gql = new QueryRequest { Query = "query Q($pageSize: Int = 30) { projects(take: $pageSize) { id name } }" };
+
+        // 30 * (1 + id + name) = 90
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 89 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("complexity"));
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 90 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void MaxQueryComplexity_NamedOperation_IsCosted()
+    {
+        // with several operations in the document the named one must be the one costed
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetComplexity(50);
+        var data = new TestDataContext();
+        var query =
+            @"
+            query Cheap { projects { id } }
+            query Expensive { totalPeople }";
+
+        var cheap = schema.ExecuteRequestWithContext(new QueryRequest { Query = query, OperationName = "Cheap" }, data, null, null, new ExecutionOptions { MaxQueryComplexity = 2 });
+        Assert.Null(cheap.Errors);
+
+        var expensive = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = query, OperationName = "Expensive" },
+            data,
+            null,
+            null,
+            new ExecutionOptions { MaxQueryComplexity = 2 }
+        );
+        Assert.NotNull(expensive.Errors);
+        Assert.Contains(expensive.Errors!, e => e.Message.Contains("complexity"));
+
+        // an operation name that matches nothing costs nothing - the request fails for its own reasons, but
+        // not with a complexity error
+        var unknown = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = query, OperationName = "NotThere" },
+            data,
+            null,
+            null,
+            new ExecutionOptions { MaxQueryComplexity = 1 }
+        );
+        Assert.NotNull(unknown.Errors);
+        Assert.DoesNotContain(unknown.Errors!, e => e.Message.Contains("complexity"));
+    }
+
+    [Fact]
+    public void SetComplexity_RequiredVariable_NotSupplied_CostsClrDefault()
+    {
+        // a required variable that is not supplied has no default to fall back on - the cost is computed from
+        // the CLR default (0) and the request then fails validation for the missing variable
+        var schema = BuildSchema();
+        schema.Query().ReplaceField("projects", new { take = 10 }, (ctx, args) => ctx.Projects.Take(args.take), "projects").SetComplexity(ctx => ctx.Args.take * (1 + ctx.ChildComplexity));
+        var data = new TestDataContext();
+
+        var gql = new QueryRequest { Query = "query Q($pageSize: Int!) { projects(take: $pageSize) { id name } }" };
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 1 });
+
+        Assert.NotNull(result.Errors);
+        Assert.DoesNotContain(result.Errors!, e => e.Message.Contains("complexity"));
+    }
+
+    [Fact]
+    public void SetComplexity_Calculator_MixedLiteralAndVariableArgs()
+    {
+        // only the variable-backed args need resolving - inline literals are passed through as they are
+        var schema = BuildSchema();
+        schema
+            .Query()
+            .ReplaceField("projects", new { take = 10, name = "" }, (ctx, args) => ctx.Projects.Where(p => p.Name == args.name).Take(args.take), "projects")
+            .SetComplexity(ctx => ctx.Args.take * (1 + ctx.ChildComplexity) + ctx.Args.name.Length);
+        var data = new TestDataContext();
+
+        var gql = new QueryRequest
+        {
+            Query = @"query Q($pageSize: Int!) { projects(take: $pageSize, name: ""abc"") { id } }",
+            Variables = new QueryVariables { { "pageSize", 10 } },
+        };
+
+        // 10 * (1 + id) + len("abc") = 23
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 22 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("complexity"));
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 23 });
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void SetComplexity_Calculator_OnFieldWithNoArguments()
+    {
+        // a calculator on an argument-less field - there is no args object to build
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetComplexity(ctx => 7 * (1 + ctx.ChildComplexity));
+        var data = new TestDataContext();
+        var gql = new QueryRequest { Query = "{ totalPeople }" };
+
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 6 });
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("complexity"));
+
+        var pass = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions { MaxQueryComplexity = 7 });
+        Assert.Null(pass.Errors);
     }
 
     [Fact]

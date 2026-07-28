@@ -46,6 +46,76 @@ public class FieldRateLimitServiceTests
         Assert.Contains(denied.Errors!, e => e.Message.Contains("Rate limit exceeded"));
     }
 
+    // the other three limiter policies are thin wrappers over the framework's RateLimitPartition - these
+    // check each one is wired to the right limiter with its arguments in the right order
+
+    [Fact]
+    public async Task SlidingWindow_DeniesAfterLimitExceeded()
+    {
+        var schema = BuildSchema();
+        schema.Type<RateLimitContext>().GetField("value", null).AddRateLimit("sliding");
+
+        var services = new ServiceCollection();
+        services.AddGraphQLFieldRateLimit(opts => opts.AddSlidingWindowPolicy("sliding", permitLimit: 2, window: TimeSpan.FromMinutes(1), segmentsPerWindow: 4));
+        await using var sp = services.BuildServiceProvider();
+        var opt = new ExecutionOptions { FieldRateLimitService = sp.GetRequiredService<IFieldRateLimitService>() };
+
+        var gql = new QueryRequest { Query = "{ value }" };
+        var data = new RateLimitContext();
+
+        Assert.Null((await schema.ExecuteRequestWithContextAsync(gql, data, null, null, opt)).Errors);
+        Assert.Null((await schema.ExecuteRequestWithContextAsync(gql, data, null, null, opt)).Errors);
+
+        var denied = await schema.ExecuteRequestWithContextAsync(gql, data, null, null, opt);
+        Assert.NotNull(denied.Errors);
+        Assert.Contains(denied.Errors!, e => e.Message.Contains("Rate limit exceeded"));
+    }
+
+    [Fact]
+    public async Task TokenBucket_DeniesOnceTokensAreSpent()
+    {
+        var schema = BuildSchema();
+        schema.Type<RateLimitContext>().GetField("value", null).AddRateLimit("bucket");
+
+        var services = new ServiceCollection();
+        // 2 tokens to start with, replenishing far too slowly to help within the test
+        services.AddGraphQLFieldRateLimit(opts =>
+            opts.AddTokenBucketPolicy("bucket", tokenLimit: 2, replenishmentPeriod: TimeSpan.FromMinutes(10), tokensPerPeriod: 1)
+        );
+        await using var sp = services.BuildServiceProvider();
+        var opt = new ExecutionOptions { FieldRateLimitService = sp.GetRequiredService<IFieldRateLimitService>() };
+
+        var gql = new QueryRequest { Query = "{ value }" };
+        var data = new RateLimitContext();
+
+        Assert.Null((await schema.ExecuteRequestWithContextAsync(gql, data, null, null, opt)).Errors);
+        Assert.Null((await schema.ExecuteRequestWithContextAsync(gql, data, null, null, opt)).Errors);
+
+        var denied = await schema.ExecuteRequestWithContextAsync(gql, data, null, null, opt);
+        Assert.NotNull(denied.Errors);
+        Assert.Contains(denied.Errors!, e => e.Message.Contains("Rate limit exceeded"));
+    }
+
+    [Fact]
+    public async Task Concurrency_PermitsAreReleasedWhenTheQueryCompletes()
+    {
+        var schema = BuildSchema();
+        schema.Type<RateLimitContext>().GetField("value", null).AddRateLimit("concurrent");
+
+        var services = new ServiceCollection();
+        services.AddGraphQLFieldRateLimit(opts => opts.AddConcurrencyPolicy("concurrent", permitLimit: 1));
+        await using var sp = services.BuildServiceProvider();
+        var opt = new ExecutionOptions { FieldRateLimitService = sp.GetRequiredService<IFieldRateLimitService>() };
+
+        var gql = new QueryRequest { Query = "{ value }" };
+        var data = new RateLimitContext();
+
+        // unlike the window limiters, a concurrency permit is returned at the end of each request, so
+        // sequential requests all succeed
+        for (var i = 0; i < 3; i++)
+            Assert.Null((await schema.ExecuteRequestWithContextAsync(gql, data, null, null, opt)).Errors);
+    }
+
     [Fact]
     public async Task PerSelection_AliasBatchingDrainsBucketInOneRequest()
     {

@@ -425,6 +425,184 @@ public class GraphQLWebSocketServerTests
         await server.HandleAsync();
     }
 
+    private static List<string> CaptureSentMessages(MockSocket socket)
+    {
+        var sent = new List<string>();
+        socket
+            .Setup(s => s.SendAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<WebSocketMessageType>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(
+                (ArraySegment<byte> segment, WebSocketMessageType _, bool _, CancellationToken _) =>
+                {
+                    lock (sent)
+                        sent.Add(System.Text.Encoding.UTF8.GetString(segment));
+                }
+            );
+        return sent;
+    }
+
+    [Fact]
+    public async Task TestClientCompleteRemovesSubscriptionSoIdCanBeReused()
+    {
+        // a client "complete" unsubscribes and disposes the subscription - if it did not, the id would stay
+        // registered (leaking the subscription) and re-using it would be rejected as a duplicate
+        var (server, socket, _) = Setup();
+        var id = Guid.NewGuid().ToString();
+        CaptureSentMessages(socket);
+
+        var recvSeq = new MockSequence();
+        socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
+        socket
+            .InSequence(recvSeq)
+            .SetupReceiveAsync(
+                new GraphQLWSRequest
+                {
+                    Id = id,
+                    Type = GraphQLWSMessageType.Subscribe,
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
+                }
+            );
+        socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"id\":\"{id}\",\"type\":\"{GraphQLWSMessageType.Complete}\"}}");
+        // the same id again - only valid because the complete above removed the first subscription
+        socket
+            .InSequence(recvSeq)
+            .SetupReceiveAsync(
+                new GraphQLWSRequest
+                {
+                    Id = id,
+                    Type = GraphQLWSMessageType.Subscribe,
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
+                }
+            );
+        socket.InSequence(recvSeq).SetupReceiveCloseAsync();
+
+        socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
+
+        await server.HandleAsync();
+
+        socket.Verify(s => s.CloseAsync((WebSocketCloseStatus)4409, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        socket.Verify(s => s.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test over", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TestClientCompleteWithNoIdClosesConnection()
+    {
+        var (server, socket, _) = Setup();
+
+        var recvSeq = new MockSequence();
+        socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
+        socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.Complete}\"}}");
+
+        socket.SetupAndAssertSendAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionAck}\"}}");
+        socket.SetupAndAssertCloseAsync(4400, "Invalid complete message, missing id field.");
+
+        await server.HandleAsync();
+
+        socket.Verify(s => s.CloseAsync((WebSocketCloseStatus)4400, "Invalid complete message, missing id field.", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TestSubscribeWithInvalidQuerySendsErrorMessage()
+    {
+        // a subscribe whose operation fails must send an "error" message to the client for that id rather
+        // than closing the connection or silently doing nothing
+        var (server, socket, _) = Setup();
+        var id = Guid.NewGuid().ToString();
+        var sent = CaptureSentMessages(socket);
+
+        var recvSeq = new MockSequence();
+        socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
+        socket
+            .InSequence(recvSeq)
+            .SetupReceiveAsync(
+                new GraphQLWSRequest
+                {
+                    Id = id,
+                    Type = GraphQLWSMessageType.Subscribe,
+                    Payload = new QueryRequest { Query = "subscription DoIt { notAFieldOnSubscription { text } }" },
+                }
+            );
+        socket.InSequence(recvSeq).SetupReceiveCloseAsync();
+
+        socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
+
+        await server.HandleAsync();
+
+        var error = Assert.Single(sent, m => m.Contains($"\"type\":\"{GraphQLWSMessageType.Error}\""));
+        Assert.Contains(id, error);
+        Assert.Contains("notAFieldOnSubscription", error);
+    }
+
+    [Fact]
+    public async Task TestObservableOnErrorSendsErrorAndEndsSubscription()
+    {
+        // when the underlying observable faults, the client gets an error message for that operation id and
+        // the subscription is removed (per the Rx contract the sequence has terminated)
+        var (server, socket, httpContext) = Setup();
+        var id = Guid.NewGuid().ToString();
+        var chatService = httpContext.Object.RequestServices.GetService<TestChatService>()!;
+
+        var sent = new List<string>();
+        var errorReceived = new TaskCompletionSource();
+        socket
+            .Setup(s => s.SendAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<WebSocketMessageType>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .Callback(
+                (ArraySegment<byte> segment, WebSocketMessageType _, bool _, CancellationToken _) =>
+                {
+                    lock (sent)
+                    {
+                        sent.Add(System.Text.Encoding.UTF8.GetString(segment));
+                        if (sent.Any(m => m.Contains($"\"type\":\"{GraphQLWSMessageType.Error}\"")))
+                            errorReceived.TrySetResult();
+                    }
+                }
+            );
+
+        var recvSeq = new MockSequence();
+        socket.InSequence(recvSeq).SetupReceiveAsync($"{{\"type\":\"{GraphQLWSMessageType.ConnectionInit}\"}}");
+        socket
+            .InSequence(recvSeq)
+            .SetupReceiveAsync(
+                new GraphQLWSRequest
+                {
+                    Id = id,
+                    Type = GraphQLWSMessageType.Subscribe,
+                    Payload = new QueryRequest { Query = "subscription DoIt { onMessage { text } }" },
+                },
+                () =>
+                {
+                    var broadcaster = (EntityGraphQL.Subscriptions.Broadcaster<Message>)chatService.Subscribe();
+                    var waited = 0;
+                    while (broadcaster.Subscribers.Count == 0 && waited < 5000)
+                    {
+                        Thread.Sleep(10);
+                        waited += 10;
+                    }
+                    broadcaster.OnError(new InvalidOperationException("the stream broke"));
+                }
+            );
+        // hold the connection open until the error has been delivered
+        socket
+            .InSequence(recvSeq)
+            .Setup(s => s.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
+            .Returns(
+                async (ArraySegment<byte> _, CancellationToken ct) =>
+                {
+                    await errorReceived.Task.WaitAsync(TimeSpan.FromSeconds(5), ct);
+                    return new WebSocketReceiveResult(0, WebSocketMessageType.Close, true, WebSocketCloseStatus.NormalClosure, "Test over");
+                }
+            );
+
+        socket.SetupAndAssertCloseAsync((int)WebSocketCloseStatus.NormalClosure, "Test over");
+
+        await server.HandleAsync();
+
+        var error = Assert.Single(sent, m => m.Contains($"\"type\":\"{GraphQLWSMessageType.Error}\""));
+        Assert.Contains(id, error);
+        Assert.Contains("the stream broke", error);
+    }
+
     private static Mock<HttpContext> SetupMockHttpContext()
     {
         var chatService = new TestChatService();
