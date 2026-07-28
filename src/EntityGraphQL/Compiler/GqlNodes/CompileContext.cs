@@ -167,7 +167,12 @@ public class CompileContext
 
     /// <summary>
     /// The node whose selection set is currently being compiled - i.e. the selection point of the fields
-    /// being visited. Null while compiling the statement's own root fields.
+    /// being visited.
+    ///
+    /// While compiling a statement's root fields this is the statement itself on the first-pass context (it
+    /// pushes itself), and null on the second (services) pass, which runs on a fresh context that never had
+    /// the statement pushed. Neither is a <see cref="BaseGraphQLQueryField"/>, so both answer "not selected
+    /// on a list-to-single node" - callers must treat the two cases the same.
     /// </summary>
     internal IGraphQLNode? CurrentSelectionNode => selectionPath.Count > 0 ? selectionPath[selectionPath.Count - 1] : null;
 

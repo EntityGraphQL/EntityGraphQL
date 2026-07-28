@@ -1689,6 +1689,26 @@ public class ServiceFieldBulkTests
         Assert.Equal("SingleCall", project.createdBy.field2);
     }
 
+    [Fact]
+    public void TestBulkResolverViaInlineFragmentOnToSingleField()
+    {
+        var (schema, context, srv) = SetupBulkCreatedBy();
+        // inline fragments take a separate branch through RegisterBulkResolverFields to the named spread in
+        // TestBulkResolverViaFragmentOnToSingleField - the per-item resolver must win here too
+        var res = ExecuteBulkQuery(
+            schema,
+            context,
+            srv,
+            @"query {
+                project(id: 1) { name ... on Project { createdBy { id field2 } } }
+            }"
+        );
+        Assert.Null(res.Errors);
+        dynamic project = res.Data!["project"]!;
+        Assert.Equal(1, project.createdBy.id);
+        Assert.Equal("SingleCall", project.createdBy.field2);
+    }
+
     /// <summary>
     /// Regression for root lists that use WhereWhen (and optionally OrderBy / UseFilter) with a
     /// scalar ResolveBulk field on the list element. Two-pass service execution must not rewrite

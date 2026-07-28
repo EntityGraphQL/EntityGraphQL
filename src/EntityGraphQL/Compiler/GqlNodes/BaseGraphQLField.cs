@@ -375,8 +375,14 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// reached through a fragment spread carry the fragment's parse-time parent, not where it is used.
     /// Registering the bulk load and building the lookup below must make the same call, or the lookup
     /// misses and throws for a key that was never loaded.
+    ///
+    /// Only a query field can be a list-to-single selection point. No enclosing selection node (root fields
+    /// on the second pass) and a non-query one (the statement itself, root fields on the first pass) both
+    /// mean "not to-single" - matched explicitly rather than left to a cast quietly returning null for
+    /// either, so the two passes can not start disagreeing if those node types change.
     /// </summary>
-    protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) => (compileContext.CurrentSelectionNode as BaseGraphQLQueryField)?.ToSingleNode != null;
+    protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) =>
+        compileContext.CurrentSelectionNode is BaseGraphQLQueryField selectionPoint && selectionPoint.ToSingleNode != null;
 
     protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
     {

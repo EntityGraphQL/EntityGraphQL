@@ -34,7 +34,15 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
         // a copy still belongs to the same list-to-single selection. GraphQLCollectionToSingleField sets
         // this on the nodes it wraps, but the per-compile copy made to build the Select().First() chain
-        // never goes through that constructor and would otherwise look like a plain list selection
+        // never goes through that constructor and would otherwise look like a plain list selection.
+        //
+        // Two things read it and both need a copy to answer like the original:
+        //  - the bulk resolver's to-single check (IsSelectedOnToSingleNode). The second (services) pass
+        //    compiles copies, so a copy that dropped this would answer differently from the original the
+        //    first pass registered against - the same registration/lookup disagreement that made a bulk
+        //    field selected through a fragment throw for a key that was never loaded.
+        //  - CompiledBulkFieldResolver, which uses it to decide whether the bulk list expression navigates
+        //    with PropertyOrField (a single item) or Select..WithNullCheck (a list).
         ToSingleNode = context.ToSingleNode;
     }
 
