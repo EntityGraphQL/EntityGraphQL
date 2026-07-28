@@ -1,4 +1,4 @@
-# 6.1.1 (unreleased)
+# 6.1.1
 
 ## Fixes
 
