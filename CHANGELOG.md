@@ -1,3 +1,9 @@
+# 6.1.2
+
+## Fixes
+
+- Fixed `ResolveBulk` / `ResolveBulkAsync` nested under a **root service-resolved list** (e.g. `Query.apiKeys` from `.Resolve<TService>(...)` rather than a context/`DbSet` property) throwing `Static property requires null instance, non-static property requires non-null instance` when building the bulk dictionary lookup. Root service list fields used to return `null` on the EF/services first pass, which skipped `ResolveBulkLoadersAsync` and left `BulkParameter` null; the second-pass `MakeIndex` then failed. Those fields now participate in the two-pass flow so nested bulk resolvers load once. A null `BulkParameter` guard falls back to the per-item `Resolve` expression if bulk data was not loaded. Regression tests in `ServiceRootListBulkTests`.
+
 # 6.1.1
 
 ## Fixes

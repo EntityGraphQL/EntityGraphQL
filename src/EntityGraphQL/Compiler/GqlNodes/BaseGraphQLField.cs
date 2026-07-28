@@ -381,8 +381,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// mean "not to-single" - matched explicitly rather than left to a cast quietly returning null for
     /// either, so the two passes can not start disagreeing if those node types change.
     /// </summary>
-    protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) =>
-        compileContext.CurrentSelectionNode is BaseGraphQLQueryField selectionPoint && selectionPoint.ToSingleNode != null;
+    protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) => compileContext.CurrentSelectionNode is BaseGraphQLQueryField selectionPoint && selectionPoint.ToSingleNode != null;
 
     protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
     {
@@ -392,7 +391,11 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             {
                 // we replace the expression with a lookup in the bulk resolver data
                 // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]
-                var expression = Expression.MakeIndex(compileContext.BulkParameter!, typeof(Dictionary<string, object>).GetProperty("Item")!, new[] { Expression.Constant(Field.BulkResolver.Name) });
+                // Root service lists historically skipped the bulk-loading pass; guard so we fall back to
+                // the per-item Resolve expression instead of MakeIndex(null, ...).
+                if (compileContext.BulkParameter == null)
+                    return nextFieldContext;
+                var expression = Expression.MakeIndex(compileContext.BulkParameter, typeof(Dictionary<string, object>).GetProperty("Item")!, new[] { Expression.Constant(Field.BulkResolver.Name) });
                 var dictType = typeof(Dictionary<,>).MakeGenericType(Field.BulkResolver.DataSelector.ReturnType, Field.ReturnType.TypeDotnet);
                 nextFieldContext = Expression.MakeIndex(Expression.Convert(expression, dictType), dictType.GetProperty("Item")!, new[] { Field!.BulkResolver.DataSelector.Body });
                 nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
@@ -423,11 +426,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
                     $"Fields with the same response name '{newField.Name}' must be the same field with identical arguments. Use different aliases."
                 );
         }
-        else if (
-            existingField.Field != null
-            && newField.Field != null
-            && existingField.Field.ReturnType.GqlTypeForReturnOrArgument != newField.Field.ReturnType.GqlTypeForReturnOrArgument
-        )
+        else if (existingField.Field != null && newField.Field != null && existingField.Field.ReturnType.GqlTypeForReturnOrArgument != newField.Field.ReturnType.GqlTypeForReturnOrArgument)
         {
             throw new EntityGraphQLException(
                 GraphQLErrorCategory.DocumentError,
