@@ -285,9 +285,9 @@ schema.AddScalarType<DateTime>("Date", "Date with time scalar");
 ```
 
 :::caution
-Don't register `Date` against a different CLR type and map `DateTime` onto it with `AddTypeMapping<DateTime>("Date!")`
-- output works, but a variable declared as `Date!` is then built as that other type and can't be used for a
-`DateTime` argument. See [Scalar types](schema-creation/scalar-types).
+Don't register `Date` against one of your own CLR types and then map `DateTime` onto it with
+`AddTypeMapping<DateTime>("Date!")` - output works, but a variable declared as `Date!` is built as that other type
+and can't be used for a `DateTime` argument. See [Scalar types](schema-creation/scalar-types).
 :::
 
 ## Authorization Refactoring

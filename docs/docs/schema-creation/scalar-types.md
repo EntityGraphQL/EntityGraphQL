@@ -73,17 +73,20 @@ byte[]  ->  String
 :::caution
 `AddTypeMapping` is one-way - it tells EntityGraphQL which GraphQL type to _write_ for a dotnet type. The reverse
 lookup, used to decide the dotnet type a query document variable is built as, comes from the scalar's own dotnet
-type. So if you map a dotnet type onto a scalar registered against a _different_ dotnet type, output works but a
-variable used for an argument of the mapped type arrives as the scalar's type instead:
+type. So if you register a scalar against one of your dotnet types and then map a _different_ dotnet type onto that
+same scalar, output works for both but a variable used for an argument of the mapped type arrives as the scalar's
+type instead:
 
 ```cs
-schema.AddScalarType<Instant>("Date", "Date/time scalar");
-// DateTime fields now write as Date, but `$from: Date!` builds an Instant, not a DateTime
-schema.AddTypeMapping<DateTime>("Date!");
+// MyTimestamp is your own type - a scalar's dotnet type is whatever you register it with
+schema.AddScalarType<MyTimestamp>("Timestamp", "A point in time");
+// DateTime fields now write as Timestamp too, but `$at: Timestamp!` builds a MyTimestamp, not a DateTime,
+// so it can not be used for an argument declared as DateTime
+schema.AddTypeMapping<DateTime>("Timestamp!");
 ```
 
 Register a [custom type converter](#custom-type-converters) for the pair so arguments of the mapped type can still
-be built (here `Instant` -> `DateTime`), or give each dotnet type its own scalar name.
+be built (here `MyTimestamp` -> `DateTime`), or give each dotnet type its own scalar name.
 :::
 
 ## Custom Type Converters
