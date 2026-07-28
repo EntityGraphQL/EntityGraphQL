@@ -1274,7 +1274,64 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
                         $"Field '{field.Name}' on type '{schemaType.Name}' returns type '{(field.ReturnType.TypeDotnet.IsEnumerableOrArray() ? field.ReturnType.TypeDotnet.GetEnumerableOrArrayType() : field.ReturnType.TypeDotnet)}' that is not in the schema"
                     );
                 }
+
+                foreach (var arg in field.Arguments.Values)
+                {
+                    ISchemaType argSchemaType;
+                    try
+                    {
+                        argSchemaType = arg.Type.SchemaType;
+                    }
+                    // the schema type lookup for an argument is an input-type lookup, which throws
+                    // EntityGraphQLException rather than EntityGraphQLSchemaException
+                    catch (Exception ex) when (ex is EntityGraphQLSchemaException or EntityGraphQLException)
+                    {
+                        throw new EntityGraphQLSchemaException(
+                            $"Field '{field.Name}' on type '{schemaType.Name}' has argument '{arg.Name}' of type '{arg.Type.TypeDotnet.GetNonNullableOrEnumerableType()}' that is not in the schema"
+                        );
+                    }
+                    ValidateArgumentIsBuildable(schemaType, field, arg, argSchemaType);
+                }
             }
         }
     }
+
+    /// <summary>
+    /// A document variable is built as the dotnet type of the GraphQL type it declares (see
+    /// GraphQLParser.ParseVariableDefinitions), so an argument declared as a different dotnet type only works if
+    /// that value can be converted. AddTypeMapping is one-way - it decides which GraphQL type to write for a
+    /// dotnet type and does not make the reverse trip possible - so mapping a dotnet type onto a scalar that is
+    /// registered against another dotnet type fails on the first request that passes a variable for the argument,
+    /// with a message naming only the GraphQL types. Fail here instead, where the fix is obvious.
+    /// </summary>
+    private void ValidateArgumentIsBuildable(ISchemaType parentType, IField field, ArgType arg, ISchemaType argSchemaType)
+    {
+        // ponytail: list arguments are skipped - a mapping like AddTypeMapping<NpgsqlPolygon>("[Point!]!")
+        // deliberately pairs unrelated dotnet types and is only used on the output path. Narrow this if a list
+        // argument mismatch ever shows up in the wild.
+        if (arg.Type.IsList)
+            return;
+
+        var argClrType = arg.Type.TypeDotnet.GetNonNullableType();
+        var schemaClrType = argSchemaType.TypeDotnet;
+        if (schemaClrType == argClrType || argClrType.IsAssignableFrom(schemaClrType))
+            return;
+
+        // Convert.ChangeType covers the built-in mappings (short/long/decimal/... -> Int/Float) but can only start
+        // from an IConvertible - anything else needs a custom converter registered for the pair
+        if (typeof(IConvertible).IsAssignableFrom(schemaClrType) || HasCustomTypeConverter(schemaClrType, argClrType))
+            return;
+
+        throw new EntityGraphQLSchemaException(
+            $"Field '{field.Name}' on type '{parentType.Name}' has argument '{arg.Name}' of dotnet type '{argClrType.Name}' but its GraphQL type '{argSchemaType.Name}' is registered against dotnet type '{schemaClrType.Name}'. "
+                + $"A variable declared as '{argSchemaType.Name}' is built as '{schemaClrType.Name}' and can not be used for the argument. "
+                + $"Register a custom type converter from '{schemaClrType.Name}' to '{argClrType.Name}', or register the scalar against '{argClrType.Name}'."
+        );
+    }
+
+    /// <summary>
+    /// True if any registered converter could be asked to make this conversion. Matches the lookups
+    /// TryConvertCustom does, by type only - whether it succeeds depends on the value at runtime.
+    /// </summary>
+    private bool HasCustomTypeConverter(Type from, Type to) => fromToConverters.ContainsKey((from, to)) || toConverters.ContainsKey(to) || fromConverters.ContainsKey(from);
 }
