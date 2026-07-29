@@ -87,6 +87,9 @@ schema.AddTypeMapping<DateTime>("Timestamp!");
 
 Register a [custom type converter](#custom-type-converters) for the pair so arguments of the mapped type can still
 be built (here `MyTimestamp` -> `DateTime`), or give each dotnet type its own scalar name.
+
+[`schema.Validate()`](./schema-creation#validating-your-schema) fails on this, so calling it once your schema is
+set up turns it into a startup error instead of an error on the first request that uses such an argument.
 :::
 
 ## Custom Type Converters
