@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Directives;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 
@@ -397,6 +398,18 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// </summary>
     private bool BulkDataAvailable(CompileContext compileContext) => compileContext.BulkData?.ContainsKey(Field!.BulkResolver!.Name) == true;
 
+    /// <summary>
+    /// The <c>IDictionary&lt;TKey, TResult&gt;</c> the bulk resolver loads its data into, taken from the
+    /// resolver's declared return type (unwrapping the Task of an async one).
+    /// </summary>
+    private static Type BulkResolverDictionaryType(IBulkFieldResolver bulkResolver)
+    {
+        var dictType = bulkResolver.FieldExpression.ReturnType;
+        if (dictType.IsAwaitableGenericType())
+            dictType = dictType.GetGenericArguments()[0];
+        return dictType;
+    }
+
     protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
     {
         if (Field?.BulkResolver != null && !IsSelectedOnToSingleNode(compileContext))
@@ -407,9 +420,18 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
                 // we replace the expression with a lookup in the bulk resolver data
                 // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]
                 var expression = Expression.MakeIndex(compileContext.BulkParameter!, typeof(Dictionary<string, object>).GetProperty("Item")!, new[] { Expression.Constant(Field.BulkResolver.Name) });
-                var dictType = typeof(Dictionary<,>).MakeGenericType(Field.BulkResolver.DataSelector.ReturnType, Field.ReturnType.TypeDotnet);
+                // The dictionary type comes from the resolver's own signature (IDictionary<TKey, TResult>), not
+                // from the field: a list field's ReturnType.TypeDotnet is promoted to IQueryable<T> while the
+                // resolver returns e.g. IDictionary<int, IEnumerable<T>>, and the generic arguments of a
+                // dictionary are invariant, so casting the loaded data to that threw at execution time. The
+                // interface (not Dictionary<,>) so any IDictionary implementation the resolver returns works.
+                var dictType = BulkResolverDictionaryType(Field.BulkResolver);
+                var valueType = dictType.GetGenericArguments()[1];
                 nextFieldContext = Expression.MakeIndex(Expression.Convert(expression, dictType), dictType.GetProperty("Item")!, new[] { Field!.BulkResolver.DataSelector.Body });
-                nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
+                // the promoted IQueryable<T> above is not something the loaded value (e.g. a List<T>) can be
+                // cast to - keep the resolver's own type in that case, the selection handles either
+                if (Field.ReturnType.TypeDotnet.IsAssignableFrom(valueType) || !valueType.IsEnumerableOrArray())
+                    nextFieldContext = Expression.Convert(nextFieldContext, Field.ReturnType.TypeDotnet);
             }
         }
 

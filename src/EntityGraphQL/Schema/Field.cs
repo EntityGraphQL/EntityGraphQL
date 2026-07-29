@@ -136,6 +136,21 @@ public class Field : BaseField
     }
 
     /// <summary>
+    /// Add the fields a bulk resolver's key selector reads to the fields the per-item resolver already
+    /// extracts. A bulk resolver builds on a resolver rather than replacing it - the per-item resolver runs
+    /// whenever the bulk load can not (e.g. the field is selected below another service field), so a field
+    /// with only a bulk resolver has no way to resolve at all.
+    /// </summary>
+    protected void AddBulkResolverKeyFields(IEnumerable<GraphQLExtractedField> fields)
+    {
+        if (ExtractedFieldsFromServices == null)
+            throw new EntityGraphQLSchemaException(
+                $"Field '{Name}' has a bulk resolver but no resolver to bulk load for. Call Resolve<TService>() (or ResolveAsync<TService>()) before ResolveBulk()/ResolveBulkAsync() - it is used for the field whenever the bulk load can not run."
+            );
+        ExtractedFieldsFromServices.AddRange(fields);
+    }
+
+    /// <summary>
     /// Create a GraphQL field
     /// </summary>
     /// <param name="schema">Schema it belongs to</param>

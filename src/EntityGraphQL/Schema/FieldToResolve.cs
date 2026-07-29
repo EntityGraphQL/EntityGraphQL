@@ -67,7 +67,7 @@ public class FieldWithContextAndArgs<TContext, TParams> : Field
         var extractor = new ExpressionExtractor();
         var keyParam = dataSelector.Parameters.First();
         var fields = extractor.Extract(dataSelector, keyParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, keyParam))!;
-        ExtractedFieldsFromServices!.AddRange(fields);
+        AddBulkResolverKeyFields(fields);
         BulkResolver = new BulkFieldResolverWithArgs<TContext, TParams, TService, TKey, TResult>($"bulk_{FromType.Name}.{Name}", fieldExpression, dataSelector, fields);
         Services.Add(fieldExpression.Parameters[2]);
         return this;
@@ -89,7 +89,7 @@ public class FieldWithContextAndArgs<TContext, TParams> : Field
         var extractor = new ExpressionExtractor();
         var keyParam = dataSelector.Parameters.First();
         var fields = extractor.Extract(dataSelector, keyParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, keyParam))!;
-        ExtractedFieldsFromServices!.AddRange(fields);
+        AddBulkResolverKeyFields(fields);
         BulkResolver = new AsyncBulkFieldResolverWithArgs<TContext, TParams, TService, TKey, TResult>($"bulk_{FromType.Name}.{Name}", fieldExpression, dataSelector, fields, maxConcurrency);
         Services.Add(fieldExpression.Parameters[2]);
         return this;
@@ -110,7 +110,7 @@ public class FieldWithContext<TContext> : Field
         var extractor = new ExpressionExtractor();
         var keyParam = dataSelector.Parameters.First();
         var fields = extractor.Extract(dataSelector, keyParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, keyParam))!;
-        ExtractedFieldsFromServices!.AddRange(fields);
+        AddBulkResolverKeyFields(fields);
         BulkResolver = new BulkFieldResolver<TContext, TService, TKey, TResult>($"bulk_{FromType.Name}.{Name}", fieldExpression, dataSelector, fields);
         Services.Add(fieldExpression.Parameters[1]);
         return this;
@@ -132,7 +132,7 @@ public class FieldWithContext<TContext> : Field
         var extractor = new ExpressionExtractor();
         var keyParam = dataSelector.Parameters.First();
         var fields = extractor.Extract(dataSelector, keyParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, keyParam))!;
-        ExtractedFieldsFromServices!.AddRange(fields);
+        AddBulkResolverKeyFields(fields);
         BulkResolver = new AsyncBulkFieldResolver<TContext, TService, TKey, TResult>($"bulk_{FromType.Name}.{Name}", fieldExpression, dataSelector, fields, maxConcurrency);
         Services.Add(fieldExpression.Parameters[1]);
         return this;
