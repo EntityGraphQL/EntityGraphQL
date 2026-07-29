@@ -620,7 +620,7 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         return message;
     }
 
-    private bool IsAllowedException(Exception exception) =>
+    public bool IsAllowedException(Exception exception) =>
         isDevelopment || AllowedExceptions.Any(e => e.IsAllowed(exception)) || exception.GetType().GetCustomAttribute<AllowedExceptionAttribute>() != null;
 
     private GraphQLDocument CompileQueryWithCache(QueryRequest gql, ExecutionOptions executionOptions)
