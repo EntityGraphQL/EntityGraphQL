@@ -240,7 +240,7 @@ Call `schema.Validate()` once you have finished setting your schema up - after a
 - a field argument's type is not in the schema
 - a field argument can never be built from a query variable, because the GraphQL type it is declared as is
   registered against a different dotnet type - a variable is built as the dotnet type of its GraphQL type, and
-  `AddTypeMapping` only affects the other direction. See [Scalar types](./scalar-types)
+  `AddTypeMapping` only affects the other direction. See the caution in [Scalar types](./scalar-types)
 
 ```cs
 services.AddGraphQLSchema<DemoContext>()

@@ -217,7 +217,11 @@ public class MutationTests
         var result = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);
         Assert.Single(result.Errors);
-        Assert.Equal("Variable or value used for argument 'nameInput' does not match argument type 'InputObject' on field 'addPersonInput'", result.Errors.First().Message);
+        // the schema is in development mode, so the message carries the cause of the failed conversion
+        Assert.Equal(
+            "Variable or value used for argument 'nameInput' does not match argument type 'InputObject' on field 'addPersonInput' - Object must implement IConvertible.",
+            result.Errors.First().Message
+        );
     }
 
     [Fact]

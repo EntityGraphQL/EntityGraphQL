@@ -91,9 +91,14 @@ public static class ArgumentUtil
                 if (field != null)
                     argField.ValidateAsync(val, field, validationErrors).GetAwaiter().GetResult();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                validationErrors.Add($"Variable or value used for argument '{argField.Name}' does not match argument type '{argField.Type}' on field '{fieldName}'");
+                // the GraphQL types on both sides of this message are often the same, so on their own they say
+                // nothing about why the value could not be built - carry the cause when we're allowed to show it
+                var message = $"Variable or value used for argument '{argField.Name}' does not match argument type '{argField.Type}' on field '{fieldName}'";
+                if (schema.IsAllowedException(ex))
+                    message = $"{message} - {ex.Message}";
+                validationErrors.Add(message);
             }
         }
 

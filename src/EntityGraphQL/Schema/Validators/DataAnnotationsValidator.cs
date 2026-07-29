@@ -105,7 +105,7 @@ public class DataAnnotationsValidator : IArgumentValidator
                 {
                     if (value == null)
                     {
-                        context.AddError($"missing required argument '{property.Name}'");
+                        context.AddError($"missing required argument '{SchemaName(context, property.Name)}'");
                     }
                     continue;
                 }
@@ -123,5 +123,19 @@ public class DataAnnotationsValidator : IArgumentValidator
                 ValidateObjectRecursive(context, value);
             }
         }
+    }
+
+    /// <summary>
+    /// The name a CLR member is exposed as in the schema. A field argument carries its dotnet name so it can be
+    /// matched exactly; members of a nested input object are not arguments, so fall back to the schema's namer.
+    /// </summary>
+    private static string SchemaName(ArgumentValidatorContext context, string memberName)
+    {
+        foreach (var arg in context.Field.Arguments.Values)
+        {
+            if (arg.DotnetName == memberName)
+                return arg.Name;
+        }
+        return context.Field.Schema.SchemaFieldNamer(memberName);
     }
 }
