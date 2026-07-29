@@ -765,8 +765,13 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (res is IEnumerable and not string and not IList and not IDictionary)
             res = await MaterializeDeferredResultAsync(res, compileContext.CancellationToken);
 
-        // Resolve any nested async results in the returned object graph if the query contains async fields
-        if (res != null && node.HasAsyncFieldsAtOrBelow(fragments) && (!compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || isSecondExec))
+        // Resolve any nested async results in the returned object graph if the query contains async fields.
+        // Only the final execution holds the values the client gets - the first pass of a two-pass execution
+        // has no service (hence no async) fields in it. Keyed off isFinal rather than "single pass or second
+        // exec": a root field resolved from services has no first pass to run, so its one execution is the
+        // final one while ExecuteServiceFieldsSeparately is still on, and its async fields were left as
+        // unawaited Task<T> in the response.
+        if (res != null && node.HasAsyncFieldsAtOrBelow(fragments) && isFinal)
             res = await ResolveAsyncResultsRecursive(res, compileContext.CancellationToken);
 
         return (res, true);

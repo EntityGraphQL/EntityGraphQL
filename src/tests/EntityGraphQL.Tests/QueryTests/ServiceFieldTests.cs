@@ -2045,6 +2045,33 @@ public class ServiceFieldTests
         Assert.Equal(1, srv.GetProjectCalled);
     }
 
+    /// <summary>
+    /// An async field below a root list that is itself resolved from services. That root field has no first
+    /// pass to run (there is no context query to build), so its single execution is the final one while
+    /// ExecuteServiceFieldsSeparately is still on - the nested Task&lt;T&gt; used to be left unawaited in the
+    /// response instead of being resolved to its value.
+    /// </summary>
+    [Fact]
+    public void TestAsyncFieldUnderServiceResolvedRootList()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("serviceProjects", "Projects from a service").Resolve<ContextTest>((_, srv) => srv.GetProjects().GetAwaiter().GetResult());
+        schema.Type<Project>().AddField("asyncProject", "Async single field").ResolveAsync<ContextTest>((_, srv) => srv.GetProject());
+
+        var serviceCollection = new ServiceCollection();
+        var srv = new ContextTest();
+        serviceCollection.AddSingleton(srv);
+        serviceCollection.AddSingleton(new TestDataContext());
+
+        var res = schema.ExecuteRequest(new QueryRequest { Query = "{ serviceProjects { id asyncProject { name } } }" }, serviceCollection.BuildServiceProvider(), null);
+
+        Assert.Null(res.Errors);
+        dynamic projects = res.Data!["serviceProjects"]!;
+        var project = Enumerable.First(projects);
+        Assert.Equal(1, project.id);
+        Assert.Equal("test", project.asyncProject.name);
+    }
+
     [Fact]
     public void TestTopLevelAsyncServiceList()
     {

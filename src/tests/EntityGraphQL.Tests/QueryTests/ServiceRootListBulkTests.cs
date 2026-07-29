@@ -288,13 +288,10 @@ public class ServiceRootListBulkTests
 
     /// <summary>
     /// Async bulk via ResolveBulkAsync (native) on a service-resolved root list — preferred over
-    /// closure-capturing sync wrappers around per-key async callbacks.
-    /// Skipped on a separate, pre-existing bug that has nothing to do with bulk: any ResolveAsync field
-    /// below a service-resolved root list is not awaited, so the response holds the Task&lt;T&gt; instead of
-    /// its result (the same field below a context root list is awaited, in one pass or two). Un-skip when
-    /// that is fixed - with the per-item fallback the assertion is 3 calls, one per API key.
+    /// closure-capturing sync wrappers around per-key async callbacks. Falls back to the per-item
+    /// ResolveAsync resolver, whose Task must still be awaited before the response is built.
     /// </summary>
-    [Fact(Skip = "ResolveAsync field below a service-resolved root list is not awaited - unrelated to bulk")]
+    [Fact]
     public void ServiceRootList_BulkAsyncCreatedByName_Works()
     {
         var (schema, sp, _, names, _) = BuildApiKeysSchema(apiKey =>
