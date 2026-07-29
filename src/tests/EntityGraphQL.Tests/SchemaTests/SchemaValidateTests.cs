@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using EntityGraphQL.Schema;
 using Xunit;
@@ -70,6 +71,19 @@ public class SchemaValidateTests
         schema.AddCustomTypeConverter<MyInstant, DateTime>((instant, _) => instant.Utc);
 
         schema.Validate();
+    }
+
+    [Fact]
+    public void ArgumentWithACustomConverterForAnotherPair_StillFailsValidate()
+    {
+        // a converter registered for a different pair (here parsing a string into the scalar, which is how the
+        // scalar's own values arrive) says nothing about MyInstant -> DateTime and must not mask the error
+        var schema = SchemaWithDateScalarRegisteredAs<MyInstant>();
+        schema.AddCustomTypeConverter<string, MyInstant>((str, _) => new MyInstant(DateTime.Parse(str, CultureInfo.InvariantCulture)));
+
+        var ex = Assert.Throws<EntityGraphQLSchemaException>(() => schema.Validate());
+
+        Assert.Contains("registered against dotnet type 'MyInstant'", ex.Message);
     }
 
     [Fact]

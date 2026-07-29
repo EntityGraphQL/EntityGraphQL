@@ -384,11 +384,25 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     protected static bool IsSelectedOnToSingleNode(CompileContext compileContext) =>
         compileContext.CurrentSelectionNode is BaseGraphQLQueryField selectionPoint && selectionPoint.ToSingleNode != null;
 
+    /// <summary>
+    /// True when the bulk load for this field ran and its data is available to look up. The bulk data is
+    /// resolved before the second pass compiles, so a missing entry means no load was registered for this
+    /// field - the field is not reachable in the first pass. That happens when the root field is itself
+    /// resolved from services (its first pass produces no expression, so there is no data to collect the
+    /// bulk keys from), when the field sits below another service field's selection, and when services are
+    /// not executed separately at all. Building the lookup anyway indexes bulk data that is not there.
+    /// The caller falls back to the field's per-item resolver, which costs one service call per item. Bulk
+    /// loading these needs the service-resolved parent executed before the keys are collected - i.e. a
+    /// further execution pass, not implemented.
+    /// </summary>
+    private bool BulkDataAvailable(CompileContext compileContext) => compileContext.BulkData?.ContainsKey(Field!.BulkResolver!.Name) == true;
+
     protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
     {
         if (Field?.BulkResolver != null && !IsSelectedOnToSingleNode(compileContext))
         {
-            if (!withoutServiceFields)
+            // nextFieldContext is already the per-item resolver - return it as-is when we can not bulk load
+            if (!withoutServiceFields && BulkDataAvailable(compileContext))
             {
                 // we replace the expression with a lookup in the bulk resolver data
                 // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]

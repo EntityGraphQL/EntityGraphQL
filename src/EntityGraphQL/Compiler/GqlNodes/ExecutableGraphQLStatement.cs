@@ -518,38 +518,28 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             var bulkTasks = new List<Task>();
             var bulkResults = new Dictionary<string, Task<object>>();
 
-            foreach (var bulkResolver in compileContext.BulkResolvers)
+            // The loaded data is keyed by the bulk resolver name, so the same bulk field selected at more
+            // than one level - a self-referencing type selecting it on both, e.g.
+            // comments { isRead replies { isRead } } - has to load with the keys of every level in one call.
+            // Loading a level at a time would have each replace the previous level's data under that name and
+            // the lookup would throw for the keys that were never loaded.
+            foreach (var bulkResolverGroup in compileContext.BulkResolvers.GroupBy(b => b.Name))
             {
                 compileContext.CancellationToken.ThrowIfCancellationRequested();
 
-                // rebuild list expression on new context
-                var listExpression = bulkResolver.GetBulkSelectionExpression(newContextParam, bulkResolver.ListExpressionPath.GetRange(1, bulkResolver.ListExpressionPath.Count - 1), replacer);
-                // var listExpression = replacer.Replace(bulkResolver.GetListExpression(runningContext, newContextParam, replacer), toReplace, newContextParam);
-                // When the bulk field is reached through a single object (e.g. a mutation returning a
-                // single entity, or a nested single-object navigation), the selection expression is that
-                // single object rather than a list. Wrap it in a one-element array so the same
-                // Where/Select bulk-key projection below applies uniformly.
-                if (!listExpression.Type.IsEnumerableOrArray())
+                var bulkResolver = bulkResolverGroup.First();
+                Expression? keysExpression = null;
+                foreach (var levelResolver in bulkResolverGroup)
                 {
-                    listExpression = Expression.NewArrayInit(listExpression.Type, listExpression);
+                    var levelKeys = BuildBulkKeySelection(levelResolver, newContextParam, replacer);
+                    keysExpression =
+                        keysExpression == null
+                            ? levelKeys
+                            : Expression.Call(typeof(Enumerable), nameof(Enumerable.Concat), [levelKeys.Type.GetEnumerableOrArrayType()!], keysExpression, levelKeys);
                 }
-                var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
-                // replace the data selection expression with the new context
-                var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);
-                var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
-                var selectionLambda = Expression.Lambda(selection, newParam);
-                listExpression = Expression.Call(
-                    typeof(Enumerable),
-                    nameof(Enumerable.Where),
-                    [newParam.Type],
-                    listExpression,
-                    Expression.Lambda(Expression.NotEqual(newParam, Expression.Constant(null)), newParam)
-                );
-                listExpression = Expression.Call(typeof(Enumerable), nameof(Enumerable.Select), [newParam.Type, selection.Type], listExpression, selectionLambda);
-                // listExpression = Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [listExpression.Type.GetEnumerableOrArrayType()!], listExpression);
 
                 // the selected IDs to load the bulk data
-                var bulkDataArgs = Expression.Lambda(listExpression, newContextParam).Compile().DynamicInvoke([runningContext]);
+                var bulkDataArgs = Expression.Lambda(keysExpression!, newContextParam).Compile().DynamicInvoke([runningContext]);
                 var parameters = new List<ParameterExpression> { bulkResolver.FieldExpression.Parameters.First() };
                 var allArgs = new List<object?> { bulkDataArgs };
                 var bulkLoader = GraphQLHelper.InjectServices(
@@ -598,6 +588,36 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 
         return bulkData;
+    }
+
+    /// <summary>
+    /// The bulk resolver's keys for the level it was selected at, selected from the first pass's data.
+    /// </summary>
+    private static MethodCallExpression BuildBulkKeySelection(CompiledBulkFieldResolver bulkResolver, ParameterExpression newContextParam, ParameterReplacer replacer)
+    {
+        // rebuild list expression on new context
+        var listExpression = bulkResolver.GetBulkSelectionExpression(newContextParam, bulkResolver.ListExpressionPath.GetRange(1, bulkResolver.ListExpressionPath.Count - 1), replacer);
+        // When the bulk field is reached through a single object (e.g. a mutation returning a
+        // single entity, or a nested single-object navigation), the selection expression is that
+        // single object rather than a list. Wrap it in a one-element array so the same
+        // Where/Select bulk-key projection below applies uniformly.
+        if (!listExpression.Type.IsEnumerableOrArray())
+        {
+            listExpression = Expression.NewArrayInit(listExpression.Type, listExpression);
+        }
+        var newParam = Expression.Parameter(listExpression.Type.GetEnumerableOrArrayType()!, "bulkList");
+        // replace the data selection expression with the new context
+        var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);
+        var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
+        var selectionLambda = Expression.Lambda(selection, newParam);
+        listExpression = Expression.Call(
+            typeof(Enumerable),
+            nameof(Enumerable.Where),
+            [newParam.Type],
+            listExpression,
+            Expression.Lambda(Expression.NotEqual(newParam, Expression.Constant(null)), newParam)
+        );
+        return Expression.Call(typeof(Enumerable), nameof(Enumerable.Select), [newParam.Type, selection.Type], listExpression, selectionLambda);
     }
 
     private static async Task<object> ExecuteBulkResolverWithConcurrencyAsync(LambdaExpression lambdaExpression, object?[] args, CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)
