@@ -346,6 +346,22 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             // If this is a root field, we replace the whole expression unless there is services at the root level
             if (IsRootField && !HasServices)
                 nextFieldContext = replacementNextFieldContext;
+            else if (
+                IsRootField
+                && HasServices
+                && Field?.ReturnType.TypeDotnet != null
+                && !Field.ReturnType.TypeDotnet.IsEnumerableOrArray()
+                && replacementNextFieldContext.Type != Field.ReturnType.TypeDotnet
+            )
+            {
+                // Second pass over a root service *object* (e.g. statusPage { items { bulkField } }):
+                // the first pass already materialized an anon projection (with extracted egql__ deps /
+                // nested Dynamics). Use that as the context — do not rebuild from the service expression
+                // or nested lists stay on the entity type while possibleNextContextTypes still point at
+                // the first-pass Dynamic (Convert fails). Root service *lists* still re-bind below so
+                // DataSelector properties resolve on the entity with replaceInline.
+                nextFieldContext = replacementNextFieldContext;
+            }
             else if (HasServices)
             {
                 // if we have services we need to replace any context expressions in the service expression with the new context
@@ -363,6 +379,21 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             if (Field?.FieldParam != null)
             {
                 nextFieldContext = replacer.Replace(nextFieldContext, Field.FieldParam, replacementNextFieldContext, false, possibleNextContextTypes);
+            }
+            // ResolveBulk data selectors use their own ParameterExpression instance (often same name/type as
+            // FieldParam but not the same object). HandleBulkServiceResolver embeds DataSelector.Body in the
+            // bulk dictionary lookup — without rebinding that parameter the lambda fails at compile with
+            // "variable 'row' ... referenced from scope '' but it is not defined" for multi-property keys.
+            // Only rebind when the replacement context is still the entity (or a subtype). Rebinding onto a
+            // first-pass Dynamic after ExpressionReplacer has already mapped egql__* fields breaks nullable
+            // nav Conditionals ("Argument types do not match").
+            if (Field?.BulkResolver?.DataSelector.Parameters.Count > 0)
+            {
+                var dataParam = Field.BulkResolver.DataSelector.Parameters[0];
+                if (replacementNextFieldContext.Type == dataParam.Type || dataParam.Type.IsAssignableFrom(replacementNextFieldContext.Type))
+                {
+                    nextFieldContext = replacer.Replace(nextFieldContext, dataParam, replacementNextFieldContext, false, possibleNextContextTypes);
+                }
             }
         }
 

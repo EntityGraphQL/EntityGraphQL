@@ -126,4 +126,20 @@ internal class ExpressionReplacer : ExpressionVisitor
         }
         return base.VisitBinary(node);
     }
+
+    protected override Expression VisitConditional(ConditionalExpression node)
+    {
+        // Nullable-nav bulk keys (e.g. row.Board == null ? null : row.Board.SerialNumber) are extracted as
+        // the whole Conditional. Without this, VisitConditional rebuilds from children and only the first
+        // occurrence of row.Board is in expressionsToReplace — the ifFalse Board is a different
+        // MemberExpression instance — leaving unbound params that ParameterReplacer then breaks with
+        // "Argument types do not match" when rebinding onto a first-pass Dynamic.
+        if (expressionsToReplace.ContainsKey(node))
+        {
+            if (replaceInline || replaceWithNewContext)
+                return newContext;
+            return expressionsToReplace[node].GetNodeExpression(newContext, possibleNextContextTypes);
+        }
+        return base.VisitConditional(node);
+    }
 }

@@ -72,7 +72,7 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         // Detect interleaved paging once so we can use it in both passes.
         bool isInterleavedPagingField =
             Field?.Extensions.Any(e => (e is ConnectionPagingExtension cp && cp.IsInterleavedServiceField) || (e is OffsetPagingExtension op && op.IsInterleavedServiceField)) == true;
-        if (HasServices && withoutServiceFields)
+        if (HasServices && withoutServiceFields && !IsRootField)
         {
             // Detect paging fields where the service is embedded inside the resolver expression
             // (e.g. ctx.People.Where(service.Filter).OrderBy()). The service cannot be separated
@@ -94,17 +94,24 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
                         replacer
                     );
 
-            if (IsRootField)
-                // Root interleaved paging: return null so the caller (CompileAndExecuteNodeAsync)
-                // skips the two-pass path and uses the single-pass fallback, which executes the
-                // whole field (including the service) in one shot.
-                return null;
-
             // Non-root interleaved paging: fall through. We build the full selection (edges +
             // totalCount etc.) here in the first pass with the service included so that the
             // parent's first-pass anon type contains a complete pre-computed value for this field.
             // The second pass then reads the pre-computed value via ReplaceContext.GetField().
         }
+        else if (HasServices && withoutServiceFields && IsRootField && isInterleavedPagingField)
+        {
+            // Root interleaved paging: return null so the caller (CompileAndExecuteNodeAsync)
+            // skips the two-pass path and uses the single-pass fallback, which executes the
+            // whole field (including the service) in one shot.
+            return null;
+        }
+
+        // Root service object fields (e.g. statusPage { items { bulkField } }) used to return only
+        // ExtractedFieldsFromServices here, which skipped nested list selection and left ResolveBulk
+        // unregistered — second pass then either N+1'd via Resolve or failed looking up egql__* on
+        // the entity. Fall through like root service lists: wrap the service result and select nested
+        // non-service / extracted key fields on the first pass.
 
         if (contextChanged && replacementNextFieldContext != null)
         {
@@ -139,7 +146,12 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
             return nextFieldContext;
 
         var selectionContext = nextFieldContext;
-        bool needsServiceWrap = NeedsServiceWrap(withoutServiceFields) || ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && IsRootField);
+        // Root service objects must wrap on the first pass so the service runs once via
+        // ProjectWithNullCheck while nested non-service / extracted fields are selected onto an anon.
+        bool needsServiceWrap =
+            NeedsServiceWrap(withoutServiceFields)
+            || ((nextFieldContext.NodeType == ExpressionType.MemberInit || nextFieldContext.NodeType == ExpressionType.New) && IsRootField)
+            || (IsRootField && HasServices && withoutServiceFields);
 
         if (Field?.IsAsync == true && nextFieldContext.Type.IsAwaitableGenericType())
         {

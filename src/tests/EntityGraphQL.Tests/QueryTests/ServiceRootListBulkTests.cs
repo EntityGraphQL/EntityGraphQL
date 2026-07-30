@@ -18,6 +18,12 @@ public class ServiceRootListBulkTests
         public string Key { get; set; } = string.Empty;
         public Guid CustomerId { get; set; }
         public string? CreatedById { get; set; }
+        public Board? Board { get; set; }
+    }
+
+    public class Board
+    {
+        public string SerialNumber { get; set; } = string.Empty;
     }
 
     public class Customer
@@ -33,6 +39,8 @@ public class ServiceRootListBulkTests
         public List<ApiKey> Keys { get; set; } = [];
 
         public List<ApiKey> GetApiKeys() => Keys;
+
+        public StatusPage GetStatusPage() => new() { TotalItems = Keys.Count, Items = Keys };
     }
 
     public class CustomerService
@@ -317,5 +325,195 @@ public class ServiceRootListBulkTests
         Assert.Equal("Alice", keys[0].createdByName);
         Assert.Equal("Bob", keys[1].createdByName);
         Assert.Equal("Alice", keys[2].createdByName);
+    }
+
+    /// <summary>
+    /// Status-page shape: root Resolve returns a page object with a materialized Items list,
+    /// and items have nested ResolveBulk fields. Must not fail looking up egql__* on the entity type.
+    /// </summary>
+    public class StatusPage
+    {
+        public int TotalItems { get; set; }
+        public List<ApiKey> Items { get; set; } = [];
+    }
+
+    [Fact]
+    public void ServiceResolvedPage_ItemsWithResolveBulk_Works()
+    {
+        var schema = SchemaBuilder.FromObject<EmptyContext>();
+        schema.AddType<ApiKey>("ApiKey", "API key").AddAllFields();
+        schema.AddType<StatusPage>("StatusPage", "Paged API keys").AddAllFields();
+
+        schema.Query().AddField("statusPage", "Paged API keys from a service").Resolve<ApiKeyService>((_, svc) => svc.GetStatusPage());
+
+        schema
+            .Type<ApiKey>()
+            .AddField("createdByName", "Creator display name")
+            .Resolve<CreatedByNameService>((k, svc) => svc.GetName(k.CreatedById))
+            .ResolveBulk<CreatedByNameService, string, string?>(k => k.CreatedById ?? string.Empty, (ids, svc) => svc.GetNames(ids));
+
+        var customerA = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var apiKeyService = new ApiKeyService
+        {
+            Keys =
+            [
+                new ApiKey
+                {
+                    Key = "key-1",
+                    CustomerId = customerA,
+                    CreatedById = "user-1",
+                },
+                new ApiKey
+                {
+                    Key = "key-2",
+                    CustomerId = customerA,
+                    CreatedById = "user-2",
+                },
+            ],
+        };
+        var nameService = new CreatedByNameService { Names = { ["user-1"] = "Alice", ["user-2"] = "Bob" } };
+
+        var services = new ServiceCollection();
+        services.AddSingleton(new EmptyContext());
+        services.AddSingleton(apiKeyService);
+        services.AddSingleton(nameService);
+        var sp = services.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(
+            new QueryRequest
+            {
+                Query =
+                    @"{
+                    statusPage {
+                        totalItems
+                        items {
+                            key
+                            createdByName
+                        }
+                    }
+                }",
+            },
+            sp,
+            null
+        );
+
+        if (res.Errors != null)
+            Assert.Fail(string.Join(" | ", res.Errors.Select(e => $"{e.Message} path=[{string.Join('.', e.Path ?? [])}]")));
+        Assert.Equal(1, nameService.CallCount);
+        dynamic page = res.Data!["statusPage"]!;
+        Assert.Equal(2, page.totalItems);
+        Assert.Equal("Alice", page.items[0].createdByName);
+        Assert.Equal("Bob", page.items[1].createdByName);
+    }
+
+    /// <summary>
+    /// Same page shape with a multi-property data selector (HardwareSensorInventory-style Key(...)),
+    /// which previously left the selector parameter unbound on the second pass.
+    /// </summary>
+    public static class ApiKeyBulkKeys
+    {
+        public static string CompositeKey(string key, string? createdById, Guid customerId) => string.Join('\u001f', key, createdById ?? string.Empty, customerId.ToString("D"));
+    }
+
+    public class CreatedByNameByCompositeKeyService
+    {
+        public int CallCount { get; private set; }
+        public Dictionary<string, string> Names { get; set; } = [];
+
+        public string? GetName(string? createdById)
+        {
+            CallCount++;
+            if (string.IsNullOrEmpty(createdById))
+                return null;
+            return Names.TryGetValue(createdById, out var name) ? name : null;
+        }
+
+        public IDictionary<string, string?> GetNamesByCompositeKeys(IEnumerable<string> keys)
+        {
+            CallCount++;
+            return keys.Distinct()
+                .ToDictionary(
+                    id => id,
+                    id =>
+                    {
+                        var parts = id.Split('\u001f');
+                        var createdBy = parts.Length > 1 ? parts[1] : string.Empty;
+                        if (string.IsNullOrEmpty(createdBy))
+                            return null;
+                        return Names.TryGetValue(createdBy, out var name) ? name : null;
+                    }
+                );
+        }
+    }
+
+    [Fact]
+    public void ServiceResolvedPage_ItemsWithComplexResolveBulkKey_Works()
+    {
+        var schema = SchemaBuilder.FromObject<EmptyContext>();
+        schema.AddType<ApiKey>("ApiKey", "API key").AddAllFields();
+        schema.AddType<StatusPage>("StatusPage", "Paged API keys").AddAllFields();
+
+        schema.Query().AddField("statusPage", "Paged API keys from a service").Resolve<ApiKeyService>((_, svc) => svc.GetStatusPage());
+
+        schema
+            .Type<ApiKey>()
+            .AddField("createdByName", "Creator display name")
+            .Resolve<CreatedByNameByCompositeKeyService>((row, svc) => svc.GetName(row.CreatedById))
+            .ResolveBulk<CreatedByNameByCompositeKeyService, string, string?>(
+                row => ApiKeyBulkKeys.CompositeKey(row.Key, row.CreatedById, row.CustomerId),
+                (ids, svc) => svc.GetNamesByCompositeKeys(ids)
+            );
+
+        var customerA = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var apiKeyService = new ApiKeyService
+        {
+            Keys =
+            [
+                new ApiKey
+                {
+                    Key = "key-1",
+                    CustomerId = customerA,
+                    CreatedById = "user-1",
+                },
+                new ApiKey
+                {
+                    Key = "key-2",
+                    CustomerId = customerA,
+                    CreatedById = "user-2",
+                },
+            ],
+        };
+        var nameService = new CreatedByNameByCompositeKeyService { Names = { ["user-1"] = "Alice", ["user-2"] = "Bob" } };
+
+        var services = new ServiceCollection();
+        services.AddSingleton(new EmptyContext());
+        services.AddSingleton(apiKeyService);
+        services.AddSingleton(nameService);
+        var sp = services.BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(
+            new QueryRequest
+            {
+                Query =
+                    @"{
+                    statusPage {
+                        totalItems
+                        items {
+                            key
+                            createdByName
+                        }
+                    }
+                }",
+            },
+            sp,
+            null
+        );
+
+        if (res.Errors != null)
+            Assert.Fail(string.Join(" | ", res.Errors.Select(e => $"{e.Message} path=[{string.Join('.', e.Path ?? [])}]")));
+        Assert.Equal(1, nameService.CallCount);
+        dynamic page = res.Data!["statusPage"]!;
+        Assert.Equal("Alice", page.items[0].createdByName);
+        Assert.Equal("Bob", page.items[1].createdByName);
     }
 }
