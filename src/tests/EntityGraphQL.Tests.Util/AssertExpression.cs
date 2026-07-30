@@ -132,4 +132,30 @@ public class AssertExpression(AssertExpressionType type, params object?[] argume
     {
         return new AssertExpression(AssertExpressionType.Constant, [value]);
     }
+
+    /// <summary>
+    /// Names of the methods declared on <paramref name="declaringType"/> that are called anywhere in the
+    /// expression, in visit order. <see cref="Matches"/> asserts a shape from the root outwards and stops at
+    /// the lambdas it is handed, so use this for "nothing of ours appears in this tree at all" - e.g. a
+    /// database-bound expression must contain no EntityGraphQL extension method, however deeply nested,
+    /// because a provider has no translation for them.
+    /// </summary>
+    public static List<string> CallsTo(Type declaringType, Expression expression)
+    {
+        var collector = new CallCollector(declaringType);
+        collector.Visit(expression);
+        return collector.Calls;
+    }
+
+    private class CallCollector(Type declaringType) : ExpressionVisitor
+    {
+        public List<string> Calls { get; } = [];
+
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            if (node.Method.DeclaringType == declaringType)
+                Calls.Add(node.Method.Name);
+            return base.VisitMethodCall(node);
+        }
+    }
 }

@@ -146,6 +146,16 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         var isAsync = Field?.IsAsync == true;
         var useNullCheckMethods =
             contextChanged || !compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately || HasServices || Field?.Services.Any(s => s.Type != Field.Schema.QueryContextType) == true;
+        // The projection is a different decision to the materialisation below. A list field resolved from the
+        // query context itself - e.g. .Resolve<MyDbContext>((c, db) => db.Things.Where(t => t.ParentId == c.Id))
+        // for a child collection that is not a navigation property - is assumed to be a database query, and its
+        // selection has to stay a plain Select so the provider can translate it. SelectWithNullCheck is
+        // EntityGraphQL's own method: harmless in memory, but EF Core rejects the whole query when it appears
+        // inside one ("The LINQ expression 'p_Thing => new Dynamic_things{...}' could not be translated"), which
+        // is what happens as soon as such a field is selected below another one of the same kind. Services other
+        // than the context are client-side and do need the null check - a service can return null.
+        // Set ExecutionOptions.ExecuteServiceFieldsSeparately = false to opt out of this behaviour.
+        var useNullCheckOnProjection = !withoutServiceFields && HasServices ? Field!.Services.Any(s => s.Type != Field.Schema.QueryContextType) : useNullCheckMethods;
         // have this return both the dynamic types so we can use them next, post-service. They are stored on the
         // compileContext (not this node) as the node is part of the cached document shared across requests
         var (resultExpression, nextContextTypes) = ExpressionUtil.MakeSelectWithDynamicType(
@@ -154,7 +164,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
             listContext,
             selectionFields,
             compileContext.GetPossibleNextContextTypes(this),
-            useNullCheckMethods,
+            useNullCheckOnProjection,
             isAsync,
             withoutServiceFields || !contextChanged
         );

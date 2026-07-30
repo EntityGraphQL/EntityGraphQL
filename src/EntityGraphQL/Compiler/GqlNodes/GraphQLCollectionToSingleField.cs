@@ -80,8 +80,15 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
     )
     {
         Expression? exp;
+        // A field whose only service is the query context - e.g. .Resolve<MyDbContext>((c, db) => db.Things
+        // .FirstOrDefault(t => t.Id == c.ThingId)) - is a database query, so keep the
+        // Where().Select().FirstOrDefault() shape below even on the services pass. The object projection
+        // builds the selection off the field's expression instead, which repeats the sub-select per selected
+        // field and, when this field sits below another context-resolved one, uses ProjectWithNullCheck inside
+        // a query the provider has to translate - which it cannot.
+        var servicesAreQueryContextOnly = HasServices && Field!.Services.All(s => s.Type == Field.Schema.QueryContextType);
         // second / last pass
-        if (contextChanged || (HasServices && IsRootField))
+        if ((contextChanged || (HasServices && IsRootField)) && !servicesAreQueryContextOnly)
             exp = ObjectProjectionNode.GetNodeExpression(
                 compileContext,
                 serviceProvider,

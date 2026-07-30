@@ -1,3 +1,9 @@
+# 6.1.3
+
+## Fixes
+
+- Fixed a field resolved from the query context - e.g. `.Resolve<MyDbContext>((c, db) => db.Things.Where(t => t.ParentId == c.Id))`, the pattern for a child collection that is not a navigation property - being projected with one of EntityGraphQL's own methods (`SelectWithNullCheck`, or `ProjectWithNullCheck` for a single object), which no database provider can translate. Selecting another such field below it failed the operation with `The LINQ expression 'p_Thing => new Dynamic_things{...}' could not be translated`. Lists keep a plain `Select` (a regression from 6.0.0-beta3), and a single object is projected inside the query - `Where().Select().FirstOrDefault()`, as it already was for a field like `movie(id: 1)`. Fields using a service other than the query context still get the null check, as they can return `null`.
+
 # 6.1.2
 
 ## Fixes
