@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Extensions;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
@@ -52,5 +54,21 @@ public abstract class BaseFieldExtension : IFieldExtension
     )
     {
         return (context.Expression, context.OriginalArgumentParameter, context.ArgumentParameter, context.Arguments);
+    }
+
+    /// <summary>
+    /// True when this service-backed collection was already built (and so already had this extension applied)
+    /// in the first pass, and what we hold now is that pass's projected result. A root service list takes part
+    /// in the two-pass flow, so its elements here are the first-pass dynamic type rather than the type the
+    /// extension was configured against - re-applying the work would fail on the changed shape. A nested
+    /// service-backed collection has no first pass of its own, so its elements are still the configured type
+    /// and this pass is its only chance to be filtered/sorted.
+    /// </summary>
+    protected static bool CollectionBuiltInFirstPass(IField field, Expression expression, Type? configuredElementType)
+    {
+        if (field.Services.Count == 0)
+            return false;
+        var currentElementType = expression.Type.GetEnumerableOrArrayType();
+        return currentElementType != null && currentElementType != configuredElementType && configuredElementType?.IsAssignableFrom(currentElementType) == false;
     }
 }

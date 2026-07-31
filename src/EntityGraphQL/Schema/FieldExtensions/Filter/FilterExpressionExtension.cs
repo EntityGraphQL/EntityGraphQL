@@ -77,22 +77,14 @@ public class FilterExpressionExtension : BaseFieldExtension
                 // Split filter into EF-safe and service-dependent parts
                 var splitter = new FilterSplitter(listType!);
                 var split = splitter.SplitFilter(filterExpression);
-                var currentElementType = expression.Type.GetEnumerableOrArrayType();
-                // Root service lists now materialize on the first pass (for ResolveBulk). Filter already ran
-                // there against the raw service element type. Re-applying the original predicate against the
-                // first-pass Dynamic fails ("No generic method 'Where'"). Nested service-backed collections
-                // still only exist on this pass (elements are still listType) — apply the full filter.
-                var collectionAlreadyMaterialized =
-                    servicesPass && field.Services.Count > 0 && currentElementType != null && currentElementType != listType && !listType!.IsAssignableFrom(currentElementType);
-
                 if (!servicesPass && split.NonServiceFilter != null)
                 {
                     expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", [expression.Type.GetEnumerableOrArrayType()!], expression, split.NonServiceFilter);
                 }
-                else if (servicesPass && field.Services.Count > 0 && !collectionAlreadyMaterialized)
+                else if (servicesPass && field.Services.Count > 0 && !CollectionBuiltInFirstPass(field, expression, listType))
                 {
                     // Nested (or single-pass) service-backed collection: this is its only chance and the
-                    // elements are still the raw service result type — apply the full filter.
+                    // elements are still the raw service result type - apply the full filter.
                     expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", [expression.Type.GetEnumerableOrArrayType()!], expression, filterExpression);
                 }
                 else if (servicesPass && split.ServiceFilter != null)

@@ -8,10 +8,10 @@ using Xunit;
 namespace EntityGraphQL.Tests;
 
 /// <summary>
-/// UseFilter/UseSort on a field whose own resolver is service-backed. Nested service collections do not
-/// exist in the first (non-service) pass so the extensions apply there on the services pass. Root service
-/// lists participate in the two-pass flow — filter/sort run on the first pass against the raw service
-/// result and must not be re-applied against the first-pass Dynamic on the second pass.
+/// UseFilter/UseSort on a field whose own resolver is service-backed. A nested service collection does not
+/// exist in the first (non-service) pass, so the extensions do their work on the services pass. A root service
+/// list takes part in the two-pass flow instead - filter/sort run on the first pass against the raw service
+/// result and must not be re-applied against that pass's projected result on the second.
 /// </summary>
 public class ServiceBackedCollectionExtensionsTests
 {
@@ -19,24 +19,9 @@ public class ServiceBackedCollectionExtensionsTests
     {
         public List<Person> GetPeople() =>
             [
-                new Person
-                {
-                    Id = 1,
-                    Name = "Alyssa",
-                    Height = 180,
-                },
-                new Person
-                {
-                    Id = 2,
-                    Name = "Ben",
-                    Height = 160,
-                },
-                new Person
-                {
-                    Id = 3,
-                    Name = "Cy",
-                    Height = 190,
-                },
+                new Person { Id = 1, Name = "Alyssa", Height = 180 },
+                new Person { Id = 2, Name = "Ben", Height = 160 },
+                new Person { Id = 3, Name = "Cy", Height = 190 },
             ];
     }
 
@@ -53,7 +38,12 @@ public class ServiceBackedCollectionExtensionsTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("servicePeople", "People from a service").Resolve<PeopleService>((ctx, srv) => srv.GetPeople()).UseFilter();
 
-        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = @"{ servicePeople(filter: ""height > 170"") { name } }" }, new TestDataContext(), BuildServices(), null);
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"{ servicePeople(filter: ""height > 170"") { name } }" },
+            new TestDataContext(),
+            BuildServices(),
+            null
+        );
 
         Assert.Null(result.Errors);
         dynamic people = result.Data!["servicePeople"]!;
@@ -68,7 +58,12 @@ public class ServiceBackedCollectionExtensionsTests
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         schema.Query().AddField("servicePeople", "People from a service").Resolve<PeopleService>((ctx, srv) => srv.GetPeople()).UseSort();
 
-        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = @"{ servicePeople(sort: [{ height: ASC }]) { name height } }" }, new TestDataContext(), BuildServices(), null);
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"{ servicePeople(sort: [{ height: ASC }]) { name height } }" },
+            new TestDataContext(),
+            BuildServices(),
+            null
+        );
 
         Assert.Null(result.Errors);
         dynamic people = result.Data!["servicePeople"]!;
@@ -85,7 +80,12 @@ public class ServiceBackedCollectionExtensionsTests
         schema.Type<Project>().AddField("servicePeople", "People from a service").Resolve<PeopleService>((proj, srv) => srv.GetPeople()).UseFilter();
 
         var data = new TestDataContext { Projects = [new Project { Id = 1, Name = "Project 1" }] };
-        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = @"{ projects { name servicePeople(filter: ""height > 170"") { name } } }" }, data, BuildServices(), null);
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"{ projects { name servicePeople(filter: ""height > 170"") { name } } }" },
+            data,
+            BuildServices(),
+            null
+        );
 
         Assert.Null(result.Errors);
         dynamic project = Enumerable.First((dynamic)result.Data!["projects"]!);
@@ -101,7 +101,12 @@ public class ServiceBackedCollectionExtensionsTests
         schema.Type<Project>().AddField("servicePeople", "People from a service").Resolve<PeopleService>((proj, srv) => srv.GetPeople()).UseSort();
 
         var data = new TestDataContext { Projects = [new Project { Id = 1, Name = "Project 1" }] };
-        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = @"{ projects { name servicePeople(sort: [{ height: ASC }]) { name height } } }" }, data, BuildServices(), null);
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"{ projects { name servicePeople(sort: [{ height: ASC }]) { name height } } }" },
+            data,
+            BuildServices(),
+            null
+        );
 
         Assert.Null(result.Errors);
         dynamic project = Enumerable.First((dynamic)result.Data!["projects"]!);

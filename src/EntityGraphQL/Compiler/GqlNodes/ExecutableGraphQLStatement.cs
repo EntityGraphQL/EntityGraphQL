@@ -533,7 +533,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 {
                     var levelKeys = BuildBulkKeySelection(levelResolver, newContextParam, replacer);
                     keysExpression =
-                        keysExpression == null ? levelKeys : Expression.Call(typeof(Enumerable), nameof(Enumerable.Concat), [levelKeys.Type.GetEnumerableOrArrayType()!], keysExpression, levelKeys);
+                        keysExpression == null
+                            ? levelKeys
+                            : Expression.Call(typeof(Enumerable), nameof(Enumerable.Concat), [levelKeys.Type.GetEnumerableOrArrayType()!], keysExpression, levelKeys);
                 }
 
                 // the selected IDs to load the bulk data
@@ -607,15 +609,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // replace the data selection expression with the new context
         var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);
         var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
-        // DataSelection.Parameters[0] is a different ParameterExpression than FieldParam; ExpressionReplacer
-        // may leave it unbound for simple member selectors. Only rebind when the bulk list element is
-        // still the entity type — never onto a first-pass Dynamic (member types will not match).
-        if (bulkResolver.DataSelection.Parameters.Count > 0)
-        {
-            var dataParam = bulkResolver.DataSelection.Parameters[0];
-            if (newParam.Type == dataParam.Type || dataParam.Type.IsAssignableFrom(newParam.Type))
-                selection = replacer.Replace(selection, dataParam, newParam, false, null);
-        }
+        selection = ExpressionUtil.RebindBulkKeySelectorParameter(selection, bulkResolver.DataSelection, newParam, replacer, null);
         var selectionLambda = Expression.Lambda(selection, newParam);
         listExpression = Expression.Call(
             typeof(Enumerable),
