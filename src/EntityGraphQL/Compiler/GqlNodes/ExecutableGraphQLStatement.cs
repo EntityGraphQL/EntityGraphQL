@@ -533,9 +533,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 {
                     var levelKeys = BuildBulkKeySelection(levelResolver, newContextParam, replacer);
                     keysExpression =
-                        keysExpression == null
-                            ? levelKeys
-                            : Expression.Call(typeof(Enumerable), nameof(Enumerable.Concat), [levelKeys.Type.GetEnumerableOrArrayType()!], keysExpression, levelKeys);
+                        keysExpression == null ? levelKeys : Expression.Call(typeof(Enumerable), nameof(Enumerable.Concat), [levelKeys.Type.GetEnumerableOrArrayType()!], keysExpression, levelKeys);
                 }
 
                 // the selected IDs to load the bulk data

@@ -346,20 +346,12 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             // If this is a root field, we replace the whole expression unless there is services at the root level
             if (IsRootField && !HasServices)
                 nextFieldContext = replacementNextFieldContext;
-            else if (
-                IsRootField
-                && HasServices
-                && Field?.ReturnType.TypeDotnet != null
-                && !Field.ReturnType.TypeDotnet.IsEnumerableOrArray()
-                && replacementNextFieldContext.Type != Field.ReturnType.TypeDotnet
-            )
+            else if (IsRootField && HasServices && Field?.ReturnType.TypeDotnet != null && replacementNextFieldContext.Type != Field.ReturnType.TypeDotnet)
             {
-                // Second pass over a root service *object* (e.g. statusPage { items { bulkField } }):
-                // the first pass already materialized an anon projection (with extracted egql__ deps /
-                // nested Dynamics). Use that as the context — do not rebuild from the service expression
-                // or nested lists stay on the entity type while possibleNextContextTypes still point at
-                // the first-pass Dynamic (Convert fails). Root service *lists* still re-bind below so
-                // DataSelector properties resolve on the entity with replaceInline.
+                // Second pass over a root service list/object (e.g. apiKeys { bulkField }, statusPage { items { ... } }):
+                // the first pass already materialized the projection (extracted egql__ deps / nested Dynamics).
+                // Use that — rebuilding from the service expression runs the service twice and leaves nested
+                // selections on the entity type while possibleNextContextTypes still point at the Dynamic.
                 nextFieldContext = replacementNextFieldContext;
             }
             else if (HasServices)
@@ -369,10 +361,14 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
                 // e.g. given a field like this
                 // (ctx, service) => service.DoSomething(ctx.SomeField)
                 // we selected ctx.SomeField on the first execution and on the second execution we use newCtx.ctx_SomeField
-                // if ParentNode?.HasServices == true the above has been done and we just need to replace the
-                // expression, not rebuild it with a different name
+                // replaceInline (PropertyOrField by original member name) only works when the replacement
+                // context is still the entity. Under a root service parent the first-pass context is a
+                // Dynamic with egql__* names — rebuild via GetNodeExpression instead.
+                var contextIsOriginalEntity =
+                    Field?.FieldParam != null && (replacementNextFieldContext.Type == Field.FieldParam.Type || Field.FieldParam.Type.IsAssignableFrom(replacementNextFieldContext.Type));
+                var replaceInline = ParentNode?.HasServices == true && contextIsOriginalEntity;
 
-                var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, IsRootField && HasServices, possibleNextContextTypes);
+                var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, replaceInline, IsRootField && HasServices, possibleNextContextTypes);
                 nextFieldContext = expReplacer.Replace(nextFieldContext!);
             }
             // may need to replace the field's original parameter
@@ -418,13 +414,11 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// <summary>
     /// True when the bulk load for this field ran and its data is available to look up. The bulk data is
     /// resolved before the second pass compiles, so a missing entry means no load was registered for this
-    /// field - the field is not reachable in the first pass. That happens when the root field is itself
-    /// resolved from services (its first pass produces no expression, so there is no data to collect the
-    /// bulk keys from), when the field sits below another service field's selection, and when services are
-    /// not executed separately at all. Building the lookup anyway indexes bulk data that is not there.
-    /// The caller falls back to the field's per-item resolver, which costs one service call per item. Bulk
-    /// loading these needs the service-resolved parent executed before the keys are collected - i.e. a
-    /// further execution pass, not implemented.
+    /// field - the field is not reachable in the first pass. That still happens when the field sits below
+    /// another service field's selection, and when services are not executed separately at all. Root
+    /// service-resolved lists/objects participate in the two-pass flow so nested bulk fields load once;
+    /// other shapes that produce no first-pass expression fall back to the per-item resolver (one service
+    /// call per item). Building the lookup anyway would index bulk data that is not there.
     /// </summary>
     private bool BulkDataAvailable(CompileContext compileContext) => compileContext.BulkData?.ContainsKey(Field!.BulkResolver!.Name) == true;
 

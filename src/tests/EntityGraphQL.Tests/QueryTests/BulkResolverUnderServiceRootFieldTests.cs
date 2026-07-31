@@ -9,10 +9,10 @@ using static EntityGraphQL.Schema.ArgumentHelper;
 namespace EntityGraphQL.Tests;
 
 /// <summary>
-/// A ResolveBulk field selected under a root field that is itself resolved from services (no first pass to
-/// collect the bulk keys from - it falls back to the per-item resolver), and the same bulk field selected at
-/// two levels of a self-referencing type (one load with every level's keys). Both used to fail with an
-/// internal exception reaching the client as "Field '&lt;root field&gt;' - Error occurred".
+/// A ResolveBulk field selected under a root field that is itself resolved from services now participates in
+/// the two-pass flow and bulk-loads once. The same bulk field selected at two levels of a self-referencing
+/// type loads with every level's keys in one call. Both used to fail with an internal exception reaching the
+/// client as "Field '&lt;root field&gt;' - Error occurred" (or fall back to per-item Resolve).
 /// </summary>
 public class BulkResolverUnderServiceRootFieldTests
 {
@@ -105,9 +105,8 @@ public class BulkResolverUnderServiceRootFieldTests
     }
 
     /// <summary>
-    /// The bulk field is selected on a list that comes from a service, not from the context. The first pass
-    /// (without service fields) produces no expression for the root field, so there is nothing to collect the
-    /// bulk keys from and no bulk load is registered - the per-item resolver runs instead.
+    /// The bulk field is selected on a list that comes from a service, not from the context. Root service
+    /// lists participate in the two-pass flow so the bulk loader runs once.
     /// </summary>
     [Fact]
     public void BulkFieldUnderServiceResolvedRootField()
@@ -120,12 +119,13 @@ public class BulkResolverUnderServiceRootFieldTests
 
         Assert.Null(res.Errors);
         Assert.True(((dynamic)res.Data!["rootNotes"]!)[0].isFlagged);
-        Assert.Equal(0, flagService.BulkCalls);
-        Assert.Equal(1, flagService.ItemCalls);
+        Assert.Equal(1, flagService.BulkCalls);
+        Assert.Equal(0, flagService.ItemCalls);
     }
 
     /// <summary>
-    /// Same as above with services in a single pass.
+    /// Same as above with services in a single pass - no separate first pass to collect keys, so the
+    /// per-item resolver runs instead.
     /// </summary>
     [Fact]
     public void BulkFieldUnderServiceResolvedRootField_SinglePass()
@@ -134,12 +134,7 @@ public class BulkResolverUnderServiceRootFieldTests
         schema.Query().AddField("rootNotes", "Notes from a service").Resolve<NotesContext>((_, db) => db.Notes.ToList());
         var flagService = new FlagService();
 
-        var res = Execute(
-            schema,
-            flagService,
-            new QueryRequest { Query = "{ rootNotes { id isFlagged } }" },
-            new ExecutionOptions { ExecuteServiceFieldsSeparately = false }
-        );
+        var res = Execute(schema, flagService, new QueryRequest { Query = "{ rootNotes { id isFlagged } }" }, new ExecutionOptions { ExecuteServiceFieldsSeparately = false });
 
         Assert.Null(res.Errors);
         Assert.True(((dynamic)res.Data!["rootNotes"]!)[0].isFlagged);
@@ -215,8 +210,9 @@ public class BulkResolverUnderServiceRootFieldTests
         Assert.Single(notes);
         Assert.True(notes[0].isFlagged);
         Assert.True(notes[0].children[0].isFlagged);
-        // service resolved root field - per-item, once for the parent and once for the child
-        Assert.Equal(0, flagService.BulkCalls);
-        Assert.Equal(2, flagService.ItemCalls);
+        // root service list participates in two-pass - one bulk load with parent + child keys
+        Assert.Equal(1, flagService.BulkCalls);
+        Assert.Equal(2, flagService.BulkKeys);
+        Assert.Equal(0, flagService.ItemCalls);
     }
 }

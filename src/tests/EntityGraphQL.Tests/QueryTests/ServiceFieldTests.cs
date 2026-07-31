@@ -1422,7 +1422,9 @@ public class ServiceFieldTests
         );
 
         Assert.NotNull(expression);
-        Assert.Equal("ctx.People.First().Id", expression.ToString());
+        // Root service objects participate in the two-pass flow (ProjectWithNullCheck + selection), so the
+        // first-pass expression wraps the service call — the context dependency is still pulled up into it.
+        Assert.Contains("People.First().Id", expression.ToString());
     }
 
     [Fact]
