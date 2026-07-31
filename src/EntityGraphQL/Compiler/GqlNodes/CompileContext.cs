@@ -94,12 +94,27 @@ public class CompileContext
     public List<Type>? GetPossibleNextContextTypes(IGraphQLNode node) => possibleNextContextTypes.TryGetValue(node, out var types) ? types : null;
 
     /// <summary>
+    /// The nodes whose first pass built and materialised their own projection - a root field resolved from
+    /// services taking part in the two passes so a bulk resolver below it can collect its keys from the rows.
+    /// The second pass projects from that result instead of rebuilding (and re-running) the service
+    /// expression, so both passes have to agree on which nodes did it. Stored here rather than on the node as
+    /// the node belongs to the cached document shared across requests.
+    /// </summary>
+    private readonly HashSet<IGraphQLNode> firstPassMaterializedNodes = [];
+
+    public void SetFirstPassMaterialized(IGraphQLNode node) => firstPassMaterializedNodes.Add(node);
+
+    public bool WasFirstPassMaterialized(IGraphQLNode node) => firstPassMaterializedNodes.Contains(node);
+
+    /// <summary>
     /// Carry the first pass's state into the context used for the second (services) pass.
     /// </summary>
     internal void CopyPossibleNextContextTypesFrom(CompileContext other)
     {
         foreach (var kvp in other.possibleNextContextTypes)
             possibleNextContextTypes[kvp.Key] = kvp.Value;
+        foreach (var node in other.firstPassMaterializedNodes)
+            firstPassMaterializedNodes.Add(node);
     }
 
     /// <summary>

@@ -16,6 +16,13 @@ public class GraphQLFragmentSpreadField : BaseGraphQLField
         LocationForDirectives = ExecutableDirectiveLocation.FragmentSpread;
     }
 
+    public override bool HasBulkResolverAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
+    {
+        // unknown fragment names error later in Expand - do not fail the shape check on them
+        var fragment = fragments.GetValueOrDefault(Name);
+        return fragment?.QueryFields.Any(f => f.HasBulkResolverAtOrBelow(fragments)) == true;
+    }
+
     public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
         var fragment = fragments.GetValueOrDefault(Name) ?? throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Fragment {Name} not found in query document");

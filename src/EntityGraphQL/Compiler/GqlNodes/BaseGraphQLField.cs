@@ -118,6 +118,17 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     }
 
     /// <summary>
+    /// True if this field or anything selected below it has a bulk resolver to load. A root field resolved
+    /// from services only takes part in the two-pass flow when that is the case: the first pass exists so the
+    /// bulk keys can be collected from the materialised rows, and it costs an extra expression compile plus a
+    /// projection of every row, which is not worth paying for a selection with nothing to bulk load.
+    /// </summary>
+    public virtual bool HasBulkResolverAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
+    {
+        return Field?.BulkResolver != null || QueryFields.Any(f => f.HasBulkResolverAtOrBelow(fragments));
+    }
+
+    /// <summary>
     /// Checks if this field or any of its child fields are async (return Task<T>)
     /// </summary>
     public virtual bool HasAsyncFieldsAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
@@ -336,6 +347,13 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables) == null;
     }
 
+    /// <summary>
+    /// True on the second pass when the first pass materialized this field's own projection (see
+    /// <see cref="CompileContext.SetFirstPassMaterialized"/>), so the selection is built over that result.
+    /// </summary>
+    protected bool UseFirstPassResult(CompileContext compileContext, Expression replacementNextFieldContext) =>
+        compileContext.WasFirstPassMaterialized(this) && Field?.ReturnType.TypeDotnet != null && replacementNextFieldContext.Type != Field.ReturnType.TypeDotnet;
+
     protected Expression ReplaceContext(Expression replacementNextFieldContext, ParameterReplacer replacer, Expression nextFieldContext, List<Type>? possibleNextContextTypes)
     {
         var possibleField = replacementNextFieldContext.Type.GetField(Name);
@@ -346,14 +364,6 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             // If this is a root field, we replace the whole expression unless there is services at the root level
             if (IsRootField && !HasServices)
                 nextFieldContext = replacementNextFieldContext;
-            else if (IsRootField && HasServices && Field?.ReturnType.TypeDotnet != null && replacementNextFieldContext.Type != Field.ReturnType.TypeDotnet)
-            {
-                // Second pass over a root service list/object (e.g. apiKeys { bulkField }, statusPage { items { ... } }):
-                // the first pass already materialized the projection (extracted egql__ deps / nested Dynamics).
-                // Use that — rebuilding from the service expression runs the service twice and leaves nested
-                // selections on the entity type while possibleNextContextTypes still point at the Dynamic.
-                nextFieldContext = replacementNextFieldContext;
-            }
             else if (HasServices)
             {
                 // if we have services we need to replace any context expressions in the service expression with the new context

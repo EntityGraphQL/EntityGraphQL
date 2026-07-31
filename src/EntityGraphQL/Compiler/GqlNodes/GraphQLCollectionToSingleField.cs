@@ -60,6 +60,11 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
         CombineExpression = combineExpression;
     }
 
+    public override bool HasBulkResolverAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
+    {
+        return CollectionSelectionNode.HasBulkResolverAtOrBelow(fragments) || ObjectProjectionNode.HasBulkResolverAtOrBelow(fragments);
+    }
+
     public override bool HasServicesAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
     {
         return CollectionSelectionNode.HasServicesAtOrBelow(fragments) || ObjectProjectionNode.HasServicesAtOrBelow(fragments);

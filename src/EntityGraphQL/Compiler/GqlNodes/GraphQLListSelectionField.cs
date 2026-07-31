@@ -76,19 +76,31 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         ParameterReplacer replacer
     )
     {
-        // Root service fields used to return null here so the statement fell through to a single-pass
-        // execution (no EF "first pass"). That skipped ResolveBulkLoadersAsync and left BulkParameter
-        // null, so nested ResolveBulk fields then threw when building the bulk dictionary lookup
-        // ("Static property requires null instance..." from MakeIndex on a null BulkParameter).
-        // Fall through instead: execute the service list selecting non-service / extracted key fields,
-        // run bulk loaders, then the second pass resolves nested bulk fields.
+        // A root service list returns null here so the statement falls through to a single-pass execution -
+        // there is no context query for a first pass to run. The exception is a selection with a bulk
+        // resolver in it: those need a materialised row set to collect their keys from, so the list takes
+        // part in the two passes instead (run the service selecting non-service / extracted key fields, run
+        // the bulk loaders, then project the full selection from that result). Doing this unconditionally
+        // costs an extra compile and a projection of every row for selections with nothing to bulk load.
+        if (withoutServiceFields && IsRootField && HasServices)
+        {
+            if (!HasBulkResolverAtOrBelow(fragments))
+                return null;
+            // taking part in the two passes: the second one projects from what this one materializes
+            compileContext.SetFirstPassMaterialized(this);
+        }
 
         var listContext = HandleBulkServiceResolver(compileContext, withoutServiceFields, ListExpression)!;
 
         ParameterExpression? nextFieldContext = (ParameterExpression)NextFieldContext!;
         if (contextChanged && replacementNextFieldContext != null)
         {
-            listContext = ReplaceContext(replacementNextFieldContext!, replacer, listContext!, possibleNextContextTypes);
+            // The first pass materialized this field's own projection, so use it. Rebuilding from the service
+            // expression would run the service a second time and leave nested selections on the entity type
+            // while possibleNextContextTypes point at the first pass's dynamic type.
+            listContext = UseFirstPassResult(compileContext, replacementNextFieldContext)
+                ? replacementNextFieldContext
+                : ReplaceContext(replacementNextFieldContext!, replacer, listContext!, possibleNextContextTypes);
             // For async fields (e.g. Task<IEnumerable<T>>), GetEnumerableOrArrayType returns
             // IEnumerable<T> (the Task's single type argument) instead of T (the list element type).
             // Unwrap Task<>/ValueTask<> first so the element parameter has the correct type.

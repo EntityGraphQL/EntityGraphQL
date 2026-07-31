@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -516,4 +517,96 @@ public class ServiceRootListBulkTests
         Assert.Equal("Alice", page.items[0].createdByName);
         Assert.Equal("Bob", page.items[1].createdByName);
     }
+    /// <summary>
+    /// The two-pass flow exists so a bulk resolver can collect its keys from the materialized rows. A
+    /// selection with nothing to bulk load stays on the single-pass path - the extra pass would be an extra
+    /// compile and a projection of every row for no gain.
+    /// </summary>
+    [Fact]
+    public void ServiceRootList_WithoutBulkFieldSelected_RunsInOnePass()
+    {
+        var (schema, sp, _, names, _) = BuildApiKeysSchema(apiKey =>
+        {
+            apiKey
+                .AddField("createdByName", "Creator display name")
+                .Resolve<CreatedByNameService>((k, svc) => svc.GetName(k.CreatedById))
+                .ResolveBulk<CreatedByNameService, string, string?>(k => k.CreatedById!, (ids, svc) => svc.GetNames(ids));
+        });
+
+        var passes = ExecuteCountingPasses(schema, sp, "{ apiKeys { key customerId } }");
+
+        Assert.Equal([true], passes);
+        Assert.Equal(0, names.CallCount);
+    }
+
+    /// <summary>
+    /// Selecting the bulk field opts the root service list into the two passes - one load for all rows.
+    /// </summary>
+    [Fact]
+    public void ServiceRootList_WithBulkFieldSelected_RunsTwoPasses()
+    {
+        var (schema, sp, _, names, _) = BuildApiKeysSchema(apiKey =>
+        {
+            apiKey
+                .AddField("createdByName", "Creator display name")
+                .Resolve<CreatedByNameService>((k, svc) => svc.GetName(k.CreatedById))
+                .ResolveBulk<CreatedByNameService, string, string?>(k => k.CreatedById!, (ids, svc) => svc.GetNames(ids));
+        });
+
+        var passes = ExecuteCountingPasses(schema, sp, "{ apiKeys { key createdByName } }");
+
+        Assert.Equal([false, true], passes);
+        Assert.Equal(1, names.CallCount);
+    }
+
+    /// <summary>
+    /// The bulk field reached through a fragment spread counts too - clients hoist selections into fragments,
+    /// and a shape check that did not look inside them would quietly drop back to one call per row.
+    /// </summary>
+    [Fact]
+    public void ServiceRootList_BulkFieldInFragment_StillLoadsOnce()
+    {
+        var (schema, sp, _, names, _) = BuildApiKeysSchema(apiKey =>
+        {
+            apiKey
+                .AddField("createdByName", "Creator display name")
+                .Resolve<CreatedByNameService>((k, svc) => svc.GetName(k.CreatedById))
+                .ResolveBulk<CreatedByNameService, string, string?>(k => k.CreatedById!, (ids, svc) => svc.GetNames(ids));
+        });
+
+        var res = schema.ExecuteRequest(
+            new QueryRequest { Query = "query { apiKeys { ...KeyFields } } fragment KeyFields on ApiKey { key createdByName }" },
+            sp,
+            null
+        );
+
+        if (res.Errors != null)
+            Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
+        Assert.Equal(1, names.CallCount);
+        dynamic keys = res.Data!["apiKeys"]!;
+        Assert.Equal("Alice", keys[0].createdByName);
+    }
+
+    /// <summary>The isFinal flag of each execution the engine runs for a query.</summary>
+    private static List<bool> ExecuteCountingPasses(SchemaProvider<EmptyContext> schema, ServiceProvider sp, string query)
+    {
+        List<bool> passes = [];
+        var res = schema.ExecuteRequest(
+            new QueryRequest { Query = query },
+            sp,
+            null,
+            new ExecutionOptions
+            {
+                BeforeExecuting = (Expression expression, bool isFinal) =>
+                {
+                    passes.Add(isFinal);
+                    return expression;
+                },
+            }
+        );
+        if (res.Errors != null)
+            Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
+        return passes;
+    }
+
 }
