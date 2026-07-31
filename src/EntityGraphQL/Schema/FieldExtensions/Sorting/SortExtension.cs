@@ -137,11 +137,15 @@ public class SortExtension : BaseFieldExtension
         var parameterReplacer = context.ParameterReplacer;
         var originalArgParam = context.OriginalArgumentParameter;
 
-        // things are sorted already (first pass) and the field shape has changed - except when the field's own
-        // resolver uses services: the collection never existed in the first pass, so this is its only chance
-        // to be sorted and the elements are still the raw service result type
-        if (servicesPass && field.Services.Count == 0)
-            return (expression, originalArgParam, argumentParam, arguments);
+        // Already sorted on the first pass when the field shape has changed to the first-pass Dynamic —
+        // except nested service-backed collections, which never existed then and still have listType elements.
+        if (servicesPass)
+        {
+            var currentElementType = expression.Type.GetEnumerableOrArrayType();
+            var collectionAlreadyMaterialized = field.Services.Count > 0 && currentElementType != null && currentElementType != listType && !listType!.IsAssignableFrom(currentElementType);
+            if (field.Services.Count == 0 || collectionAlreadyMaterialized)
+                return (expression, originalArgParam, argumentParam, arguments);
+        }
 
         // default sort gets put in arguments
         if (arguments != null && arguments!.Sort != null && arguments!.Sort.Count > 0)
