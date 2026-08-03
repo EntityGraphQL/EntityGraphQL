@@ -196,16 +196,19 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                         }
                         catch (EntityGraphQLFieldException fe)
                         {
+                            Schema.LogException(fe);
                             allErrors.Add(new GraphQLError(Schema.AllowedExceptionMessage(fe), expandedField.BuildPath(), null));
                         }
                         catch (EntityGraphQLException ve)
                         {
+                            Schema.LogException(ve);
                             allErrors.AddRange(Schema.GenerateErrors(ve));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
                         }
                         catch (TargetInvocationException tie) when (tie.InnerException != null)
                         {
+                            Schema.LogException(tie.InnerException);
                             allErrors.AddRange(Schema.GenerateErrors(tie.InnerException, expandedField.Name));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
@@ -215,12 +218,16 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                         // than wrapped in a TargetInvocationException - flatten it to distinct errors the same way
                         catch (AggregateException ae)
                         {
+                            Schema.LogException(ae);
                             allErrors.AddRange(Schema.GenerateErrors(ae, expandedField.Name));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
                         }
                         catch (Exception ex)
                         {
+                            // Log the original exception so the stack trace points at the resolver failure,
+                            // not the EntityGraphQLException wrapper we build for the GraphQL error payload.
+                            Schema.LogException(ex);
                             allErrors.AddRange(
                                 Schema.GenerateErrors(
                                     new EntityGraphQLException(
@@ -246,6 +253,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // building the variables could cause this
         catch (EntityGraphQLException ce)
         {
+            Schema.LogException(ce);
             allErrors.AddRange(Schema.GenerateErrors(ce));
         }
 

@@ -119,4 +119,11 @@ public interface ISchemaProvider
     /// exception type is registered in AllowedExceptions / marked with AllowedExceptionAttribute.
     /// </summary>
     bool IsAllowedException(Exception exception);
+
+    /// <summary>
+    /// Logs an exception raised while executing a GraphQL request. Field-level failures that are returned as
+    /// GraphQL errors (partial results) should still call this so the Exception and stack trace are available
+    /// to the configured <c>ILogger</c>, matching top-level request failure logging.
+    /// </summary>
+    void LogException(Exception exception);
 }

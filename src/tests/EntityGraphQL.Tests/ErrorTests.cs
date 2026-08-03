@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -649,5 +651,49 @@ public class ErrorTests
         Assert.NotNull(error.Message);
         Assert.NotNull(error.Path);
         Assert.Equal("nonNullableFail", error.Path[0]);
+    }
+
+    [Fact]
+    public void FieldExecutionException_IsLoggedWithException()
+    {
+        // Field failures returned as GraphQL errors (partial-results path) must still be logged with
+        // the Exception / stack trace, same as top-level HandleException for document failures.
+        var logger = new CapturingLogger<SchemaProvider<TestDataContext>>();
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(logger: logger);
+
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    people { error_UnexposedException }
+                }",
+        };
+
+        var results = schemaProvider.ExecuteRequestWithContext(gql, new TestDataContext().FillWithTestData(), null, null);
+
+        Assert.NotNull(results.Errors);
+        Assert.Contains("You should not see this message outside of Development", results.Errors[0].Message);
+
+        var errorLogs = logger.Entries.Where(e => e.Level == LogLevel.Error && e.Exception != null).ToList();
+        Assert.NotEmpty(errorLogs);
+        Assert.Contains(errorLogs, e => e.Exception!.ToString().Contains("You should not see this message outside of Development"));
+        var fieldFailLog = errorLogs.First(e => e.Exception!.ToString().Contains("You should not see this message outside of Development"));
+        Assert.False(string.IsNullOrEmpty(fieldFailLog.Exception!.GetBaseException().StackTrace));
+        Assert.Equal("Error executing QueryRequest", fieldFailLog.Message);
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<(LogLevel Level, EventId EventId, Exception? Exception, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add((logLevel, eventId, exception, formatter(state, exception)));
+        }
     }
 }

@@ -586,13 +586,19 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
     private QueryResult HandleException(Exception exception)
     {
-        if (logger != null)
-            logErrorMessage(logger, exception);
+        LogException(exception);
 
         var result = new QueryResult();
         result.AddErrors(GenerateErrors(exception).Distinct());
 
         return result;
+    }
+
+    /// <inheritdoc />
+    public void LogException(Exception exception)
+    {
+        if (logger != null)
+            logErrorMessage(logger, exception);
     }
 
     public IEnumerable<GraphQLError> GenerateErrors(Exception exception, string? fieldName = null)
