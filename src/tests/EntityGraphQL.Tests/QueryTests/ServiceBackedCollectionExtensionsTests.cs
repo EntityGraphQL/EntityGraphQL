@@ -8,8 +8,10 @@ using Xunit;
 namespace EntityGraphQL.Tests;
 
 /// <summary>
-/// UseFilter/UseSort on a field whose own resolver is service-backed. The collection does not exist in the
-/// first (non-service) execution pass so the extensions must apply their work in the services pass.
+/// UseFilter/UseSort on a field whose own resolver is service-backed. A nested service collection does not
+/// exist in the first (non-service) pass, so the extensions do their work on the services pass. A root service
+/// list takes part in the two-pass flow instead - filter/sort run on the first pass against the raw service
+/// result and must not be re-applied against that pass's projected result on the second.
 /// </summary>
 public class ServiceBackedCollectionExtensionsTests
 {

@@ -77,15 +77,14 @@ public class FilterExpressionExtension : BaseFieldExtension
                 // Split filter into EF-safe and service-dependent parts
                 var splitter = new FilterSplitter(listType!);
                 var split = splitter.SplitFilter(filterExpression);
-
                 if (!servicesPass && split.NonServiceFilter != null)
                 {
                     expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", [expression.Type.GetEnumerableOrArrayType()!], expression, split.NonServiceFilter);
                 }
-                else if (servicesPass && field.Services.Count > 0)
+                else if (servicesPass && field.Services.Count > 0 && !CollectionBuiltInFirstPass(field, expression, listType))
                 {
-                    // the field's own resolver uses services so the collection never existed in the first pass -
-                    // this is its only pass and the elements are the raw service result, so apply the full filter
+                    // Nested (or single-pass) service-backed collection: this is its only chance and the
+                    // elements are still the raw service result type - apply the full filter.
                     expression = Expression.Call(isQueryable ? typeof(Queryable) : typeof(Enumerable), "Where", [expression.Type.GetEnumerableOrArrayType()!], expression, filterExpression);
                 }
                 else if (servicesPass && split.ServiceFilter != null)

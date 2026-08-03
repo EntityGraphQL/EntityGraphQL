@@ -494,6 +494,30 @@ public static partial class ExpressionUtil
     /// </summary>
     /// <param name="possibleNextContextTypes">The dynamic types produced when this field was compiled in the
     /// first pass (from the compile context - per-request state that must not live on the shared field node)</param>
+    /// <summary>
+    /// Rebind a bulk resolver's key selector parameter onto <paramref name="newContext"/>. The selector is
+    /// built with its own ParameterExpression - often the same name and type as the field's, but not the same
+    /// object - so a simple member selector can be left unbound after the extracted fields are replaced,
+    /// failing at compile with "variable 'row' ... referenced from scope '' but it is not defined". Only
+    /// rebinds while the context is still the entity (or a subtype): once it is a first-pass dynamic type the
+    /// members no longer line up and the mapped fields are already correct.
+    /// </summary>
+    internal static Expression RebindBulkKeySelectorParameter(
+        Expression selection,
+        LambdaExpression keySelector,
+        Expression newContext,
+        ParameterReplacer replacer,
+        List<Type>? possibleNextContextTypes
+    )
+    {
+        if (keySelector.Parameters.Count == 0)
+            return selection;
+        var keyParam = keySelector.Parameters[0];
+        if (newContext.Type != keyParam.Type && !keyParam.Type.IsAssignableFrom(newContext.Type))
+            return selection;
+        return replacer.Replace(selection, keyParam, newContext, false, possibleNextContextTypes);
+    }
+
     public static (Expression expression, List<Type>? dynamicTypes) MakeSelectWithDynamicType(
         GraphQLListSelectionField field,
         ParameterExpression currentContextParam,

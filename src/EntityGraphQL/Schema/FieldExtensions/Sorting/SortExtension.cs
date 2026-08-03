@@ -137,10 +137,9 @@ public class SortExtension : BaseFieldExtension
         var parameterReplacer = context.ParameterReplacer;
         var originalArgParam = context.OriginalArgumentParameter;
 
-        // things are sorted already (first pass) and the field shape has changed - except when the field's own
-        // resolver uses services: the collection never existed in the first pass, so this is its only chance
-        // to be sorted and the elements are still the raw service result type
-        if (servicesPass && field.Services.Count == 0)
+        // Already sorted on the first pass, unless this is a nested service-backed collection that had no
+        // first pass of its own
+        if (servicesPass && (field.Services.Count == 0 || CollectionBuiltInFirstPass(field, expression, listType)))
             return (expression, originalArgParam, argumentParam, arguments);
 
         // default sort gets put in arguments

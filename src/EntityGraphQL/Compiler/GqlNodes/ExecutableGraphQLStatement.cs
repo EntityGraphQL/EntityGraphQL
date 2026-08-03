@@ -609,6 +609,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // replace the data selection expression with the new context
         var expReplacer = new ExpressionReplacer(bulkResolver.ExtractedFields, newParam, false, false, null);
         var selection = expReplacer.Replace(bulkResolver.DataSelection.Body);
+        selection = ExpressionUtil.RebindBulkKeySelectorParameter(selection, bulkResolver.DataSelection, newParam, replacer, null);
         var selectionLambda = Expression.Lambda(selection, newParam);
         listExpression = Expression.Call(
             typeof(Enumerable),

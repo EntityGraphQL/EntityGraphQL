@@ -118,6 +118,17 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     }
 
     /// <summary>
+    /// True if this field or anything selected below it has a bulk resolver to load. A root field resolved
+    /// from services only takes part in the two-pass flow when that is the case: the first pass exists so the
+    /// bulk keys can be collected from the materialised rows, and it costs an extra expression compile plus a
+    /// projection of every row, which is not worth paying for a selection with nothing to bulk load.
+    /// </summary>
+    public virtual bool HasBulkResolverAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
+    {
+        return Field?.BulkResolver != null || QueryFields.Any(f => f.HasBulkResolverAtOrBelow(fragments));
+    }
+
+    /// <summary>
     /// Checks if this field or any of its child fields are async (return Task<T>)
     /// </summary>
     public virtual bool HasAsyncFieldsAtOrBelow(IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments)
@@ -336,6 +347,13 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return ProcessDirectivesVisitNode(LocationForDirectives, this, docParam, docVariables) == null;
     }
 
+    /// <summary>
+    /// True on the second pass when the first pass materialized this field's own projection (see
+    /// <see cref="CompileContext.SetFirstPassMaterialized"/>), so the selection is built over that result.
+    /// </summary>
+    protected bool UseFirstPassResult(CompileContext compileContext, Expression replacementNextFieldContext) =>
+        compileContext.WasFirstPassMaterialized(this) && Field?.ReturnType.TypeDotnet != null && replacementNextFieldContext.Type != Field.ReturnType.TypeDotnet;
+
     protected Expression ReplaceContext(Expression replacementNextFieldContext, ParameterReplacer replacer, Expression nextFieldContext, List<Type>? possibleNextContextTypes)
     {
         var possibleField = replacementNextFieldContext.Type.GetField(Name);
@@ -353,10 +371,14 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
                 // e.g. given a field like this
                 // (ctx, service) => service.DoSomething(ctx.SomeField)
                 // we selected ctx.SomeField on the first execution and on the second execution we use newCtx.ctx_SomeField
-                // if ParentNode?.HasServices == true the above has been done and we just need to replace the
-                // expression, not rebuild it with a different name
+                // replaceInline (PropertyOrField by original member name) only works when the replacement
+                // context is still the entity. Under a root service parent the first-pass context is a
+                // Dynamic with egql__* names — rebuild via GetNodeExpression instead.
+                var contextIsOriginalEntity =
+                    Field?.FieldParam != null && (replacementNextFieldContext.Type == Field.FieldParam.Type || Field.FieldParam.Type.IsAssignableFrom(replacementNextFieldContext.Type));
+                var replaceInline = ParentNode?.HasServices == true && contextIsOriginalEntity;
 
-                var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, ParentNode?.HasServices == true, IsRootField && HasServices, possibleNextContextTypes);
+                var expReplacer = new ExpressionReplacer(expressionsToReplace, replacementNextFieldContext, replaceInline, IsRootField && HasServices, possibleNextContextTypes);
                 nextFieldContext = expReplacer.Replace(nextFieldContext!);
             }
             // may need to replace the field's original parameter
@@ -364,6 +386,16 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
             {
                 nextFieldContext = replacer.Replace(nextFieldContext, Field.FieldParam, replacementNextFieldContext, false, possibleNextContextTypes);
             }
+            // HandleBulkServiceResolver embeds the bulk resolver's DataSelector.Body in the dictionary lookup,
+            // so that selector's own parameter needs rebinding onto this context
+            if (Field?.BulkResolver != null)
+                nextFieldContext = ExpressionUtil.RebindBulkKeySelectorParameter(
+                    nextFieldContext!,
+                    Field.BulkResolver.DataSelector,
+                    replacementNextFieldContext,
+                    replacer,
+                    possibleNextContextTypes
+                );
         }
 
         return nextFieldContext;
@@ -388,13 +420,11 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     /// <summary>
     /// True when the bulk load for this field ran and its data is available to look up. The bulk data is
     /// resolved before the second pass compiles, so a missing entry means no load was registered for this
-    /// field - the field is not reachable in the first pass. That happens when the root field is itself
-    /// resolved from services (its first pass produces no expression, so there is no data to collect the
-    /// bulk keys from), when the field sits below another service field's selection, and when services are
-    /// not executed separately at all. Building the lookup anyway indexes bulk data that is not there.
-    /// The caller falls back to the field's per-item resolver, which costs one service call per item. Bulk
-    /// loading these needs the service-resolved parent executed before the keys are collected - i.e. a
-    /// further execution pass, not implemented.
+    /// field - the field is not reachable in the first pass. That still happens when the field sits below
+    /// another service field's selection, and when services are not executed separately at all. Root
+    /// service-resolved lists/objects participate in the two-pass flow so nested bulk fields load once;
+    /// other shapes that produce no first-pass expression fall back to the per-item resolver (one service
+    /// call per item). Building the lookup anyway would index bulk data that is not there.
     /// </summary>
     private bool BulkDataAvailable(CompileContext compileContext) => compileContext.BulkData?.ContainsKey(Field!.BulkResolver!.Name) == true;
 
