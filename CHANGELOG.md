@@ -1,3 +1,9 @@
+# 6.1.5
+
+## Fixes
+
+- Field-level exceptions are logged again, with the field name and stack trace, to the `ILogger` the schema was built with. A regression in 6.0: partial results turned a field failure into a GraphQL error instead of rethrowing it, so nothing reached the request-level log and the only way to see why a field failed was development mode or `AllowedExceptions` - both of which return the detail to the caller. Responses are unchanged. Document and validation errors, whose message the caller already gets in full, are not logged.
+
 # 6.1.4
 
 ## Fixes

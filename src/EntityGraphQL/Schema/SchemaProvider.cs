@@ -56,6 +56,11 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     // map some types to scalar types
     private readonly Dictionary<Type, GqlTypeInfo> customTypeMappings;
     private static readonly Action<ILogger, Exception> logErrorMessage = LoggerMessage.Define(LogLevel.Error, new EventId(1, "QueryRequest"), "Error executing QueryRequest");
+    private static readonly Action<ILogger, string, Exception> logFieldErrorMessage = LoggerMessage.Define<string>(
+        LogLevel.Error,
+        new EventId(2, "FieldError"),
+        "Error executing field '{Field}'"
+    );
 
     public SchemaProvider()
         : this(null, null) { }
@@ -586,13 +591,23 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
     private QueryResult HandleException(Exception exception)
     {
-        if (logger != null)
-            logErrorMessage(logger, exception);
+        LogException(exception);
 
         var result = new QueryResult();
         result.AddErrors(GenerateErrors(exception).Distinct());
 
         return result;
+    }
+
+    /// <inheritdoc />
+    public void LogException(Exception exception, string? fieldName = null)
+    {
+        if (logger == null)
+            return;
+        if (fieldName != null)
+            logFieldErrorMessage(logger, fieldName, exception);
+        else
+            logErrorMessage(logger, exception);
     }
 
     public IEnumerable<GraphQLError> GenerateErrors(Exception exception, string? fieldName = null)

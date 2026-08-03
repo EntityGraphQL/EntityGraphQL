@@ -2,6 +2,7 @@ bin/
 .idea/
 obj/
 .DS_Store
+.tools/
 
 # User-specific files
 *.suo
