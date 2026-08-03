@@ -2,7 +2,7 @@
 
 ## Fixes
 
-- Field-level execution exceptions that are returned as GraphQL `errors` (partial results) are logged again via the schema `ILogger` with the original `Exception` and stack trace. In 6.x these failures are caught per field instead of bubbling to `SchemaProvider.HandleException`, so the previous `Error executing QueryRequest` log (with stack) was skipped. `ISchemaProvider.LogException(Exception)` is new for custom schema implementations; the built-in provider uses it from both top-level request handling and field catch sites. Custom `ISchemaProvider` implementations need to add it.
+- Field-level exceptions are logged again, with the field name and stack trace, to the `ILogger` the schema was built with. A regression in 6.0: partial results turned a field failure into a GraphQL error instead of rethrowing it, so nothing reached the request-level log and the only way to see why a field failed was development mode or `AllowedExceptions` - both of which return the detail to the caller. Responses are unchanged. Document and validation errors, whose message the caller already gets in full, are not logged.
 
 # 6.1.4
 

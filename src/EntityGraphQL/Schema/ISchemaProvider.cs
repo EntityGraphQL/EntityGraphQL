@@ -122,8 +122,10 @@ public interface ISchemaProvider
 
     /// <summary>
     /// Logs an exception raised while executing a GraphQL request. Field-level failures that are returned as
-    /// GraphQL errors (partial results) should still call this so the Exception and stack trace are available
-    /// to the configured <c>ILogger</c>, matching top-level request failure logging.
+    /// GraphQL errors (partial results) call this too, so the exception and its stack trace reach the
+    /// configured <c>ILogger</c> even though the caller only gets a sanitised message. Pass the field name
+    /// when the failure belongs to one field. Does nothing by default so implementations of this interface do
+    /// not have to change.
     /// </summary>
-    void LogException(Exception exception);
+    void LogException(Exception exception, string? fieldName = null) { }
 }

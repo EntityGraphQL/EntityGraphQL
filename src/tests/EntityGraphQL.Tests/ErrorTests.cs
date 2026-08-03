@@ -679,7 +679,21 @@ public class ErrorTests
         Assert.Contains(errorLogs, e => e.Exception!.ToString().Contains("You should not see this message outside of Development"));
         var fieldFailLog = errorLogs.First(e => e.Exception!.ToString().Contains("You should not see this message outside of Development"));
         Assert.False(string.IsNullOrEmpty(fieldFailLog.Exception!.GetBaseException().StackTrace));
-        Assert.Equal("Error executing QueryRequest", fieldFailLog.Message);
+        Assert.Equal("Error executing field 'people'", fieldFailLog.Message);
+    }
+
+    [Fact]
+    public void ClientError_IsNotLogged()
+    {
+        // The caller gets this message in full - nothing is swallowed and it is the request that is wrong, so
+        // it is not logged as a server error (every malformed query would otherwise log at Error).
+        var logger = new CapturingLogger<SchemaProvider<TestDataContext>>();
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(logger: logger);
+
+        var results = schemaProvider.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { x: id x: name } }" }, new TestDataContext(), null, null);
+
+        Assert.Contains(results.Errors!, e => e.Message.Contains("must be the same field with identical arguments"));
+        Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Error);
     }
 
     private sealed class CapturingLogger<T> : ILogger<T>
