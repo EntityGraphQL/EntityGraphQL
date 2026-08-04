@@ -696,6 +696,33 @@ public class ErrorTests
         Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Error);
     }
 
+    [Fact]
+    public void FieldExecutionException_OutsideDevelopment_LogsTheRealExceptionWhileTheCallerGetsNothing()
+    {
+        // The point of logging these: outside development the caller is told only "Error occurred", so the
+        // exception's own message and stack are the only record of what actually failed.
+        var logger = new CapturingLogger<SchemaProvider<TestDataContext>>();
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(new SchemaProviderOptions { IsDevelopment = false }, null, logger);
+
+        var results = schemaProvider.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ people { error_UnexposedException } }" },
+            new TestDataContext().FillWithTestData(),
+            null,
+            null
+        );
+
+        // nothing about the failure reaches the caller
+        Assert.Equal("Field 'people' - Error occurred", Assert.Single(results.Errors!).Message);
+
+        // ... and all of it reaches the log: the real exception, its message, its stack, and which field it was
+        var logged = Assert.Single(logger.Entries, e => e.Level == LogLevel.Error);
+        Assert.Equal("Error executing field 'people'", logged.Message);
+        Assert.Equal("FieldError", logged.EventId.Name);
+        Assert.NotNull(logged.Exception);
+        Assert.Equal("You should not see this message outside of Development", logged.Exception!.GetBaseException().Message);
+        Assert.False(string.IsNullOrEmpty(logged.Exception.GetBaseException().StackTrace));
+    }
+
     private sealed class CapturingLogger<T> : ILogger<T>
     {
         public List<(LogLevel Level, EventId EventId, Exception? Exception, string Message)> Entries { get; } = [];

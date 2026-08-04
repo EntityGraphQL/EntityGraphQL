@@ -1,3 +1,9 @@
+# 6.1.6
+
+## Fixes
+
+- The field-error logging added in 6.1.5 is now covered for the case it exists for: outside development mode the caller gets only `Field 'x' - Error occurred` while the original exception - its own message and stack trace - reaches the `ILogger`. 6.1.5's test ran with the default `IsDevelopment = true`, where nothing is swallowed, so it did not check that.
+
 # 6.1.5
 
 ## Fixes
