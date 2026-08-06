@@ -2,6 +2,7 @@
 
 ## Fixes
 
+- Fixed a single-object field with a `ResolveBulk` resolver whose per-item resolver queries the schema context - e.g. `.Resolve<MyContext>((p, ctx) => ctx.Site.Movies.FirstOrDefault(m => m.DirectorId == p.Id))` - failing with `Could not find extension method Select on types System.Linq.Enumerable`. A regression in 6.1.3: such a field was moved onto the collection selection path (to keep it translatable), but a bulk resolver's value on that pass is the loaded dictionary's entry, a single object, so there is no collection to select through. Bulk resolved fields stay on the single-object projection. Reported in [#543](https://github.com/EntityGraphQL/EntityGraphQL/issues/543) - thanks [@soilidokay](https://github.com/soilidokay) for the reproduction.
 - Fixed a service field selected on the items of a paging field whose own resolver uses a service - e.g. `.Resolve<MyService>((p, srv) => p.Tasks.Where(t => srv.Include(t)))` with `UseOffsetPaging()`/`UseConnectionPaging()` on a nested type - failing with `Could not find field egql__x_Id on type X`. Such a paging field cannot be split across the two passes so it is built in one go on the services pass, from the entity rather than from a first-pass projection; a service field on its items had nowhere to read its own extracted dependency from. It now reads that dependency straight off the entity.
 
 # 6.1.6

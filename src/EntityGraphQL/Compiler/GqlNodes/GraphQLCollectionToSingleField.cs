@@ -92,8 +92,13 @@ public class GraphQLCollectionToSingleField : BaseGraphQLQueryField
         // field and, when this field sits below another context-resolved one, uses ProjectWithNullCheck inside
         // a query the provider has to translate - which it cannot.
         var servicesAreQueryContextOnly = HasServices && Field!.Services.All(s => s.Type == Field.Schema.QueryContextType);
+        // ... unless the field has a bulk resolver. Its value on that pass is the loaded dictionary's entry -
+        // a single object - or the per-item resolver where the load could not run. Either way there is no
+        // collection left to build the Select() over, and asking for one fails with "Could not find extension
+        // method Select on types System.Linq.Enumerable" (#543).
+        var bulkResolved = Field?.BulkResolver != null;
         // second / last pass
-        if ((contextChanged || (HasServices && IsRootField)) && !servicesAreQueryContextOnly)
+        if ((contextChanged || (HasServices && IsRootField)) && (!servicesAreQueryContextOnly || bulkResolved))
             exp = ObjectProjectionNode.GetNodeExpression(
                 compileContext,
                 serviceProvider,
