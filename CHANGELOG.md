@@ -1,3 +1,9 @@
+# 6.1.7
+
+## Fixes
+
+- Fixed a service field selected on the items of a paging field whose own resolver uses a service - e.g. `.Resolve<MyService>((p, srv) => p.Tasks.Where(t => srv.Include(t)))` with `UseOffsetPaging()`/`UseConnectionPaging()` on a nested type - failing with `Could not find field egql__x_Id on type X`. Such a paging field cannot be split across the two passes so it is built in one go on the services pass, from the entity rather than from a first-pass projection; a service field on its items had nowhere to read its own extracted dependency from. It now reads that dependency straight off the entity.
+
 # 6.1.6
 
 ## Fixes

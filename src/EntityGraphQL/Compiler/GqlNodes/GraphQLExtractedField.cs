@@ -64,6 +64,14 @@ public class GraphQLExtractedField : BaseGraphQLField
                 }
             }
         }
+        // Not flattened into the context we were handed, and that context is the entity this dependency was
+        // extracted from - so read it straight off that instead. It happens where a field is built in one go on
+        // the services pass rather than split across the two: an interleaved paging field (its resolver uses a
+        // service inside the expression, so it cannot be split) builds its items from the entity, so a service
+        // field selected on those items finds no first-pass projection to take its dependency from.
+        if (replacementNextFieldContext.Type == originalParam.Type || originalParam.Type.IsAssignableFrom(replacementNextFieldContext.Type))
+            return new ParameterReplacer().Replace(FieldExpressions.First(), originalParam, replacementNextFieldContext);
+
         throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Could not find field {Name} on type {replacementNextFieldContext.Type.Name}");
     }
 }
