@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Directives;
+using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Schema;
 
@@ -128,4 +129,12 @@ public interface ISchemaProvider
     /// not have to change.
     /// </summary>
     void LogException(Exception exception, string? fieldName = null) { }
+
+    /// <summary>
+    /// The logger the schema was built with, if any. For reporting things the engine works around rather than
+    /// fails on - e.g. a field with a bulk resolver that has to resolve per item instead. Exceptions go
+    /// through <see cref="LogException"/>. Null by default so implementations of this interface do not have
+    /// to change.
+    /// </summary>
+    ILogger? Logger => null;
 }

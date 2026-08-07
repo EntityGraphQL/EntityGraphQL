@@ -4,6 +4,7 @@ using System.Linq;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -44,6 +45,8 @@ public class BulkResolverCombinationTests
         public int DetailCalls { get; private set; }
         public int ListCalls { get; private set; }
 
+        public List<Item> GetItems(Ctx ctx) => ctx.Items;
+
         public Owner GetOwner(int id)
         {
             OwnerCalls++;
@@ -76,9 +79,28 @@ public class BulkResolverCombinationTests
         }
     }
 
-    private static (SchemaProvider<Ctx> schema, Ctx ctx, IServiceProvider sp, Srv srv) Build()
+    /// <summary>
+    /// Collects the warnings the schema logs so a test can assert on them.
+    /// </summary>
+    private class CollectingLogger : ILogger<SchemaProvider<Ctx>>
     {
-        var schema = SchemaBuilder.FromObject<Ctx>();
+        public List<string> Warnings { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Warning)
+                Warnings.Add(formatter(state, exception));
+        }
+    }
+
+    private static (SchemaProvider<Ctx> schema, Ctx ctx, IServiceProvider sp, Srv srv) Build(ILogger<SchemaProvider<Ctx>>? logger = null)
+    {
+        var schema = SchemaBuilder.FromObject<Ctx>(logger: logger);
         schema.AddType<Owner>("Owner", "owner").AddAllFields();
         schema.AddType<Detail>("Detail", "detail").AddAllFields();
         var ctx = new Ctx { Items = [new Item { Id = 1, OwnerId = 7 }, new Item { Id = 2, OwnerId = 8 }] };
@@ -137,6 +159,94 @@ public class BulkResolverCombinationTests
             Assert.Fail(string.Join(" | ", res.Errors.Select(e => e.Message)));
         dynamic items = res.Data!["items"]!;
         Assert.Equal("detail-7", items[0].owner.detail.label);
+    }
+
+    /// <summary>
+    /// Resolving per item where a bulk load was configured is a silent performance cliff, so it is logged
+    /// (naming the field and the reason) unless turned off.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BulkResolverFallbackIsLogged(bool warn)
+    {
+        var logger = new CollectingLogger();
+        var (schema, ctx, sp, _) = Build(logger);
+        schema
+            .Type<Item>()
+            .AddField("owner", "owner")
+            .Resolve<Srv>((item, s) => s.GetOwner(item.OwnerId))
+            .ResolveBulk<Srv, int, Owner>(item => item.OwnerId, (ids, s) => s.GetOwners(ids));
+        schema
+            .Type<Owner>()
+            .AddField("detail", "detail")
+            .Resolve<Srv>((owner, s) => s.GetDetail(owner.Id))
+            .ResolveBulk<Srv, int, Detail>(owner => owner.Id, (ids, s) => s.GetDetails(ids));
+
+        var res = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ items { id owner { id detail { id label } } } }" },
+            ctx,
+            sp,
+            null,
+            new ExecutionOptions { WarnOnBulkResolverFallback = warn }
+        );
+
+        Assert.Null(res.Errors);
+        if (!warn)
+        {
+            Assert.Empty(logger.Warnings);
+            return;
+        }
+        // the nested one falls back, the one selected on the context list still bulk loads
+        var warning = Assert.Single(logger.Warnings);
+        Assert.Contains("Owner.detail", warning);
+        Assert.Contains("selected below another service field", warning);
+    }
+
+    /// <summary>
+    /// A root field resolved from services bulk loads (it takes part in the two-pass flow), so there is
+    /// nothing to warn about.
+    /// </summary>
+    [Fact]
+    public void BulkResolverUnderServiceResolvedRootField_LoadsInBulkWithNoWarning()
+    {
+        var logger = new CollectingLogger();
+        var (schema, ctx, sp, srv) = Build(logger);
+        schema.Query().AddField("serviceItems", "Items from a service").Resolve<Srv>((c, s) => s.GetItems(c));
+        schema
+            .Type<Item>()
+            .AddField("owner", "owner")
+            .Resolve<Srv>((item, s) => s.GetOwner(item.OwnerId))
+            .ResolveBulk<Srv, int, Owner>(item => item.OwnerId, (ids, s) => s.GetOwners(ids));
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ serviceItems { id owner { id } } }" }, ctx, sp, null);
+
+        Assert.Null(res.Errors);
+        Assert.Empty(logger.Warnings);
+        Assert.Equal(1, srv.OwnerCalls); // one bulk load, not one call per item
+    }
+
+    [Fact]
+    public void BulkResolverFallbackReason_ServicesInOnePass()
+    {
+        var logger = new CollectingLogger();
+        var (schema, ctx, sp, _) = Build(logger);
+        schema
+            .Type<Item>()
+            .AddField("owner", "owner")
+            .Resolve<Srv>((item, s) => s.GetOwner(item.OwnerId))
+            .ResolveBulk<Srv, int, Owner>(item => item.OwnerId, (ids, s) => s.GetOwners(ids));
+
+        var res = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ items { id owner { id } } }" },
+            ctx,
+            sp,
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = false }
+        );
+
+        Assert.Null(res.Errors);
+        Assert.Contains("ExecuteServiceFieldsSeparately is off", Assert.Single(logger.Warnings));
     }
 
     /// <summary>

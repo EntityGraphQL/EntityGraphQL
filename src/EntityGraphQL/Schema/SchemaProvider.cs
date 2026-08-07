@@ -41,6 +41,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
     private readonly SchemaType<TContextType> queryType;
     private readonly ILogger<SchemaProvider<TContextType>>? logger;
+
+    /// <inheritdoc />
+    public ILogger? Logger => logger;
     private readonly bool introspectionEnabled;
     private readonly bool isDevelopment;
     private readonly MutationType mutationType;

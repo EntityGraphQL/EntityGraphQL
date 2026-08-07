@@ -7,6 +7,7 @@ using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
+using Microsoft.Extensions.Logging;
 
 namespace EntityGraphQL.Compiler;
 
@@ -440,12 +441,33 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return dictType;
     }
 
+    private static readonly Action<ILogger, string, string, Exception?> logBulkResolverFallback = LoggerMessage.Define<string, string>(
+        LogLevel.Warning,
+        new EventId(2, "BulkResolverFallback"),
+        "Bulk resolver for field '{Field}' was not used - {Reason}. The field resolves per item instead, calling its service once per item. Set ExecutionOptions.WarnOnBulkResolverFallback to false to silence this."
+    );
+
+    /// <summary>
+    /// Why the bulk load did not run for this field. All of these are properties of the query shape or the
+    /// execution options rather than of the schema, so they are worth telling the caller about.
+    /// </summary>
+    private static string BulkFallbackReason(CompileContext compileContext) =>
+        !compileContext.ExecutionOptions.ExecuteServiceFieldsSeparately ? "ExecutionOptions.ExecuteServiceFieldsSeparately is off, so there is no first pass to collect the bulk keys from"
+        : compileContext.BulkData == null ? "the data it is selected on is not produced by a first pass, so there is nothing to collect the bulk keys from"
+        : "it is selected below another service field, which the first pass does not reach";
+
     protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
     {
         if (Field?.BulkResolver != null && !IsSelectedOnToSingleNode(compileContext))
         {
             // nextFieldContext is already the per-item resolver - return it as-is when we can not bulk load
-            if (!withoutServiceFields && BulkDataAvailable(compileContext))
+            if (!withoutServiceFields && !BulkDataAvailable(compileContext))
+            {
+                // warn on the pass that resolves the field, so once per request rather than once per pass
+                if (compileContext.ExecutionOptions.WarnOnBulkResolverFallback && Schema.Logger is ILogger logger)
+                    logBulkResolverFallback(logger, $"{Field.FromType.Name}.{Field.Name}", BulkFallbackReason(compileContext), null);
+            }
+            else if (!withoutServiceFields)
             {
                 // we replace the expression with a lookup in the bulk resolver data
                 // e.g. bulkData[compileContext.BulkResolvers.Name][field.Field.BulkResolver.DataSelector]

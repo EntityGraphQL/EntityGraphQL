@@ -167,6 +167,17 @@ public class ExecutionOptions
     /// </summary>
     public Func<ClaimsPrincipal?, string?>? RateLimitUserKeySelector { get; set; }
 
+    /// <summary>
+    /// Log a warning (to the <c>ILogger</c> the schema was built with) when a field with a <c>ResolveBulk</c>
+    /// resolver has to resolve per item instead of bulk loading - one service call per item. The message names
+    /// the field and why the bulk load could not run, which is usually something the query shape controls (a
+    /// bulk field selected below another service field, or under a root field resolved from services).
+    ///
+    /// On by default: a bulk resolver silently degrading to one call per item is the kind of thing you want to
+    /// hear about. Set to false if the shape is deliberate and the warnings are noise.
+    /// </summary>
+    public bool WarnOnBulkResolverFallback { get; set; } = true;
+
 #if DEBUG
     /// <summary>
     /// Include timing information about query execution

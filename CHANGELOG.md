@@ -1,3 +1,9 @@
+# 6.2.0
+
+## Changes
+
+- A field with a `ResolveBulk`/`ResolveBulkAsync` resolver that has to resolve per item instead of bulk loading now logs a warning to the `ILogger` the schema was built with, naming the field and why the bulk load could not run - the query shape usually controls it, so it is something a caller can act on. Turn it off with `ExecutionOptions.WarnOnBulkResolverFallback = false`. `ISchemaProvider.Logger` is new (exceptions keep going through `LogException`); it returns null by default so existing implementations are unaffected.
+
 # 6.1.7
 
 ## Fixes
