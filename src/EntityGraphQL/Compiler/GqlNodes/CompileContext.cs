@@ -60,6 +60,46 @@ public class CompileContext
     public IArgumentsTracker? DocumentVariables { get; }
     public ConcurrencyLimiterRegistry ConcurrencyLimiterRegistry { get; } = new ConcurrencyLimiterRegistry();
 
+    /// <summary>
+    /// What the engine will read off the objects each bulk loader returns, by resolver name. The same bulk
+    /// field can be selected in several places and they load in one call, so the selections merge - see
+    /// <see cref="IFieldSelection"/>.
+    /// </summary>
+    private readonly Dictionary<string, FieldSelection> bulkFieldSelections = [];
+
+    internal void AddBulkFieldSelection(string bulkResolverName, FieldSelection selection)
+    {
+        if (bulkFieldSelections.TryGetValue(bulkResolverName, out var existing))
+        {
+            foreach (var path in selection.Paths)
+                existing.AddPath([.. path.Split('.')], null);
+        }
+        else
+            bulkFieldSelections[bulkResolverName] = selection;
+    }
+
+    internal IFieldSelection? GetBulkFieldSelection(string bulkResolverName) => bulkFieldSelections.GetValueOrDefault(bulkResolverName);
+
+    /// <summary>
+    /// What the engine will read off what each per-item resolver returns, by the resolver's
+    /// <see cref="IFieldSelection"/> parameter. One value is injected per parameter, and a field selected in
+    /// several places shares it, so the selections merge - as they do for a bulk load.
+    /// </summary>
+    private readonly Dictionary<ParameterExpression, FieldSelection> fieldSelections = [];
+
+    public IReadOnlyDictionary<ParameterExpression, IFieldSelection> FieldSelections => fieldSelections.ToDictionary(kvp => kvp.Key, kvp => (IFieldSelection)kvp.Value);
+
+    internal void AddFieldSelection(ParameterExpression selectionParam, FieldSelection selection)
+    {
+        if (fieldSelections.TryGetValue(selectionParam, out var existing))
+        {
+            foreach (var path in selection.Paths)
+                existing.AddPath([.. path.Split('.')], null);
+        }
+        else
+            fieldSelections[selectionParam] = selection;
+    }
+
     public void AddServices(IEnumerable<ParameterExpression> services)
     {
         foreach (var service in services)

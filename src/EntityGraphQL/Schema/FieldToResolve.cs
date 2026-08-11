@@ -137,6 +137,48 @@ public class FieldWithContext<TContext> : Field
         Services.Add(fieldExpression.Parameters[1]);
         return this;
     }
+
+    /// <summary>
+    /// Add a bulk resolver taking two services. Use with <see cref="IFieldSelection"/> as one of them to be
+    /// told what will be read off the objects you return, so you can fetch only that.
+    /// </summary>
+    public Field ResolveBulk<TService1, TService2, TKey, TResult>(
+        Expression<Func<TContext, TKey>> dataSelector,
+        Expression<Func<IEnumerable<TKey>, TService1, TService2, IDictionary<TKey, TResult>>> fieldExpression
+    )
+    {
+        var extractor = new ExpressionExtractor();
+        var keyParam = dataSelector.Parameters.First();
+        var fields = extractor.Extract(dataSelector, keyParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, keyParam))!;
+        AddBulkResolverKeyFields(fields);
+        BulkResolver = new BulkFieldResolver<TContext, TService1, TService2, TKey, TResult>($"bulk_{FromType.Name}.{Name}", fieldExpression, dataSelector, fields);
+        Services.Add(fieldExpression.Parameters[1]);
+        Services.Add(fieldExpression.Parameters[2]);
+        return this;
+    }
+
+    /// <summary>Async form of the two-service <c>ResolveBulk</c>.</summary>
+    public Field ResolveBulkAsync<TService1, TService2, TKey, TResult>(
+        Expression<Func<TContext, TKey>> dataSelector,
+        Expression<Func<IEnumerable<TKey>, TService1, TService2, Task<IDictionary<TKey, TResult>>>> fieldExpression,
+        int? maxConcurrency = null
+    )
+    {
+        var extractor = new ExpressionExtractor();
+        var keyParam = dataSelector.Parameters.First();
+        var fields = extractor.Extract(dataSelector, keyParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, keyParam))!;
+        AddBulkResolverKeyFields(fields);
+        BulkResolver = new AsyncBulkFieldResolver<TContext, TService1, TService2, TKey, TResult>(
+            $"bulk_{FromType.Name}.{Name}",
+            fieldExpression,
+            dataSelector,
+            fields,
+            maxConcurrency
+        );
+        Services.Add(fieldExpression.Parameters[1]);
+        Services.Add(fieldExpression.Parameters[2]);
+        return this;
+    }
 }
 
 /// <summary>

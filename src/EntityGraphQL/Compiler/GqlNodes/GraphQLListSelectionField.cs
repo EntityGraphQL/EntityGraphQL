@@ -148,7 +148,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         var selectionFields = GetSelectionFields(compileContext, serviceProvider, fragments, docParam, docVariables, withoutServiceFields, nextFieldContext, schemaContext, contextChanged, replacer);
 
         if (HasServices)
-            compileContext.AddServices(Field!.Services);
+            AddServicesAndFieldSelection(compileContext, fragments, docParam, docVariables);
 
         if (selectionFields == null || selectionFields.Count == 0)
         {

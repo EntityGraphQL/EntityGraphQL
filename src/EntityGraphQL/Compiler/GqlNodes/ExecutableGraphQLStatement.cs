@@ -565,7 +565,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     parameters,
                     replacer,
                     compileContext.RequestContext,
-                    compileContext.CancellationToken
+                    // what the engine will read off what this loader returns, so it can fetch only that
+                    compileContext.GetBulkFieldSelection(bulkResolverGroup.Key),
+                    cancellationToken: compileContext.CancellationToken
                 );
                 if (compileContext.ConstantParameters.Any())
                 {
@@ -719,7 +721,17 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         // this is the full requested graph
         // inject dependencies into the fullSelection. Runs even without a service provider as the engine
         // supplies some values itself (CancellationToken, QueryRequestContext)
-        expression = GraphQLHelper.InjectServices(serviceProvider, compileContext.Services, allArgs, expression, parameters, replacer, compileContext.RequestContext, compileContext.CancellationToken);
+        expression = GraphQLHelper.InjectServices(
+            serviceProvider,
+            compileContext.Services,
+            allArgs,
+            expression,
+            parameters,
+            replacer,
+            compileContext.RequestContext,
+            fieldSelections: compileContext.FieldSelections,
+            cancellationToken: compileContext.CancellationToken
+        );
 
         if (compileContext.ConstantParameters.Any())
         {

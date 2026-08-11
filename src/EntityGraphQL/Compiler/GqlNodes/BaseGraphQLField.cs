@@ -456,6 +456,22 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         : compileContext.BulkData == null ? "the data it is selected on is not produced by a first pass, so there is nothing to collect the bulk keys from"
         : "it is selected below another service field, which the first pass does not reach";
 
+    /// <summary>
+    /// Register this field's services with the compile context, and for a resolver that asked for an
+    /// <see cref="IFieldSelection"/>, what the engine will read off what it returns.
+    /// </summary>
+    protected void AddServicesAndFieldSelection(
+        CompileContext compileContext,
+        IReadOnlyDictionary<string, GraphQLFragmentStatement> fragments,
+        ParameterExpression? docParam,
+        IArgumentsTracker? docVariables
+    )
+    {
+        compileContext.AddServices(Field!.Services);
+        foreach (var selectionParam in Field.Services.Where(s => s.Type == typeof(IFieldSelection)))
+            compileContext.AddFieldSelection(selectionParam, FieldSelectionBuilder.Build(this, fragments, docParam, docVariables));
+    }
+
     protected Expression? HandleBulkServiceResolver(CompileContext compileContext, bool withoutServiceFields, Expression? nextFieldContext)
     {
         if (Field?.BulkResolver != null && !IsSelectedOnToSingleNode(compileContext))

@@ -180,7 +180,7 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
             return null;
 
         if (HasServices)
-            compileContext.AddServices(Field!.Services);
+            AddServicesAndFieldSelection(compileContext, fragments, docParam, docVariables);
 
         // build a new {...} - returning a single object {}
         (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
