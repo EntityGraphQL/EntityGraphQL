@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>EntityGraphQL.Analyzers.CodeFixes</AssemblyName>
+    <RootNamespace>EntityGraphQL.Analyzers</RootNamespace>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsPackable>false</IsPackable>
+    <!-- code fixes are allowed to reference Workspaces; analyzers are not (RS1038), which is why they
+         live in a separate assembly from EntityGraphQL.Analyzers -->
+    <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../EntityGraphQL.Analyzers/EntityGraphQL.Analyzers.csproj" />
+  </ItemGroup>
+</Project>

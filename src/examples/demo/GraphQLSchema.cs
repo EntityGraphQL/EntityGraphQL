@@ -48,7 +48,10 @@ public class GraphQLSchema
         {
             type.ReplaceField("actors", m => m.Actors.Select(a => a.Person), "Actors in the movie");
             type.ReplaceField("writers", m => m.Writers.Select(a => a.Person), "Writers in the movie");
-            type.AddField("contributedBy", "User who added this movie").Resolve<UserService>((movie, users) => users.GetUser(movie.CreatedBy));
+            // ResolveBulk means selecting contributedBy on a list of movies is 1 service call, not 1 per movie
+            type.AddField("contributedBy", "User who added this movie")
+                .Resolve<UserService>((movie, users) => users.GetUser(movie.CreatedBy))
+                .ResolveBulk<UserService, uint, User>(movie => movie.CreatedBy, (ids, users) => users.GetUsers(ids));
         });
 
         // let's pretend the Users come from another service
