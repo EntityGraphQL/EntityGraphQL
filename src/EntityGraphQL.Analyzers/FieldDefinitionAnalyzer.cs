@@ -25,7 +25,11 @@ public class FieldDefinitionAnalyzer : DiagnosticAnalyzer
     );
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        ImmutableArray.Create(DiagnosticDescriptors.ExtensionRequiresCollection, DiagnosticDescriptors.UseResolveAsyncForAsyncExpression);
+        ImmutableArray.Create(
+            DiagnosticDescriptors.ExtensionRequiresCollection,
+            DiagnosticDescriptors.UseResolveAsyncForAsyncExpression,
+            DiagnosticDescriptors.BlockingAwaitInResolver
+        );
 
     public override void Initialize(AnalysisContext context)
     {
@@ -40,10 +44,15 @@ public class FieldDefinitionAnalyzer : DiagnosticAnalyzer
         if (!EntityGraphQLApi.IsEntityGraphQLType(invocation.TargetMethod.ContainingType))
             return;
 
-        if (CollectionExtensions.Contains(invocation.TargetMethod.Name))
+        var name = invocation.TargetMethod.Name;
+        if (CollectionExtensions.Contains(name))
             AnalyzeCollectionExtension(context, invocation);
-        else if (invocation.TargetMethod.Name == "Resolve")
-            AnalyzeSyncResolve(context, invocation);
+        else if (name is "Resolve" or "ResolveBulk")
+        {
+            if (name == "Resolve")
+                AnalyzeSyncResolve(context, invocation);
+            AnalyzeBlockingAwait(context, invocation);
+        }
     }
 
     /// <summary>EGQL003 - the field the extension is chained onto must produce a collection.</summary>
@@ -76,6 +85,46 @@ public class FieldDefinitionAnalyzer : DiagnosticAnalyzer
             Diagnostic.Create(DiagnosticDescriptors.UseResolveAsyncForAsyncExpression, EntityGraphQLApi.MethodNameLocation(invocation), fieldName, bodyType.ToDisplayString())
         );
     }
+
+    /// <summary>
+    /// EGQL010 - a synchronous resolver that blocks on a Task (.Result, .Wait(), GetAwaiter().GetResult())
+    /// rather than using the Async overload. Every lambda argument is checked, since ResolveBulk's blocking
+    /// call is in its second one. Reported once per resolver - the first blocking call is the point.
+    /// </summary>
+    private static void AnalyzeBlockingAwait(OperationAnalysisContext context, IInvocationOperation invocation)
+    {
+        foreach (var argument in invocation.Arguments)
+        {
+            var lambda = EntityGraphQLApi.Lambda(argument);
+            if (lambda == null)
+                continue;
+
+            foreach (var operation in lambda.Descendants())
+            {
+                var blocking = BlockingCall(operation);
+                if (blocking == null)
+                    continue;
+
+                var fieldName = EntityGraphQLApi.FieldNameFromChain(invocation) ?? "(unnamed)";
+                context.ReportDiagnostic(
+                    Diagnostic.Create(DiagnosticDescriptors.BlockingAwaitInResolver, operation.Syntax.GetLocation(), fieldName, blocking, invocation.TargetMethod.Name)
+                );
+                return;
+            }
+        }
+    }
+
+    /// <summary>How a Task is being blocked on, or null if this operation is not blocking on one.</summary>
+    private static string? BlockingCall(IOperation operation) =>
+        operation switch
+        {
+            IPropertyReferenceOperation { Property.Name: "Result" } property when EntityGraphQLApi.IsAwaitable(property.Property.ContainingType) => ".Result",
+            IInvocationOperation { TargetMethod.Name: "Wait" } wait when EntityGraphQLApi.IsAwaitable(wait.TargetMethod.ContainingType) => ".Wait()",
+            // GetResult() lives on TaskAwaiter/ValueTaskAwaiter/ConfiguredTaskAwaitable<T>.ConfiguredTaskAwaiter
+            IInvocationOperation { TargetMethod.Name: "GetResult" } get when get.TargetMethod.ContainingType.Name.EndsWith("Awaiter", System.StringComparison.Ordinal) =>
+                "GetAwaiter().GetResult()",
+            _ => null,
+        };
 
     /// <summary>
     /// The field's return type, from the AddField/ReplaceField expression overload if the field was declared

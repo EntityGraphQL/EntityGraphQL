@@ -79,10 +79,10 @@ internal static class EntityGraphQLApi
     }
 
     /// <summary>
-    /// The type of a lambda argument's body, before any implicit conversion the parameter's declared type
-    /// forces (Resolve takes Expression&lt;Func&lt;.., object?&gt;&gt;, so the declared type says nothing).
+    /// The lambda an argument was written as, unwrapping the conversion/delegate-creation the compiler puts
+    /// around it. Null when the argument is anything else (a method group, a variable, ...).
     /// </summary>
-    internal static ITypeSymbol? LambdaBodyType(IArgumentOperation argument)
+    internal static IAnonymousFunctionOperation? Lambda(IArgumentOperation argument)
     {
         var value = argument.Value;
         while (true)
@@ -96,8 +96,16 @@ internal static class EntityGraphQLApi
             else
                 break;
         }
+        return value as IAnonymousFunctionOperation;
+    }
 
-        if (value is not IAnonymousFunctionOperation lambda)
+    /// <summary>
+    /// The type of a lambda argument's body, before any implicit conversion the parameter's declared type
+    /// forces (Resolve takes Expression&lt;Func&lt;.., object?&gt;&gt;, so the declared type says nothing).
+    /// </summary>
+    internal static ITypeSymbol? LambdaBodyType(IArgumentOperation argument)
+    {
+        if (Lambda(argument) is not { } lambda)
             return null;
 
         IOperation? returned = null;

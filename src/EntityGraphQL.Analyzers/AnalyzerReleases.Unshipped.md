@@ -14,3 +14,4 @@ EGQL006 | EntityGraphQL.Correctness | Warning | Subscription method must return 
 EGQL007 | EntityGraphQL.Correctness | Warning | OneOf input type fields must all be nullable
 EGQL008 | EntityGraphQL.Correctness | Warning | Field is added to the same type twice
 EGQL009 | EntityGraphQL.Performance | Info | Use the async execute method inside an async method
+EGQL010 | EntityGraphQL.Performance | Info | Resolver blocks on a Task instead of resolving asynchronously

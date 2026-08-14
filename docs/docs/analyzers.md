@@ -117,6 +117,26 @@ Severity: **Info** · Category: Performance
 
 `ExecuteRequest` / `ExecuteRequestWithContext` block the calling thread on the async pipeline. Inside an `async` method, awaiting the `Async` overload costs nothing and frees the thread for the duration of the query. Only reported inside async methods.
 
+### EGQL010 - Resolver blocks on a Task instead of resolving asynchronously {#egql010}
+
+Severity: **Info** · Category: Performance
+
+`.Result`, `.Wait()` and `GetAwaiter().GetResult()` inside a `Resolve()` or `ResolveBulk()` block the executing thread until the call returns - and on a list, once per item. The `Async` overload awaits instead.
+
+```cs
+// reported - blocks a thread per project in the list
+schema.Type<Project>().AddField("owner", "Owner")
+    .Resolve<UserService>((p, srv) => srv.GetAsync(p.Id).Result);
+
+// clean
+schema.Type<Project>().AddField("owner", "Owner")
+    .ResolveAsync<UserService>((p, srv) => srv.GetAsync(p.Id));
+```
+
+This is **Info**, not a warning, because the move is not always free: async resolvers run concurrently across a list (`ExecutionOptions.MaxQueryConcurrency` defaults to 100), so the service has to be safe to use that way. If it is not, pass `maxConcurrency` or register a `ServiceConcurrencyLimit` - see [EGQL002](#egql002). Blocking on a thread you own is the safer of the two mistakes, so this rule nudges rather than insists.
+
+Only reported when the blocking call is written in the resolver's lambda. Blocking inside a helper method the lambda calls is not detected.
+
 ## Changing severity
 
 Every rule can be configured per project in `.editorconfig` - raise the ones you want enforced, silence the ones that do not apply:

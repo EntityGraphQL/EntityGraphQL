@@ -138,4 +138,19 @@ internal static class DiagnosticDescriptors
             + "Async overload avoids tying up a thread for the duration of the query.",
         helpLinkUri: DocsBase + "egql009"
     );
+
+    /// <summary>EGQL010 - blocking on a Task inside a synchronous resolver.</summary>
+    internal static readonly DiagnosticDescriptor BlockingAwaitInResolver = new(
+        "EGQL010",
+        "Resolver blocks on a Task instead of resolving asynchronously",
+        "Field '{0}' blocks on a Task ('{1}') inside {2}(...) - use {2}Async(...) so the result is awaited",
+        Performance,
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Blocking on a Task inside a synchronous resolver ties up the executing thread for the duration of "
+            + "the call, and on a list it does so once per item. The Async overload awaits instead. Note that async "
+            + "resolvers run concurrently across a list (MaxQueryConcurrency defaults to 100), so the service has to be "
+            + "safe to use that way - pass maxConcurrency if it is not.",
+        helpLinkUri: DocsBase + "egql010"
+    );
 }
