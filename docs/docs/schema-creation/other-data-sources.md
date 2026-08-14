@@ -339,6 +339,66 @@ The concurrency limiting applies to how many bulk loader operations can run simu
 
 :::
 
+## Fetching only the fields that will be used
+
+A resolver usually has to fetch whole objects, even when the caller asked for two of their columns. If the data comes from another database or another service, that over-fetching is the cost you were trying to avoid by batching in the first place.
+
+Take an `IFieldSelection` parameter and the engine tells you what it will read off the objects you return:
+
+```cs
+schema.UpdateType<Project>(type =>
+{
+    type.AddField("createdBy", "Get the user details of user that created this project")
+      .Resolve<UserService, IFieldSelection>((proj, users, selection) => users.GetUserById(proj.CreatedById, selection))
+      .ResolveBulk<UserService, IFieldSelection, int, User>(
+          proj => proj.CreatedById,
+          (ids, users, selection) => users.GetAllUsers(ids, selection)
+      );
+});
+```
+
+```cs
+public IDictionary<int, User> GetAllUsers(IEnumerable<int> ids, IFieldSelection selection)
+{
+    // selection.Paths for { name, address { city } } is ["Name", "Address.City"]
+    return remoteApi.GetUsers(ids, fields: selection.Paths);
+}
+```
+
+`IFieldSelection` is supplied by the engine, like `CancellationToken` and `QueryRequestContext` - it is not resolved from your service provider, and there is no separate `Resolve...` method for it. Use the two-service overloads to take it alongside your own service. It is only supplied to a field that has a selection set; a field returning a scalar has nothing selected on it and asking for one is an error.
+
+`Fields` gives the same information as a tree, each entry carrying the `SchemaField` it came from so you can map back to your own members:
+
+```cs
+foreach (var field in selection.Fields)
+{
+    Console.WriteLine(field.Name);            // Address
+    Console.WriteLine(field.SchemaField?.Name); // address
+    foreach (var child in field.Fields)
+        Console.WriteLine(child.Name);        // City
+}
+```
+
+### What you are told, and what you are not
+
+This is deliberately **not** the caller's selection set. It is what the engine will read off the objects you return, which is the set you have to fetch for the response to be complete. The differences matter:
+
+- **A selected field that is itself resolved from a service is replaced by what its resolver reads.** You cannot load it - the engine resolves it after you, from its own resolver - so you are told the member it needs instead. For `user { name manager { name } }` where `manager` is another service field keyed on `ManagerId`, you are asked for `Name` and `ManagerId`, not `Manager.Name`. Return `ManagerId` or `manager` has nothing to work from.
+- **Nested objects the engine reads through are included as paths.** `user { address { city } }` gives `Address.City`, and not `Address.Postcode`.
+- **The bulk key is not included.** It is read off the parent object to build the list of ids, and your loader keys its own dictionary - nothing is read off what you return for it. Fetch it because your `ToDictionary` needs it, not because it appears here.
+- **`@skip` and `@include` are applied**, so a skipped field is not asked for.
+- **Fragments are expanded**, so it makes no difference whether the caller wrote the fields inline or hoisted them into a fragment.
+- **Aliases collapse** onto the field they select, and `__typename` is never included - nothing is read for it.
+- **One load serves every place the field is selected**, so you are given the union of what those places read. Selecting `createdBy { name }` in one place and `createdBy { email }` in another is a single bulk call asking for both. Fetching only one place's fields would leave the other with nulls.
+
+The set can therefore be larger than any one selection in the query, and shallower than it where it stops at a service field. Treat it as "the columns I must return", not as "what the caller asked for".
+
+:::info
+
+Building this walks the selection, so it is only done for a resolver that asked for it. Schemas that do not use `IFieldSelection` pay nothing.
+
+:::
+
 ## Limitation using services with `[GraphQLField]` method fields
 
 Because EntityGraphQL handles service fields by executing an expression without those fields and _rewriting_ the expressions to work with the resulting type - see [How EntityGraphQL handles services](../library-compatibility/entity-framework) section for more details - you cannot use services with a method as EntityGraphQL cannot rewrite and data may be missing.

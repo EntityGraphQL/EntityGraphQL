@@ -18,12 +18,28 @@ public static class GraphQLHelper
         List<ParameterExpression> parameters,
         ParameterReplacer replacer,
         QueryRequestContext? requestContext = null,
+        IFieldSelection? fieldSelection = null,
+        IReadOnlyDictionary<ParameterExpression, IFieldSelection>? fieldSelections = null,
         CancellationToken cancellationToken = default
     )
     {
         foreach (var serviceParam in services)
         {
-            var isEngineSupplied = serviceParam.Type == typeof(CancellationToken) || serviceParam.Type == typeof(QueryRequestContext);
+            // A bulk loader's IFieldSelection parameter travels in the field's service list, so it turns up
+            // here when the field's own expression is built too. Only the bulk load can be told what will be
+            // read off its result, so skip it where it is not part of the expression being built and say so
+            // plainly where it is.
+            if (serviceParam.Type == typeof(IFieldSelection) && fieldSelection == null && fieldSelections?.ContainsKey(serviceParam) != true)
+            {
+                if (!ParameterUsageChecker.Uses(expression, serviceParam))
+                    continue;
+                throw new EntityGraphQLException(
+                    GraphQLErrorCategory.ExecutionError,
+                    $"No field selection available for '{serviceParam.Name}'. {nameof(IFieldSelection)} tells a resolver what will be read off the object it returns, so it is only supplied to a field that has a selection set - not to one returning a scalar."
+                );
+            }
+
+            var isEngineSupplied = serviceParam.Type == typeof(CancellationToken) || serviceParam.Type == typeof(QueryRequestContext) || serviceParam.Type == typeof(IFieldSelection);
             // Without a service provider regular services cannot be resolved - leave those parameters alone
             // (matching the behaviour when injection is skipped entirely). Engine-supplied values
             // (CancellationToken, QueryRequestContext) are still injected as they don't need the provider.
@@ -46,6 +62,12 @@ public static class GraphQLHelper
             else if (serviceParam.Type == typeof(QueryRequestContext))
             {
                 allArgs.Add(requestContext ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"No request context available to inject for {serviceParam.Name}"));
+            }
+            // the fields the engine will read off what this resolver returns - supplied by the engine, which
+            // is the only thing that knows them
+            else if (serviceParam.Type == typeof(IFieldSelection))
+            {
+                allArgs.Add(fieldSelection ?? fieldSelections![serviceParam]);
             }
             else
             {

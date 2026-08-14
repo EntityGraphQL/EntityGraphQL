@@ -168,6 +168,10 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
     {
         if (field.Field?.BulkResolver != null && !IsSelectedOnToSingleNode(compileContext))
         {
+            // what the loader will be asked for, so it can fetch only that - only worth walking the selection
+            // when the loader actually takes an IFieldSelection
+            if (field.Field.BulkResolver.FieldExpression.Parameters.Any(p => p.Type == typeof(IFieldSelection)))
+                compileContext.AddBulkFieldSelection(field.Field.BulkResolver.Name, FieldSelectionBuilder.Build(field, fragments, docParam, docVariables));
             HandleBulkResolverForField(compileContext, field, field.Field.BulkResolver, docParam, docVariables, replacer);
         }
         else if (field is GraphQLFragmentSpreadField)
