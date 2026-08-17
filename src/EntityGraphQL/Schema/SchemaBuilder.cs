@@ -420,7 +420,7 @@ public static class SchemaBuilder
         if (options.IgnoreTypes.Contains(baseReturnType))
             return null;
         var schemaType = CacheType(baseReturnType, schema, options, false);
-        var returnTypeInfo = schema.GetCustomTypeMapping(lambda.ReturnType) ?? MakeGraphQlType(schema, false, returnType, schemaType, name, fromType);
+        var returnTypeInfo = MakeGraphQlType(schema, false, returnType, schemaType, name, fromType);
 
         var field = new Field(schema, fromType, name, null, description, null, returnTypeInfo, requiredClaims);
         field.SetExpressionResolve(lambda, services);
@@ -636,6 +636,15 @@ public static class SchemaBuilder
         NullabilityInfo? nullabilityInfo = null
     )
     {
+        // A custom mapping (AddTypeMapping<NpgsqlPolygon>("[Point!]!")) describes the whole GraphQL type of the
+        // dotnet type, including whether it is a list and what is nullable. Those come from the mapping string,
+        // not from the dotnet type, so returning the mapping's own GqlTypeInfo is the only way to keep them - a
+        // GqlTypeInfo built here would find the right schema type (TryGetSchemaType falls back to the mappings)
+        // but recompute IsList/TypeNotNullable from the dotnet type and render 'Point' instead of '[Point!]!'.
+        var customMapping = schema.GetCustomTypeMapping(returnType);
+        if (customMapping != null)
+            return customMapping;
+
         Func<ISchemaType> typeGetter =
             returnSchemaType != null
                 ? () => returnSchemaType // We can look the type up by it's unique schema name
