@@ -32,6 +32,23 @@ public class ToGraphQLSchemaStringTests
     }
 
     [Fact]
+    public void TestExcludeDescriptions()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>();
+        schemaProvider.Type<Album>().Description = "An album";
+        schemaProvider.Type<Album>().ReplaceField("name", a => a.Name, "The album name");
+
+        Assert.Contains("An album", schemaProvider.ToGraphQLSchemaString());
+        Assert.Contains("The album name", schemaProvider.ToGraphQLSchemaString());
+
+        var schema = schemaProvider.ToGraphQLSchemaString(includeDescriptions: false);
+        Assert.DoesNotContain("An album", schema);
+        Assert.DoesNotContain("The album name", schema);
+        Assert.DoesNotContain("\"\"\"", schema);
+        Assert.Contains("name: String!", schema);
+    }
+
+    [Fact]
     public void TestIgnoreWithSchemaBuilder()
     {
         var schemaProvider = SchemaBuilder.FromObject<IgnoreTestSchema>(new SchemaBuilderOptions() { IgnoreTypes = new[] { typeof(Album) }.ToHashSet() });

@@ -22,13 +22,13 @@ public class SchemaGenerator
         return input.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 
-    internal static string Make(ISchemaProvider schema)
+    internal static string Make(ISchemaProvider schema, bool includeDescriptions = true)
     {
         var rootQueryType = schema.GetSchemaType(schema.QueryContextType, false, null);
         var mutationType = schema.Mutation().SchemaType;
         var subscriptionType = schema.Subscription().SchemaType;
 
-        var types = BuildSchemaTypes(schema);
+        var types = BuildSchemaTypes(schema, includeDescriptions);
 
         var schemaBuilder = new StringBuilder("schema {");
         schemaBuilder.AppendLine();
@@ -45,7 +45,7 @@ public class SchemaGenerator
 
         foreach (var item in schema.GetScalarTypes().Distinct().OrderBy(t => t.Name))
         {
-            if (!string.IsNullOrEmpty(item.Description))
+            if (includeDescriptions && !string.IsNullOrEmpty(item.Description))
                 schemaBuilder.AppendLine($"\"\"\"{EscapeString(item.Description)}\"\"\"");
             schemaBuilder.AppendLine($"scalar {item.Name}{GetDirectives(item.Directives)}");
         }
@@ -53,28 +53,28 @@ public class SchemaGenerator
 
         foreach (var directive in schema.GetDirectives().OrderBy(t => t.Name))
         {
-            if (!string.IsNullOrEmpty(directive.Description))
+            if (includeDescriptions && !string.IsNullOrEmpty(directive.Description))
                 schemaBuilder.AppendLine($"\"\"\"{EscapeString(directive.Description)}\"\"\"");
 
             schemaBuilder.AppendLine($"directive @{directive.Name}{GetDirectiveArgs(schema, directive)} on {string.Join(" | ", directive.Location.Select(i => i.GetDescription()))}");
         }
         schemaBuilder.AppendLine();
 
-        schemaBuilder.Append(BuildEnumTypes(schema));
+        schemaBuilder.Append(BuildEnumTypes(schema, includeDescriptions));
 
-        schemaBuilder.AppendLine(OutputSchemaType(schema, schema.GetSchemaType(schema.QueryContextName, null)));
+        schemaBuilder.AppendLine(OutputSchemaType(schema, schema.GetSchemaType(schema.QueryContextName, null), includeDescriptions));
 
         schemaBuilder.Append(types);
 
         if (outputMutation)
-            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Mutation().SchemaType));
+            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Mutation().SchemaType, includeDescriptions));
         if (outputSubscription)
-            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Subscription().SchemaType));
+            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Subscription().SchemaType, includeDescriptions));
 
         return schemaBuilder.ToString();
     }
 
-    private static string BuildEnumTypes(ISchemaProvider schema)
+    private static string BuildEnumTypes(ISchemaProvider schema, bool includeDescriptions)
     {
         var types = new StringBuilder();
         foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
@@ -82,7 +82,7 @@ public class SchemaGenerator
             if (typeItem.Name.StartsWith("__", StringComparison.InvariantCulture) || !typeItem.IsEnum)
                 continue;
 
-            if (!string.IsNullOrEmpty(typeItem.Description))
+            if (includeDescriptions && !string.IsNullOrEmpty(typeItem.Description))
                 types.AppendLine($"\"\"\"{EscapeString(typeItem.Description)}\"\"\"");
 
             types.AppendLine($"enum {typeItem.Name} {{");
@@ -91,7 +91,7 @@ public class SchemaGenerator
                 if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
-                if (!string.IsNullOrEmpty(field.Description))
+                if (includeDescriptions && !string.IsNullOrEmpty(field.Description))
                     types.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
 
                 types.AppendLine($"\t{field.Name}{GetDirectives(field.DirectivesReadOnly)}");
@@ -103,7 +103,7 @@ public class SchemaGenerator
         return types.ToString();
     }
 
-    private static string BuildSchemaTypes(ISchemaProvider schema)
+    private static string BuildSchemaTypes(ISchemaProvider schema, bool includeDescriptions)
     {
         var types = new StringBuilder();
         foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
@@ -120,7 +120,7 @@ public class SchemaGenerator
             if (!typeItem.GetFields().Any(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture)) && typeItem.GqlType != GqlTypes.Union && typeItem.BaseTypesReadOnly.Count == 0)
                 continue;
 
-            types.AppendLine(OutputSchemaType(schema, typeItem));
+            types.AppendLine(OutputSchemaType(schema, typeItem, includeDescriptions));
         }
 
         return types.ToString();
@@ -238,11 +238,11 @@ public class SchemaGenerator
         return string.IsNullOrEmpty(allArgs) ? string.Empty : $"({allArgs})";
     }
 
-    private static string OutputSchemaType(ISchemaProvider schema, ISchemaType schemaType)
+    private static string OutputSchemaType(ISchemaProvider schema, ISchemaType schemaType, bool includeDescriptions)
     {
         var sb = new StringBuilder();
 
-        if (!string.IsNullOrEmpty(schemaType.Description))
+        if (includeDescriptions && !string.IsNullOrEmpty(schemaType.Description))
             sb.AppendLine($"\"\"\"{EscapeString(schemaType.Description)}\"\"\"");
 
         if (schemaType.GqlType == GqlTypes.Union)
@@ -276,7 +276,7 @@ public class SchemaGenerator
         {
             if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                 continue;
-            if (!string.IsNullOrEmpty(field.Description))
+            if (includeDescriptions && !string.IsNullOrEmpty(field.Description))
                 sb.AppendLine($"\t\"\"\"{EscapeString(field.Description)}\"\"\"");
             sb.AppendLine($"\t{schema.SchemaFieldNamer(field.Name)}{GetGqlArgs(schema, field)}: {field.ReturnType.GqlTypeForReturnOrArgument}{GetDirectives(field.DirectivesReadOnly)}");
         }

@@ -1138,10 +1138,11 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// <summary>
     /// Builds a GraphQL schema definition from the schema.
     /// </summary>
+    /// <param name="includeDescriptions">Include descriptions (doc strings) in the output. Defaults to true</param>
     /// <returns>String containing the schema definition</returns>
-    public string ToGraphQLSchemaString()
+    public string ToGraphQLSchemaString(bool includeDescriptions = true)
     {
-        return SchemaGenerator.Make(this);
+        return SchemaGenerator.Make(this, includeDescriptions);
     }
 
     /// <summary>
