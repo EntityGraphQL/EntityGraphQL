@@ -15,7 +15,10 @@ internal static class EntityGraphQLApi
 {
     private const string RootNamespace = "EntityGraphQL";
 
-    /// <summary>True when the symbol is declared in the EntityGraphQL assembly/namespace tree.</summary>
+    /// <summary>
+    /// True when the symbol is declared under the EntityGraphQL root namespace. Deliberately by namespace and not
+    /// assembly identity, so types from EntityGraphQL.AspNet match too.
+    /// </summary>
     internal static bool IsEntityGraphQLType(ITypeSymbol? type)
     {
         for (var ns = type?.ContainingNamespace; ns != null && !ns.IsGlobalNamespace; ns = ns.ContainingNamespace)
@@ -193,16 +196,74 @@ internal static class EntityGraphQLApi
     }
 
     /// <summary>
-    /// True when any method whose name starts with <paramref name="namePrefix"/> is called anywhere in the
-    /// statement containing this call. Used to spot other links of the same fluent chain (which may appear
-    /// before or after this call, so the receiver chain alone is not enough).
+    /// True when the field builder this call was made on also has a call to an EntityGraphQL method whose name
+    /// starts with <paramref name="namePrefix"/>. That call may be anywhere in the same fluent chain (before or
+    /// after this one, so the receiver chain alone is not enough), or on the same local/field the builder was
+    /// stored in - <c>var f = type.AddField(..); f.Resolve(..); f.ResolveBulk(..);</c> is the same field defined
+    /// over three statements. Matched by symbol, so a same-named method on an unrelated type does not count.
     /// </summary>
-    internal static bool StatementCallsMethod(IInvocationOperation invocation, string namePrefix)
+    internal static bool FieldBuilderAlsoCalls(IInvocationOperation invocation, string namePrefix)
     {
-        var statement = invocation.Syntax.FirstAncestorOrSelf<StatementSyntax>();
-        if (statement == null)
+        // later in this chain - .Resolve(..).ResolveBulk(..)
+        for (var parent = invocation.Parent; parent != null; parent = parent.Parent)
+        {
+            if (parent is IConversionOperation)
+                continue;
+            if (parent is not IInvocationOperation ancestor)
+                break;
+            if (IsCallTo(ancestor, namePrefix))
+                return true;
+        }
+        // earlier in this chain - .ResolveBulk(..).Resolve(..)
+        if (ReceiverChain(invocation).Any(link => IsCallTo(link, namePrefix)))
+            return true;
+
+        // the builder was stored first, so the other calls are separate statements on that symbol
+        var builder = BuilderSymbol(invocation);
+        if (builder == null)
             return false;
-        return statement.DescendantNodes().OfType<SimpleNameSyntax>().Any(n => n.Identifier.ValueText.StartsWith(namePrefix, System.StringComparison.Ordinal));
+
+        var root = invocation;
+        IOperation top = invocation;
+        while (top.Parent != null)
+            top = top.Parent;
+        return DescendantOperations(top)
+            .OfType<IInvocationOperation>()
+            .Any(other => other != root && IsCallTo(other, namePrefix) && SymbolEqualityComparer.Default.Equals(BuilderSymbol(other), builder));
+    }
+
+    /// <summary>An EntityGraphQL method whose name starts with the prefix (ResolveBulk covers ResolveBulkAsync).</summary>
+    private static bool IsCallTo(IInvocationOperation invocation, string namePrefix) =>
+        invocation.TargetMethod.Name.StartsWith(namePrefix, System.StringComparison.Ordinal) && IsEntityGraphQLType(invocation.TargetMethod.ContainingType);
+
+    /// <summary>
+    /// The local, field, property or parameter a fluent chain was built on, when the builder was stored rather
+    /// than chained. Null for a chain built inline - the chain walks above cover that case.
+    /// </summary>
+    private static ISymbol? BuilderSymbol(IInvocationOperation invocation)
+    {
+        var receiver = Receiver(invocation);
+        while (receiver is IConversionOperation conversion)
+            receiver = conversion.Operand;
+        return receiver switch
+        {
+            ILocalReferenceOperation local => local.Local,
+            IFieldReferenceOperation field => field.Field,
+            IPropertyReferenceOperation property => property.Property,
+            IParameterReferenceOperation parameter => parameter.Parameter,
+            _ => null,
+        };
+    }
+
+    /// <summary>Every operation below this one. ChildOperations rather than an extension so the Roslyn version we compile against does not matter.</summary>
+    private static IEnumerable<IOperation> DescendantOperations(IOperation operation)
+    {
+        foreach (var child in operation.ChildOperations)
+        {
+            yield return child;
+            foreach (var descendant in DescendantOperations(child))
+                yield return descendant;
+        }
     }
 
     /// <summary>The location of just the method name, so the squiggle sits under <c>Resolve</c> not the whole chain.</summary>

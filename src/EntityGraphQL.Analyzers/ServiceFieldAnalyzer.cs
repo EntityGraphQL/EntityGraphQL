@@ -48,14 +48,14 @@ public class ServiceFieldAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// EGQL001. Only for fields on entity types - a root field resolves once per request. Chaining any
-    /// ResolveBulk overload anywhere in the same statement satisfies the rule.
+    /// EGQL001. Only for fields on entity types - a root field resolves once per request. Any ResolveBulk
+    /// overload on the same field satisfies the rule, chained or on a stored builder.
     /// </summary>
     private static void ReportMissingBulkResolver(OperationAnalysisContext context, IInvocationOperation invocation, IMethodSymbol method, string fieldName, Location location)
     {
         if (EntityGraphQLApi.IsRootField(invocation))
             return;
-        if (EntityGraphQLApi.StatementCallsMethod(invocation, "ResolveBulk"))
+        if (EntityGraphQLApi.FieldBuilderAlsoCalls(invocation, "ResolveBulk"))
             return;
 
         // the owner type is the field builder's context type - FieldToResolve<TContext> etc.
@@ -68,18 +68,31 @@ public class ServiceFieldAnalyzer : DiagnosticAnalyzer
 
     /// <summary>
     /// EGQL002. Async fields on a list resolve concurrently (MaxQueryConcurrency defaults to 100), so a
-    /// service that does not support concurrent use will fail. Satisfied by passing maxConcurrency.
+    /// service that does not support concurrent use will fail. Satisfied by passing maxConcurrency: 1.
     /// </summary>
     private static void ReportUnsafeService(OperationAnalysisContext context, IInvocationOperation invocation, IMethodSymbol method, string fieldName, Location location)
     {
         var unsafeService = method.TypeArguments.FirstOrDefault(IsKnownNonThreadSafeService);
         if (unsafeService == null)
             return;
-        // an explicit maxConcurrency argument means the author has already thought about this
-        if (invocation.Arguments.Any(a => a.Parameter?.Name == "maxConcurrency" && a.ArgumentKind == ArgumentKind.Explicit))
+        // only serialising the resolves makes a non-thread-safe service safe - any other limit still runs
+        // them concurrently, just fewer at a time
+        if (invocation.Arguments.Any(a => a.Parameter?.Name == "maxConcurrency" && a.ArgumentKind == ArgumentKind.Explicit && IsOne(a.Value)))
             return;
 
         context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.UnsafeServiceInAsyncField, location, fieldName, unsafeService.Name));
+    }
+
+    /// <summary>
+    /// The argument is the literal 1. The parameter is <c>int?</c>, so the literal arrives wrapped in the
+    /// int-to-int? conversion, which is not itself a constant.
+    /// </summary>
+    private static bool IsOne(IOperation value)
+    {
+        var current = value;
+        while (current is IConversionOperation conversion)
+            current = conversion.Operand;
+        return current.ConstantValue is { HasValue: true, Value: 1 };
     }
 
     /// <summary>

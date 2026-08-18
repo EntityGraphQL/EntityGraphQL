@@ -27,7 +27,7 @@ schema.Type<Project>().AddField("createdBy", "Creator")
     .ResolveBulk<UserService, int, User>(p => p.CreatedById, (ids, srv) => srv.GetAllUsers(ids));
 ```
 
-Not reported for fields on the `Query`/`Mutation` root, which resolve once per request. Ignore it (or turn it off) when the type is only ever fetched singly, or the service batches or caches internally. See [service fields and bulk resolvers](./schema-creation/other-data-sources).
+The bulk resolver does not have to be chained - setting it up on a stored builder (`var f = type.AddField(..);` then `f.ResolveBulk(..)` on a later line) counts. Not reported for fields on the `Query`/`Mutation` root, which resolve once per request. Ignore it (or turn it off) when the type is only ever fetched singly, or the service batches or caches internally. See [service fields and bulk resolvers](./schema-creation/other-data-sources).
 
 ### EGQL002 - Async field uses a service that is not thread-safe {#egql002}
 
@@ -42,6 +42,8 @@ schema.Type<Project>().AddField("stats", "Stats").ResolveAsync<MyDbContext>((p, 
 // clean - serialised for this field
 schema.Type<Project>().AddField("stats", "Stats").ResolveAsync<MyDbContext>((p, db) => db.LoadStatsAsync(p.Id), maxConcurrency: 1);
 ```
+
+Only `maxConcurrency: 1` clears the rule - a smaller limit still resolves items concurrently, just fewer at a time.
 
 Alternatives: register a `ServiceConcurrencyLimit` for the service, or resolve a fresh context from `IDbContextFactory` inside the resolver. See [Async fields](./schema-creation/async-fields).
 
@@ -133,7 +135,7 @@ schema.Type<Project>().AddField("owner", "Owner")
     .ResolveAsync<UserService>((p, srv) => srv.GetAsync(p.Id));
 ```
 
-This is **Info**, not a warning, because the move is not always free: async resolvers run concurrently across a list (`ExecutionOptions.MaxQueryConcurrency` defaults to 100), so the service has to be safe to use that way. If it is not, pass `maxConcurrency` or register a `ServiceConcurrencyLimit` - see [EGQL002](#egql002). Blocking on a thread you own is the safer of the two mistakes, so this rule nudges rather than insists.
+This is **Info**, not a warning, because the move is not always free: async resolvers run concurrently across a list (`ExecutionOptions.MaxQueryConcurrency` defaults to 100), so the service has to be safe to use that way. If it is not, pass `maxConcurrency: 1` or register a `ServiceConcurrencyLimit` - see [EGQL002](#egql002). Blocking on a thread you own is the safer of the two mistakes, so this rule nudges rather than insists.
 
 Only reported when the blocking call is written in the resolver's lambda. Blocking inside a helper method the lambda calls is not detected.
 

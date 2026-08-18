@@ -163,6 +163,69 @@ public static class Setup
         await AnalyzerHarness.AssertDiagnosticsAsync(source, new ServiceFieldAnalyzer());
     }
 
+    /// <summary>
+    /// A limit other than 1 still resolves concurrently, just fewer at a time, so the service is still used
+    /// from several threads at once.
+    /// </summary>
+    [Fact]
+    public async Task AsyncFieldWithDbContextService_MaxConcurrencyAboveOne_Reports()
+    {
+        var source =
+            Preamble
+            + @"
+public static class Setup
+{
+    public static void Build(SchemaProvider<Ctx> schema)
+    {
+        schema.Type<Project>().AddField(""lookup"", ""d"")
+            .ResolveAsync<MyDb>((p, db) => db.Lookup(p.Id), maxConcurrency: 50)
+            .ResolveBulk<UserSvc, int, string>(p => p.Id, (ids, srv) => srv.GetAll(ids));
+    }
+}";
+        await AnalyzerHarness.AssertDiagnosticsAsync(source, new ServiceFieldAnalyzer(), "EGQL002");
+    }
+
+    /// <summary>
+    /// The same field defined over several statements through a stored builder. EGQL001 used to look only at
+    /// the statement containing the Resolve call, so a bulk resolver set up on the next line was invisible.
+    /// </summary>
+    [Fact]
+    public async Task ServiceFieldWithBulkResolverOnStoredBuilder_Clean()
+    {
+        var source =
+            Preamble
+            + @"
+public static class Setup
+{
+    public static void Build(SchemaProvider<Ctx> schema)
+    {
+        var field = schema.Type<Project>().AddField(""createdBy"", ""d"");
+        field.Resolve<UserSvc>((p, srv) => srv.Get(p.Id));
+        field.ResolveBulk<UserSvc, int, string>(p => p.Id, (ids, srv) => srv.GetAll(ids));
+    }
+}";
+        await AnalyzerHarness.AssertDiagnosticsAsync(source, new ServiceFieldAnalyzer());
+    }
+
+    /// <summary>A same-named method on an unrelated type must not satisfy the rule.</summary>
+    [Fact]
+    public async Task ServiceFieldWithUnrelatedResolveBulkCall_Reports()
+    {
+        var source =
+            Preamble
+            + @"
+public class Decoy { public void ResolveBulkSomething() { } }
+public static class Setup
+{
+    public static void Build(SchemaProvider<Ctx> schema)
+    {
+        new Decoy().ResolveBulkSomething();
+        schema.Type<Project>().AddField(""createdBy"", ""d"").Resolve<UserSvc>((p, srv) => srv.Get(p.Id));
+    }
+}";
+        await AnalyzerHarness.AssertDiagnosticsAsync(source, new ServiceFieldAnalyzer(), "EGQL001");
+    }
+
     [Fact]
     public async Task AsyncFieldWithOrdinaryService_NoUnsafeServiceDiagnostic()
     {
