@@ -85,7 +85,9 @@ public static class ArgumentUtil
                     if (val != null && val.GetType() != argField.RawType)
                         val = ExpressionUtil.ConvertObjectType(val, argField.RawType, schema);
                     values.Add(argField.Name, val);
-                    if (val != null || argField.DefaultValue.IsSet)
+                    // an explicitly supplied null is set - that is the distinction IArgumentsTracker exists to
+                    // make, and what the mutation path already reports
+                    if (isSet || argField.DefaultValue.IsSet)
                         setValues.Add(argField.Name);
                 }
                 if (field != null)

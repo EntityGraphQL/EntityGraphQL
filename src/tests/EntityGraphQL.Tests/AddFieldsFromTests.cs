@@ -35,6 +35,15 @@ public class AddFieldsFromTests
         public static string Greeting(GreetingService srv) => srv.Greet("Luke");
     }
 
+    private class TrackerQueries : IFieldsFor<TestDataContext>
+    {
+        [GraphQLField("whatIsSet", "Which arguments the caller supplied")]
+        public static string WhatIsSet(int? minHeight, string? name, IArgumentsTracker argsSet) => $"minHeight:{argsSet.IsSet(nameof(minHeight))},name:{argsSet.IsSet(nameof(name))}";
+
+        [GraphQLField("greetingWhatIsSet", "A tracker alongside a real DI service")]
+        public static string GreetingWhatIsSet(GreetingService srv, string? name, IArgumentsTracker argsSet) => $"{srv.Greet(name ?? "nobody")},name:{argsSet.IsSet(nameof(name))}";
+    }
+
     private class PersonExtraFields : IFieldsFor<Person>
     {
         [GraphQLField("nameLength", "Length of the person's name")]
@@ -125,6 +134,73 @@ public class AddFieldsFromTests
         var res = schema.ExecuteRequest(new QueryRequest { Query = "{ greeting }" }, sp, null);
         Assert.Null(res.Errors);
         Assert.Equal("Hello Luke", res.Data!["greeting"]);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_MethodWithArgumentsTracker_SuppliedByEngine()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddQueryFieldsFrom<TrackerQueries>();
+
+        // the tracker is the field's args object, not a service - the field stays on the database-bound pass
+        Assert.Empty(schema.Query().GetField("whatIsSet", null).Services);
+
+        var context = new TestDataContext().FillWithTestData();
+        // a tracker registered in DI must not shadow the engine's populated one
+        var sp = new ServiceCollection().AddSingleton<IArgumentsTracker>(new ArgumentsTracker()).BuildServiceProvider();
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = """{ whatIsSet(minHeight: 180) }""" }, context, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("minHeight:True,name:False", res.Data!["whatIsSet"]);
+
+        // explicit null is still "supplied"
+        res = schema.ExecuteRequestWithContext(new QueryRequest { Query = """{ whatIsSet(name: null) }""" }, context, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("minHeight:False,name:True", res.Data!["whatIsSet"]);
+
+        // and with no service provider at all
+        res = schema.ExecuteRequestWithContext(new QueryRequest { Query = """{ whatIsSet(minHeight: 180, name: "Luke") }""" }, context, null, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("minHeight:True,name:True", res.Data!["whatIsSet"]);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_ArgumentsTracker_FromQueryVariables()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddQueryFieldsFrom<TrackerQueries>();
+        var context = new TestDataContext().FillWithTestData();
+
+        var gql = new QueryRequest
+        {
+            Query = """query Q($h: Int, $n: String) { whatIsSet(minHeight: $h, name: $n) }""",
+            Variables = new QueryVariables { { "h", 180 } },
+        };
+
+        // a variable that was not provided with the request is not "set" even though the argument was named
+        var res = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("minHeight:True,name:False", res.Data!["whatIsSet"]);
+    }
+
+    [Fact]
+    public void AddFieldsFrom_ArgumentsTracker_AlongsideService()
+    {
+        // the field has a real service, so it executes on the services pass - the tracker must still be the
+        // engine's populated args object there
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddQueryFieldsFrom<TrackerQueries>();
+        Assert.Single(schema.Query().GetField("greetingWhatIsSet", null).Services);
+
+        var sp = new ServiceCollection().AddSingleton(new GreetingService()).AddSingleton(new TestDataContext()).BuildServiceProvider();
+
+        var res = schema.ExecuteRequest(new QueryRequest { Query = """{ greetingWhatIsSet(name: "Luke") }""" }, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("Hello Luke,name:True", res.Data!["greetingWhatIsSet"]);
+
+        res = schema.ExecuteRequest(new QueryRequest { Query = "{ greetingWhatIsSet }" }, sp, null);
+        Assert.Null(res.Errors);
+        Assert.Equal("Hello nobody,name:False", res.Data!["greetingWhatIsSet"]);
     }
 
     [Fact]

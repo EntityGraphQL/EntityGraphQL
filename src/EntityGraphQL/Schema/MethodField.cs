@@ -141,6 +141,13 @@ public abstract class MethodField : BaseField
                 // the executing request's cancellation token is supplied by the engine, not the service provider
                 allArgs.Add(compileContext.CancellationToken);
             }
+            else if (typeof(IArgumentsTracker) == p.ParameterType)
+            {
+                // this tracker is populated per call above - it is supplied by the engine, not the service
+                // provider. Must be checked before the DI branch or it is unreachable whenever a service
+                // provider is present, and a DI-registered tracker would report nothing as set
+                allArgs.Add(graphQLArgumentsSet);
+            }
             else if (serviceProvider != null)
             {
                 if (p.ParameterType == typeof(IGraphQLValidator) && validator != null)
@@ -152,10 +159,6 @@ public abstract class MethodField : BaseField
                         ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, $"Service {p.ParameterType.Name} not found for dependency injection for mutation {Method.Name}");
                     allArgs.Add(service);
                 }
-            }
-            else if (typeof(IArgumentsTracker) == p.ParameterType)
-            {
-                allArgs.Add(graphQLArgumentsSet);
             }
             else
             {

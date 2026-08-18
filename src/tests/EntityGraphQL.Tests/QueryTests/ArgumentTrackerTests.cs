@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -739,6 +740,57 @@ public class ArgumentTrackerTests
         var testData = (string)results.Data!["doTest"]!;
         // null values are still "set" - they were explicitly provided
         Assert.Equal("id:True,name:True,idValue:,nameValue:null", testData);
+    }
+
+    [Fact]
+    public void TestMutationIArgumentsTracker_WithServiceProvider()
+    {
+        // the tracker is supplied by the engine, not DI - a mutation taking one must work when a
+        // service provider is present (i.e. every real app), alongside real injected services
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, string? name, ConfigService config, IArgumentsTracker argsSet) =>
+                {
+                    return $"id:{argsSet.IsSet(nameof(id))},name:{argsSet.IsSet(nameof(name))},config:{config.Value}";
+                }
+            );
+        var serviceProvider = new ServiceCollection().AddSingleton(new ConfigService()).BuildServiceProvider();
+        var gql = new QueryRequest { Query = """mutation M { doTest(id: "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") }""" };
+
+        var results = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceProvider, null);
+        Assert.Null(results.Errors);
+        Assert.Equal("id:True,name:False,config:from-di", (string)results.Data!["doTest"]!);
+    }
+
+    [Fact]
+    public void TestMutationIArgumentsTracker_EngineInstanceWinsOverDIRegistration()
+    {
+        // an IArgumentsTracker registered in DI must not shadow the engine's populated one - it would
+        // report nothing as set and silently send the mutation down the "nothing was supplied" path
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema
+            .Mutation()
+            .Add(
+                "doTest",
+                (Guid? id, IArgumentsTracker argsSet) =>
+                {
+                    return argsSet.IsSet(nameof(id));
+                }
+            );
+        var serviceProvider = new ServiceCollection().AddSingleton<IArgumentsTracker>(new ArgumentsTracker()).BuildServiceProvider();
+        var gql = new QueryRequest { Query = """mutation M { doTest(id: "03d539f8-6bbc-4b62-8f7f-b55c7eb242e6") }""" };
+
+        var results = schema.ExecuteRequestWithContext(gql, new TestDataContext(), serviceProvider, null);
+        Assert.Null(results.Errors);
+        Assert.True((bool)results.Data!["doTest"]!);
+    }
+
+    private class ConfigService
+    {
+        public string Value => "from-di";
     }
 
     private class TestArgsTracking : ArgumentsTracker

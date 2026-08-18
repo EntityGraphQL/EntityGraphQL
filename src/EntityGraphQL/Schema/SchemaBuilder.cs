@@ -282,7 +282,12 @@ public static class SchemaBuilder
                     fieldDotnetArgtypes.Add(item.ArgName, item.ArgType!.RawType);
                 }
             }
-            fieldArgType = LinqRuntimeTypeBuilder.GetDynamicType(fieldDotnetArgtypes, method.Name)!;
+            // an IArgumentsTracker parameter is the field's own args object - build that object deriving from
+            // ArgumentsTracker so ArgumentUtil marks each supplied argument as it fills it in. The tracker is
+            // engine-supplied like CancellationToken, so it must not become a DI service (which would also push
+            // an otherwise service-free field onto the services pass)
+            var wantsArgumentsTracker = argumentsFromMethod.Any(a => a.IsService && a.ServiceType == typeof(IArgumentsTracker));
+            fieldArgType = LinqRuntimeTypeBuilder.GetDynamicType(fieldDotnetArgtypes, method.Name, wantsArgumentsTracker ? typeof(ArgumentsTracker) : null)!;
             var argTypeParam = Expression.Parameter(fieldArgType, $"args_{fieldArgType.Name}");
             // build argument expressions for the call
             foreach (var item in argumentsFromMethod)
@@ -294,6 +299,10 @@ public static class SchemaBuilder
                     // service-free means it executes on the database-bound pass and the DI-registered instance
                     // (which may differ from the executing context) is never resolved
                     argsForCallExpression.Add(item.ArgName, param);
+                }
+                else if (item.IsService && item.ServiceType == typeof(IArgumentsTracker))
+                {
+                    argsForCallExpression.Add(item.ArgName, argTypeParam);
                 }
                 else if (item.IsService)
                 {
