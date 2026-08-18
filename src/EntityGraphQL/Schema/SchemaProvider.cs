@@ -1023,7 +1023,10 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     public GqlTypeInfo? GetCustomTypeMapping(Type dotnetType)
     {
         if (customTypeMappings.TryGetValue(dotnetType, out var typeInfo))
-            return typeInfo;
+            // a copy - callers use this as a field's ReturnType, which is mutable (IsNullable(), Returns()).
+            // Handing out the registered instance let one field's IsNullable() rewrite the mapping for every
+            // field of that dotnet type, including ones added later
+            return typeInfo.Copy();
         return null;
     }
 

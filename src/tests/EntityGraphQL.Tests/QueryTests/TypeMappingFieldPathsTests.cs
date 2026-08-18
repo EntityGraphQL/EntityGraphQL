@@ -104,6 +104,40 @@ public class TypeMappingFieldPathsTests
     }
 
     /// <summary>
+    /// The mapping describes the default, not the last word: a schema author who calls IsNullable() after
+    /// adding the field means it. Fields hold a copy of the mapping's type info so this only changes that field.
+    /// </summary>
+    [Fact]
+    public void TestIsNullableAfterAddFieldWinsOverTheMapping()
+    {
+        var schema = BuildSchema();
+        schema.Type<Zone>().AddField("shapeAdded", z => z.Shape, "Added with an expression").IsNullable(true);
+
+        Assert.Contains("shapeAdded: [Point!]", schema.ToGraphQLSchemaString());
+        Assert.False(schema.Type<Zone>().GetField("shapeAdded", null).ReturnType.TypeNotNullable);
+    }
+
+    /// <summary>
+    /// The mapping used to be handed out as the field's own (mutable) ReturnType, so one field calling
+    /// IsNullable() rewrote every field of that dotnet type - and the mapping itself, affecting fields added
+    /// after it too.
+    /// </summary>
+    [Fact]
+    public void TestIsNullableOnOneFieldDoesNotLeakToOtherMappedFields()
+    {
+        var schema = BuildSchema();
+        schema.Type<Zone>().AddField("shapeAdded", z => z.Shape, "Added with an expression").IsNullable(true);
+        // added after the IsNullable() call - the registered mapping must be untouched
+        schema.Type<Zone>().AddField("shapeAddedLater", z => z.Shape, "Added later");
+
+        var sdl = schema.ToGraphQLSchemaString();
+        Assert.Contains("shape: [Point!]!", sdl);
+        Assert.Contains("shapeFromMethod: [Point!]!", sdl);
+        Assert.Contains("shapeAddedLater: [Point!]!", sdl);
+        Assert.Equal("[Point!]!", schema.GetCustomTypeMapping(typeof(Polygon))!.GqlTypeForReturnOrArgument);
+    }
+
+    /// <summary>
     /// What the wrong type actually costs a caller: introspection (and so every client codegen) described the
     /// field as a single nullable Point rather than a non-null list of non-null Points.
     /// </summary>

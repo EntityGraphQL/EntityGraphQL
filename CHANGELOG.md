@@ -1,3 +1,9 @@
+# 6.2.1
+
+## Fixes
+
+- Fixed `IsNullable()` (and any other change to a field's return type) on a field whose dotnet type has an `AddTypeMapping` leaking to every other field of that type. The mapping's `GqlTypeInfo` was handed out as the field's own `ReturnType`, and that object is mutable - `IsNullable()` writes to it - so one `AddField(...).IsNullable(true)` rewrote the registered mapping itself, changing every field already using it and every field added afterwards. Fields now get a copy, so an explicit `IsNullable()` after `AddField()` applies to that field only and the mapping stays the default it describes.
+
 # 6.2.0
 
 ## Changes

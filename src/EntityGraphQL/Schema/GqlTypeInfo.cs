@@ -93,6 +93,19 @@ public class GqlTypeInfo
         return GqlTypeForReturnOrArgument;
     }
 
+    /// <summary>
+    /// A copy of this type info. A field's ReturnType is mutable - IsNullable() writes to it - so anything
+    /// handing out a shared instance (e.g. a custom type mapping) must hand out a copy, or one field's
+    /// IsNullable() call changes every other field using it.
+    /// </summary>
+    internal GqlTypeInfo Copy() =>
+        new(SchemaTypeGetter, TypeDotnet)
+        {
+            TypeNotNullable = TypeNotNullable,
+            IsList = IsList,
+            ElementTypeNullable = ElementTypeNullable,
+        };
+
     public static GqlTypeInfo FromGqlType(ISchemaProvider schema, Type dotnetType, string gqlType)
     {
         var strippedType = gqlType.Trim('!').Trim('[').Trim(']').Trim('!');
