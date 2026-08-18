@@ -58,13 +58,14 @@ const config = {
           sidebarPath: require.resolve('./sidebars.js'),
           // docs are the site - no separate landing page. Root '/' is getting-started
           routeBasePath: '/',
-          // 6.0 (the working docs under docs/) is the default version served at the root.
+          // 6.x (the working docs under docs/) is the default version served at the root. Minor releases are
+          // additive so they share this version - the label stays 6.x rather than tracking 6.0/6.1/6.2.
           // 5.7 (snapshotted from the 5.7.2 tag under versioned_docs) remains browsable at /5.7/.
-          // Cut the next snapshot (docs:version 6.0) only when 6.x-stable and next-major docs diverge
+          // Cut the next snapshot (docs:version 6.x) only when 6.x-stable and next-major docs diverge
           lastVersion: 'current',
           versions: {
             current: {
-              label: '6.0',
+              label: '6.x',
             },
             5.7: {
               label: '5.7',
@@ -85,8 +86,10 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       announcementBar: {
+        // evergreen pointer rather than release news, so it does not go stale each minor. Keep the id
+        // stable - anyone who has dismissed it stays dismissed
         id: 'v6-release',
-        content: 'EntityGraphQL 6.0 is here! Upgrading from 5.x? See the <a href="/upgrade-6-0">upgrade guide</a>.',
+        content: 'These docs cover EntityGraphQL 6.x. Upgrading from 5.x? See the <a href="/upgrade-6-0">upgrade guide</a>.',
         isCloseable: true,
       },
       navbar: {
