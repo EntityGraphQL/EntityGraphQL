@@ -156,6 +156,19 @@ Independently of `MaxQueryDepth` (which is applied after parsing), the document 
 
 An alias is any selection where the response name differs from the schema field name (`{ a: totalPeople }`). `MaxFieldAliases` lets you reject batched-alias attacks with a tighter limit than `MaxFieldSelections` since most legitimate queries need very few aliases.
 
+### Per-field alias limits
+
+`MaxFieldAliases` is document-wide. For the few fields an attacker would actually want to batch — a login mutation, an expensive report — cap them individually with `SetMaxAliases(n)`:
+
+```cs
+using EntityGraphQL.Schema.QueryLimits;
+
+schema.Query().GetField("expensiveReport", null).SetMaxAliases(2);
+schema.Mutation().SchemaType.GetField("login", null).SetMaxAliases(0); // never legitimate to batch
+```
+
+The limit counts aliased selections of that field in one operation, fragment contents included; un-aliased selections don't count. It applies whether or not `MaxFieldAliases` is set, and both must pass. `0` forbids aliasing the field at all. In report-only mode the callback's `FieldName` says which field was over its limit (it is `null` for document-wide limits).
+
 ## Complexity
 
 The complexity analyzer assigns each field a cost (default `1`) and sums children. Fragments pass through — the spread itself contributes nothing, its contents do.

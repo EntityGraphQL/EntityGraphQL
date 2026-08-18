@@ -85,6 +85,94 @@ public class QueryLimitsTests
     }
 
     [Fact]
+    public void SetMaxAliases_PerField_EnforcedWithNoSchemaWideLimit()
+    {
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetMaxAliases(2);
+        var data = new TestDataContext();
+
+        var fail = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ a: totalPeople b: totalPeople c: totalPeople }" },
+            data,
+            null,
+            null,
+            new ExecutionOptions()
+        );
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message == "Field 'totalPeople' exceeds maximum allowed alias count of 2");
+
+        var pass = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ a: totalPeople b: totalPeople }" }, data, null, null, new ExecutionOptions());
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void SetMaxAliases_OnlyCountsThatFieldsAliasedSelections()
+    {
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetMaxAliases(1);
+        var data = new TestDataContext();
+
+        // the un-aliased selection and the aliases of other fields don't count towards totalPeople's limit
+        var pass = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ totalPeople a: totalPeople b: projects { id } c: projects { id } }" },
+            data,
+            null,
+            null,
+            new ExecutionOptions()
+        );
+        Assert.Null(pass.Errors);
+    }
+
+    [Fact]
+    public void SetMaxAliases_CountsAliasesInsideFragments()
+    {
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetMaxAliases(2);
+        var data = new TestDataContext();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query {
+                    a: totalPeople
+                    ...Counts
+                }
+                fragment Counts on Query {
+                    b: totalPeople
+                    c: totalPeople
+                }",
+        };
+
+        var fail = schema.ExecuteRequestWithContext(gql, data, null, null, new ExecutionOptions());
+        Assert.NotNull(fail.Errors);
+        Assert.Contains(fail.Errors!, e => e.Message.Contains("Field 'totalPeople' exceeds maximum allowed alias count of 2"));
+    }
+
+    [Fact]
+    public void ReportOnly_PerFieldAliasLimit_ReportsFieldAndActualCount()
+    {
+        var schema = BuildSchema();
+        schema.Type<TestDataContext>().GetField("totalPeople", null).SetMaxAliases(1);
+        var data = new TestDataContext().FillWithTestData();
+        var reported = new List<QueryLimitExceededContext>();
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "query Batched { a: totalPeople b: totalPeople c: totalPeople }" },
+            data,
+            null,
+            null,
+            new ExecutionOptions { QueryLimitsMode = QueryLimitsMode.ReportOnly, OnQueryLimitExceeded = reported.Add }
+        );
+
+        Assert.Null(result.Errors);
+        var ctx = Assert.Single(reported);
+        Assert.Equal(QueryLimitKind.FieldAliases, ctx.Limit);
+        Assert.Equal("totalPeople", ctx.FieldName);
+        Assert.Equal(3, ctx.Actual);
+        Assert.Equal(1, ctx.Maximum);
+        Assert.Equal("Batched", ctx.OperationName);
+    }
+
+    [Fact]
     public void MaxQueryComplexity_ExceededAborts()
     {
         var schema = BuildSchema();
@@ -334,6 +422,15 @@ public class QueryLimitsTests
         var aliasFail = schema.ExecuteRequestWithContext(aliasedMutation, data, null, null, new ExecutionOptions { MaxFieldAliases = 1 });
         Assert.NotNull(aliasFail.Errors);
         Assert.Contains(aliasFail.Errors!, e => e.Message.Contains("alias"));
+
+        // per-field alias limit - 0 forbids batching this mutation at all
+        schema.Mutation().SchemaType.GetField("expensiveMutation", null).SetMaxAliases(0);
+        var perFieldFail = schema.ExecuteRequestWithContext(aliasedMutation, data, null, null, new ExecutionOptions());
+        Assert.NotNull(perFieldFail.Errors);
+        Assert.Contains(perFieldFail.Errors!, e => e.Message.Contains("Field 'expensiveMutation' exceeds maximum allowed alias count of 0"));
+
+        // un-aliased is still allowed
+        Assert.Null(schema.ExecuteRequestWithContext(deepMutation, data, null, null, new ExecutionOptions()).Errors);
     }
 
     private sealed class AttributeComplexityContext

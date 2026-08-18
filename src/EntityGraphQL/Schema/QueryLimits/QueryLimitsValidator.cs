@@ -25,11 +25,13 @@ internal static class QueryLimitsValidator
         var aliasLimit = Nz(options.MaxFieldAliases);
         var complexityLimit = Nz(options.MaxQueryComplexity);
 
-        if (depthLimit is null && nodeLimit is null && aliasLimit is null && complexityLimit is null)
-            return;
-
         var op = string.IsNullOrEmpty(operationName) ? (document.Operations.Count > 0 ? document.Operations[0] : null) : document.Operations.Find(o => o.Name == operationName);
         if (op == null)
+            return;
+
+        var perFieldAliasLimits = QueryLimitsExtensions.SchemaHasFieldAliasLimits(op.Schema);
+
+        if (depthLimit is null && nodeLimit is null && aliasLimit is null && complexityLimit is null && !perFieldAliasLimits)
             return;
 
         var reportOnly = options.QueryLimitsMode == QueryLimitsMode.ReportOnly;
@@ -40,11 +42,22 @@ internal static class QueryLimitsValidator
             report = observer.OnQueryLimitExceeded;
         var opName = string.IsNullOrEmpty(op.Name) ? null : op.Name;
 
-        if (depthLimit is not null || nodeLimit is not null || aliasLimit is not null)
+        if (depthLimit is not null || nodeLimit is not null || aliasLimit is not null || perFieldAliasLimits)
         {
             var (docParam, docVariables) = DefaultQueryComplexityAnalyzer.BuildDocVariables(op, variables);
             // in report-only mode the walk completes with no limits applied so the totals are the real ones
-            var state = new WalkState(document.Fragments, reportOnly ? null : depthLimit, reportOnly ? null : nodeLimit, reportOnly ? null : aliasLimit, docParam, docVariables, report, opName);
+            var state = new WalkState(
+                document.Fragments,
+                reportOnly ? null : depthLimit,
+                reportOnly ? null : nodeLimit,
+                reportOnly ? null : aliasLimit,
+                perFieldAliasLimits,
+                reportOnly,
+                docParam,
+                docVariables,
+                report,
+                opName
+            );
             foreach (var field in op.QueryFields)
                 Walk(field, 1, ref state);
 
@@ -56,6 +69,14 @@ internal static class QueryLimitsValidator
                     report(new QueryLimitExceededContext(QueryLimitKind.FieldSelections, state.NodeCount, n, opName));
                 if (aliasLimit is int a && state.AliasCount > a)
                     report(new QueryLimitExceededContext(QueryLimitKind.FieldAliases, state.AliasCount, a, opName));
+                if (state.FieldAliasCounts != null)
+                {
+                    foreach (var (field, count) in state.FieldAliasCounts)
+                    {
+                        if (QueryLimitsExtensions.TryGetMaxAliases(field) is int max && count > max)
+                            report(new QueryLimitExceededContext(QueryLimitKind.FieldAliases, count, max, opName, field.Name));
+                    }
+                }
             }
         }
 
@@ -97,7 +118,7 @@ internal static class QueryLimitsValidator
 
         state.CountNode();
         if (field.Name != field.SchemaName)
-            state.CountAlias();
+            state.CountAlias(field.Field);
         state.RecordDepth(depth);
 
         if (state.DepthLimit is int d && depth > d)
@@ -120,9 +141,12 @@ internal static class QueryLimitsValidator
         public readonly int? AliasLimit;
         public readonly ParameterExpression? DocParam;
         public readonly IArgumentsTracker? DocVariables;
+        private readonly bool perFieldAliasLimits;
+        private readonly bool reportOnly;
         private readonly Action<QueryLimitExceededContext>? report;
         private readonly string? operationName;
         private HashSet<string>? visitedFragments;
+        private Dictionary<IField, int>? fieldAliasCounts;
         private int nodeCount;
         private int aliasCount;
         private int maxDepth;
@@ -132,6 +156,8 @@ internal static class QueryLimitsValidator
             int? depthLimit,
             int? nodeLimit,
             int? aliasLimit,
+            bool perFieldAliasLimits,
+            bool reportOnly,
             ParameterExpression? docParam,
             IArgumentsTracker? docVariables,
             Action<QueryLimitExceededContext>? report,
@@ -142,11 +168,14 @@ internal static class QueryLimitsValidator
             DepthLimit = depthLimit;
             NodeLimit = nodeLimit;
             AliasLimit = aliasLimit;
+            this.perFieldAliasLimits = perFieldAliasLimits;
+            this.reportOnly = reportOnly;
             DocParam = docParam;
             DocVariables = docVariables;
             this.report = report;
             this.operationName = operationName;
             visitedFragments = null;
+            fieldAliasCounts = null;
             nodeCount = 0;
             aliasCount = 0;
             maxDepth = 0;
@@ -156,6 +185,9 @@ internal static class QueryLimitsValidator
         public readonly int AliasCount => aliasCount;
         public readonly int MaxDepth => maxDepth;
 
+        /// <summary>Aliased selection count per schema field, only populated for fields with a per-field limit.</summary>
+        public readonly Dictionary<IField, int>? FieldAliasCounts => fieldAliasCounts;
+
         public void CountNode()
         {
             nodeCount++;
@@ -163,11 +195,21 @@ internal static class QueryLimitsValidator
                 Fail(QueryLimitKind.FieldSelections, nodeCount, n, $"Query exceeds maximum allowed node count of {n}");
         }
 
-        public void CountAlias()
+        public void CountAlias(IField? schemaField)
         {
             aliasCount++;
             if (AliasLimit is int a && aliasCount > a)
                 Fail(QueryLimitKind.FieldAliases, aliasCount, a, $"Query exceeds maximum allowed alias count of {a}");
+
+            if (!perFieldAliasLimits || schemaField == null || QueryLimitsExtensions.TryGetMaxAliases(schemaField) is not int max)
+                return;
+
+            fieldAliasCounts ??= new Dictionary<IField, int>();
+            var count = fieldAliasCounts.TryGetValue(schemaField, out var existing) ? existing + 1 : 1;
+            fieldAliasCounts[schemaField] = count;
+            // report-only mode keeps counting so the callback sees the real total for the document
+            if (!reportOnly && count > max)
+                Fail(QueryLimitKind.FieldAliases, count, max, $"Field '{schemaField.Name}' exceeds maximum allowed alias count of {max}", schemaField.Name);
         }
 
         public void RecordDepth(int depth)
@@ -187,9 +229,9 @@ internal static class QueryLimitsValidator
             return visitedFragments.Add(name);
         }
 
-        public readonly void Fail(QueryLimitKind kind, int actual, int maximum, string message)
+        public readonly void Fail(QueryLimitKind kind, int actual, int maximum, string message, string? fieldName = null)
         {
-            report?.Invoke(new QueryLimitExceededContext(kind, actual, maximum, operationName));
+            report?.Invoke(new QueryLimitExceededContext(kind, actual, maximum, operationName, fieldName));
             throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, message);
         }
     }

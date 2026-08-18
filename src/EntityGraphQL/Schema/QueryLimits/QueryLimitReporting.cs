@@ -59,12 +59,13 @@ public interface IQueryLimitObserver
 /// </summary>
 public readonly struct QueryLimitExceededContext
 {
-    public QueryLimitExceededContext(QueryLimitKind limit, int actual, int maximum, string? operationName)
+    public QueryLimitExceededContext(QueryLimitKind limit, int actual, int maximum, string? operationName, string? fieldName = null)
     {
         Limit = limit;
         Actual = actual;
         Maximum = maximum;
         OperationName = operationName;
+        FieldName = fieldName;
     }
 
     /// <summary>Which limit was exceeded.</summary>
@@ -82,4 +83,10 @@ public readonly struct QueryLimitExceededContext
 
     /// <summary>The GraphQL operation name, if the operation is named.</summary>
     public string? OperationName { get; }
+
+    /// <summary>
+    /// The schema field the limit belongs to. Set only for per-field limits (<see cref="QueryLimitsExtensions.SetMaxAliases"/>);
+    /// null for document-wide limits.
+    /// </summary>
+    public string? FieldName { get; }
 }
