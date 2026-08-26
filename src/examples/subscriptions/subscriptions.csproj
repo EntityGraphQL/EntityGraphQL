@@ -8,4 +8,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
     <ProjectReference Include="../../EntityGraphQL.AspNet/EntityGraphQL.AspNet.csproj" />
   </ItemGroup>
+  <!-- dogfood the EntityGraphQL analyzers (NuGet consumers get these automatically) -->
+  <ItemGroup>
+    <ProjectReference Include="../../EntityGraphQL.Analyzers/EntityGraphQL.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../EntityGraphQL.Analyzers.CodeFixes/EntityGraphQL.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
 </Project>
