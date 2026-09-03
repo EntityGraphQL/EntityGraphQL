@@ -1329,6 +1329,13 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             return typeof(IEnumerable<>).MakeGenericType(t);
         }
 
+        // Boxing a Nullable<T> that has a value produces a boxed T, so GetType() can never report the type as
+        // nullable. Trusting it rebuilds the member non-nullable, and the rebuilt type is reused for every row
+        // (and cached as a resolution plan), so a null in a later row is written as default(T) - an epoch, a 0,
+        // a DateTime.MinValue - instead of null. The declared type is the only place the nullability survives.
+        if (originalType.IsNullableType())
+            return originalType;
+
         // Otherwise use the resolved value's type, or fall back to original type
         return resolvedValue?.GetType() ?? originalType;
     }
