@@ -100,6 +100,31 @@ public class AsyncShapesTests
     }
 
     [Fact]
+    public void AsyncListOfProjectedItems_WithAnAsyncFieldOnTheItem_StaysAssignableToTheField()
+    {
+        // the item projection carries an async field of its own, so resolving an item rebuilds it into a new
+        // dynamic type. The parent field is declared Task<IEnumerable<oldItemType>>, and the rebuilt list no
+        // longer fits that - the rebuilt parent has to take the resolved list's own type instead
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddType<Tag>("Tag", "A tag").AddAllFields();
+        schema.Type<Person>().AddField("tags", "Tags via List<T>").ResolveAsync<TagListService>((p, s) => s.GetTagsAsync(p.Id));
+        schema.Type<Tag>().AddField("label", "Label via a second service").ResolveAsync<TagLabelService>((t, s) => s.GetLabelAsync(t.Name));
+
+        var ctx = new TestDataContext { People = [new Person { Id = 3 }] };
+        var services = new ServiceCollection().AddSingleton(new TagListService()).AddSingleton(new TagLabelService()).BuildServiceProvider();
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { id tags { name label } } }" }, ctx, services, null);
+
+        Assert.Null(res.Errors);
+        dynamic people = res.Data!["people"]!;
+        var tags = ((IEnumerable<object>)people[0].tags).ToList();
+        Assert.Single(tags);
+        dynamic tag = tags[0];
+        Assert.Equal("t3", tag.name);
+        Assert.Equal("label:t3", tag.label);
+    }
+
+    [Fact]
     public void IAsyncEnumerable_Field_Is_Buffered_To_List()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
@@ -145,6 +170,15 @@ internal class TagListService
     {
         await System.Threading.Tasks.Task.Yield();
         return [new Tag { Name = $"t{id}" }];
+    }
+}
+
+internal class TagLabelService
+{
+    public async Task<string> GetLabelAsync(string name)
+    {
+        await System.Threading.Tasks.Task.Yield();
+        return $"label:{name}";
     }
 }
 
