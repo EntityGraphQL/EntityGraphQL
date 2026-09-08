@@ -1308,18 +1308,20 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// </summary>
     private static Type GetResolvedFieldType(Type originalType, object? resolvedValue)
     {
-        // If the original type was Task<T>, extract T
+        // If the original type was Task<T>, extract T. Resolving the value can change its shape - a list of
+        // projections whose own members were rebuilt no longer fits the original T - so only keep T when the
+        // resolved value still is one.
         if (typeof(Task).IsAssignableFrom(originalType) && originalType.IsGenericType)
         {
             var taskGenericType = originalType.GetGenericArguments().FirstOrDefault();
-            if (taskGenericType != null)
+            if (taskGenericType != null && (resolvedValue == null || taskGenericType.IsInstanceOfType(resolvedValue)))
                 return taskGenericType;
         }
-        // If the original type was ValueTask<T>, extract T
+        // If the original type was ValueTask<T>, extract T - same caveat as Task<T> above
         if (originalType.IsGenericType && originalType.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             var vtGeneric = originalType.GetGenericArguments().FirstOrDefault();
-            if (vtGeneric != null)
+            if (vtGeneric != null && (resolvedValue == null || vtGeneric.IsInstanceOfType(resolvedValue)))
                 return vtGeneric;
         }
         // If the original type was IAsyncEnumerable<T>, convert to IEnumerable<T>

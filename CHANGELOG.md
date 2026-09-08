@@ -1,3 +1,9 @@
+# 6.2.4
+
+## Fixes
+
+- Fixed `Object of type 'System.Collections.Generic.List`1[System.Object]' cannot be converted to type 'System.Collections.Generic.IEnumerable`1[Dynamic_...]'` for a query selecting an async service field below an async service *list* field - `{ people { tags { name label } } }` where `tags` has a `ResolveAsync` returning a list and `label` on the item type has one of its own. Resolving an item of the outer list rebuilds it, because the item projection holds an async member, so the finished list no longer holds the item type the outer field was declared with and correctly falls back to `List<object>`. `GetResolvedFieldType` unwrapped `Task<T>` to `T` unconditionally, so the rebuilt parent still declared the member `IEnumerable<T>` and setting the resolved list on it threw. `T` is now only kept when the resolved value still is one, otherwise the resolved value's own type is used - which is what the non-async path in the same method already did. `ValueTask<T>` had the same hole and takes the same guard.
+
 # 6.2.3
 
 ## Fixes
