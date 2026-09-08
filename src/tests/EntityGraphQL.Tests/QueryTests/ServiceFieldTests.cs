@@ -1376,6 +1376,48 @@ public class ServiceFieldTests
         Assert.Equal("resolvedSettings", Enumerable.ElementAt(people[0].GetType().GetFields(), 0).Name);
     }
 
+    /// <summary>
+    /// A resolver that builds an object from more than one context member, as an argument to the service call,
+    /// has both member reads credited to the enclosing new/init expression - so ExpressionExtractor records that
+    /// single node instance twice. Below another service field the bulk path is unavailable and ExpressionReplacer
+    /// is built from those expressions, which used to throw "An item with the same key has already been added".
+    /// </summary>
+    [Fact]
+    public void TestServiceFieldWithNewInServiceCallArgUnderServiceField()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+        // outer service field - returns a User
+        schema.UpdateType<Project>(type => type.ReplaceField("createdBy", "Get user that created it").Resolve<UserService>((proj, users) => users.GetUserById(proj.CreatedBy)));
+        // inner service field - builds one object from 2 context members inside the service call
+        schema.Type<User>().AddField("config", "Config for the user").Resolve<ConfigService>((user, srv) => srv.Get(new Project { Id = user.Id, Name = user.Field2 }));
+
+        var gql = new QueryRequest { Query = "{ projects { name createdBy { id config { type } } } }" };
+
+        var context = new TestDataContext
+        {
+            Projects =
+            [
+                new Project
+                {
+                    Id = 1,
+                    CreatedBy = 7,
+                    Name = "Project 1",
+                },
+            ],
+        };
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new UserService());
+        serviceCollection.AddSingleton(new ConfigService());
+        var sp = serviceCollection.BuildServiceProvider();
+
+        var res = schema.ExecuteRequestWithContext(gql, context, sp, null);
+        Assert.Null(res.Errors);
+        dynamic projects = res.Data!["projects"]!;
+        Assert.Equal(7, projects[0].createdBy.id);
+        Assert.Equal("Something", projects[0].createdBy.config.type);
+    }
+
     [Fact]
     public void TestRootServiceFieldBackToContext()
     {

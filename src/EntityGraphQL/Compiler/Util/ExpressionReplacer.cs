@@ -31,7 +31,9 @@ internal class ExpressionReplacer : ExpressionVisitor
         {
             foreach (var exp in field.FieldExpressions)
             {
-                this.expressionsToReplace.Add(exp, field);
+                // The extractor deliberately emits repeats - the same instance appears twice
+                // when a resolver builds one object from several context members.
+                this.expressionsToReplace[exp] = field;
             }
         }
     }

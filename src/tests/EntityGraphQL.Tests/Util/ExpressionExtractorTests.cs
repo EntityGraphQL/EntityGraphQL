@@ -51,6 +51,21 @@ public class ExpressionExtractorTests
     }
 
     [Fact]
+    public void ExtractObjectBuiltFromMultipleMembersInMethodArg()
+    {
+        // Building an object from 2 context members as an argument to the service call - both member reads are
+        // credited to the enclosing expression, so the same node instance is extracted twice under the one name.
+        // ExpressionReplacer relies on tolerating that repeat - see TestServiceFieldWithNewInServiceCallArgUnderServiceField
+        Expression<Func<User, ConfigService, ProjectConfig>> expression = (user, srv) => srv.Get(new Project { Id = user.Id, Name = user.Field2 });
+        var extractor = new ExpressionExtractor();
+        var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
+        Assert.NotNull(extracted);
+        Assert.Single(extracted);
+        var arg = ((MethodCallExpression)expression.Body).Arguments[0];
+        Assert.Equal([arg, arg], extracted.First().Value);
+    }
+
+    [Fact]
     public void ExtractExpressionInAsync()
     {
         // Calling a service using EF fields
