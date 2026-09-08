@@ -51,6 +51,39 @@ public class ExpressionExtractorTests
     }
 
     [Fact]
+    public void ExtractObjectBuiltFromMultipleMembersInMethodArg()
+    {
+        // Building an object from 2 context members as an argument to the service call - the construction is not a
+        // leaf, so each member read is extracted on its own rather than both being credited to the construction.
+        Expression<Func<User, ConfigService, ProjectConfig>> expression = (user, srv) => srv.Get(new Project { Id = user.Id, Name = user.Field2 });
+        var extractor = new ExpressionExtractor();
+        var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
+        Assert.NotNull(extracted);
+        Assert.Equal(2, extracted.Count);
+        var init = (MemberInitExpression)((MethodCallExpression)expression.Body).Arguments[0];
+        Assert.Equal("egql__user_Id", extracted.First().Key);
+        Assert.Equal(((MemberAssignment)init.Bindings[0]).Expression, extracted.First().Value.Single());
+        Assert.Equal("egql__user_Field2", extracted.ElementAt(1).Key);
+        Assert.Equal(((MemberAssignment)init.Bindings[1]).Expression, extracted.ElementAt(1).Value.Single());
+    }
+
+    [Fact]
+    public void ExtractConditionalInMethodArg()
+    {
+        // No VisitConditional override - the ifTrue/ifFalse reads are both credited to the conditional, so that one
+        // node is extracted twice under the one name. ExpressionReplacer tolerates that repeat by design.
+        // (the test is a binary, which VisitBinary walks into, so user.Id is also extracted on its own)
+        Expression<Func<User, ConfigService, ProjectConfig>> expression = (user, srv) => srv.Get(user.Id > 1 ? user.Id : user.Field2.Length);
+        var extractor = new ExpressionExtractor();
+        var extracted = extractor.Extract(expression.Body, expression.Parameters[0], false);
+        Assert.NotNull(extracted);
+        Assert.Equal(2, extracted.Count);
+        Assert.Equal("egql__user_Id", extracted.First().Key);
+        var arg = ((MethodCallExpression)expression.Body).Arguments[0];
+        Assert.Equal([arg, arg], extracted.ElementAt(1).Value);
+    }
+
+    [Fact]
     public void ExtractExpressionInAsync()
     {
         // Calling a service using EF fields

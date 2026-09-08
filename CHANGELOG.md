@@ -1,3 +1,9 @@
+# 6.2.3
+
+## Fixes
+
+- Fixed `An item with the same key has already been added` when a service field's resolver builds an object from more than one context member as an argument to the service call - `(ctx, srv) => srv.Get(new Key(ctx.A, ctx.B))`. `ExpressionExtractor` credited both member reads to the enclosing construction rather than to themselves, so it emitted the same `Expression` instance twice under the one name and `ExpressionReplacer` added each of them to a dictionary keyed by node identity. A construction is now walked through rather than treated as a leaf, so each read is extracted on its own. `ExpressionReplacer` also tolerates a repeated expression, which the extractor still emits for other shapes (a conditional argument, where the branch reads are both credited to the conditional).
+
 # 6.2.2
 
 ## Fixes
