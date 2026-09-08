@@ -89,6 +89,27 @@ public static class EnumerableExtensions
         return await task;
     }
 
+    /// <summary>
+    /// Projects an <c>IAsyncEnumerable{T}</c> without enumerating it - the engine buffers the stream later,
+    /// with the request's CancellationToken, the same as it does for an unprojected one.
+    /// </summary>
+    public static IAsyncEnumerable<TResult>? SelectWithNullCheck<TSource, TResult>(this IAsyncEnumerable<TSource>? source, Func<TSource, TResult> selector)
+    {
+        if (source == null)
+            return null;
+        return SelectAsyncIterator(source, selector);
+    }
+
+    private static async IAsyncEnumerable<TResult> SelectAsyncIterator<TSource, TResult>(
+        IAsyncEnumerable<TSource> source,
+        Func<TSource, TResult> selector,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] System.Threading.CancellationToken cancellationToken = default
+    )
+    {
+        await foreach (var item in source.WithCancellation(cancellationToken))
+            yield return selector(item);
+    }
+
     public static IEnumerable<TResult>? SelectWithNullCheck<TSource, TResult>(this IEnumerable<TSource>? source, Func<TSource, TResult> selector, bool returnEmptyList)
     {
         if (source == null)
