@@ -938,16 +938,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     ? originalType
                     : originalType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
             if (enumerableInterface != null)
-            {
-                var elementType = enumerableInterface.GetGenericArguments()[0];
-                if (CanMaterializeTypedCollection(elementType, resolvedItems))
-                {
-                    var typedList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
-                    foreach (var item in resolvedItems)
-                        typedList.Add(item);
-                    return typedList;
-                }
-            }
+                return MaterializeResolvedItems(enumerableInterface.GetGenericArguments()[0], resolvedItems);
 
             return resolvedItems;
         }
@@ -959,6 +950,21 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 
         return obj;
+    }
+
+    /// <summary>
+    /// A List&lt;elementType&gt; if every resolved item still fits it - so the collection stays assignable back to
+    /// a typed field - otherwise the untyped list. Resolving an item rebuilds it when its projection holds an
+    /// async member, and the rebuilt type is not the one the field was declared with.
+    /// </summary>
+    private static object MaterializeResolvedItems(Type elementType, List<object?> resolvedItems)
+    {
+        if (!CanMaterializeTypedCollection(elementType, resolvedItems))
+            return resolvedItems;
+        var typedList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
+        foreach (var item in resolvedItems)
+            typedList.Add(item);
+        return typedList;
     }
 
     private static bool CanMaterializeTypedCollection(Type elementType, IEnumerable<object?> items)
@@ -1324,11 +1330,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             if (vtGeneric != null && (resolvedValue == null || vtGeneric.IsInstanceOfType(resolvedValue)))
                 return vtGeneric;
         }
-        // If the original type was IAsyncEnumerable<T>, convert to IEnumerable<T>
+        // If the original type was IAsyncEnumerable<T>, convert to IEnumerable<T> - same caveat as Task<T> above
         if (originalType.IsGenericType && originalType.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>))
         {
-            var t = originalType.GetGenericArguments()[0];
-            return typeof(IEnumerable<>).MakeGenericType(t);
+            var enumerableOfT = typeof(IEnumerable<>).MakeGenericType(originalType.GetGenericArguments()[0]);
+            if (resolvedValue == null || enumerableOfT.IsInstanceOfType(resolvedValue))
+                return enumerableOfT;
         }
 
         // Boxing a Nullable<T> that has a value produces a boxed T, so GetType() can never report the type as
@@ -1439,10 +1446,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             elementType = asyncEnumerableInterface.GetGenericArguments()[0];
         }
 
-        // Create the properly typed list upfront
-        var listType = typeof(List<>).MakeGenericType(elementType);
-        var typedList = Activator.CreateInstance(listType)!;
-        var addMethod = listType.GetMethod("Add")!;
+        // Resolving an item can change its type (a projection holding an async member is rebuilt), so collect
+        // untyped and pick the list type at the end from what we actually have - as the IEnumerable path does
+        var resolvedItems = new List<object?>();
 
         var getEnumeratorMethod = asyncEnumerableType.GetMethod("GetAsyncEnumerator", BindingFlags.Public | BindingFlags.Instance);
 
@@ -1503,11 +1509,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                                     break;
 
                                 var current = currentProperty.GetValue(enumerator);
-                                if (current != null)
-                                {
-                                    var resolvedCurrent = await ResolveAsyncResultsRecursive(current, cancellationToken);
-                                    addMethod.Invoke(typedList, [resolvedCurrent]);
-                                }
+                                resolvedItems.Add(current != null ? await ResolveAsyncResultsRecursive(current, cancellationToken) : null);
                             }
                             else
                             {
@@ -1528,7 +1530,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             }
         }
 
-        return typedList;
+        return MaterializeResolvedItems(elementType, resolvedItems);
     }
 
     public IEnumerable<string> BuildPath()

@@ -345,6 +345,11 @@ public class Field : BaseField
             // We do it here — once at registration — rather than at every compilation site.
             if (ResolveExpression != null)
             {
+                // ValueTask<T> has no Select overloads of its own - hand it on as the Task<T> everything below
+                // (and the whole compilation pipeline) already handles
+                if (ResolveExpression.Type.IsGenericType && ResolveExpression.Type.GetGenericTypeDefinition() == typeof(ValueTask<>))
+                    ResolveExpression = Expression.Call(ResolveExpression, ResolveExpression.Type.GetMethod(nameof(ValueTask<object>.AsTask))!);
+
                 var exprType = ResolveExpression.Type;
                 if (exprType.IsGenericType && exprType.GetGenericTypeDefinition() == typeof(Task<>))
                 {
