@@ -1377,10 +1377,56 @@ public class ServiceFieldTests
     }
 
     /// <summary>
-    /// A resolver that builds an object from more than one context member, as an argument to the service call,
-    /// has both member reads credited to the enclosing new/init expression - so ExpressionExtractor records that
-    /// single node instance twice. Below another service field the bulk path is unavailable and ExpressionReplacer
-    /// is built from those expressions, which used to throw "An item with the same key has already been added".
+    /// A resolver that builds an object from more than one context member, as an argument to the service call.
+    /// ExpressionExtractor used to credit both member reads to the enclosing new/init expression, recording that
+    /// single node instance twice - which threw "An item with the same key has already been added" when
+    /// ExpressionReplacer was built from those expressions, and left the second pass unable to rebuild the call
+    /// once the replacer tolerated the repeat ("Argument types do not match"). The construction is now walked
+    /// through, so each member read is extracted on its own.
+    /// </summary>
+    [Fact]
+    public void TestServiceFieldWithNewInServiceCallArg()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+        schema.Type<User>().AddField("config", "Config for the user").Resolve<ConfigService>((user, srv) => srv.Get(new Project { Id = user.Id, Name = user.Field2 }));
+
+        var gql = new QueryRequest { Query = "{ users { id config { type } } }" };
+
+        var context = new TestDataContext().FillWithTestData();
+        var sp = new ServiceCollection().AddSingleton(new ConfigService()).BuildServiceProvider();
+
+        var res = schema.ExecuteRequestWithContext(gql, context, sp, null);
+        Assert.Null(res.Errors);
+        dynamic users = res.Data!["users"]!;
+        Assert.Equal("Something", users[0].config.type);
+    }
+
+    /// <summary>
+    /// Same shape, but the argument is a conditional. There is no VisitConditional override in the extractor so the
+    /// ifTrue/ifFalse reads are still both credited to the conditional - the repeat ExpressionReplacer has to tolerate.
+    /// </summary>
+    [Fact]
+    public void TestServiceFieldWithConditionalInServiceCallArg()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddType<ProjectConfig>("ProjectConfig").AddAllFields();
+        schema.Type<User>().AddField("config", "Config for the user").Resolve<ConfigService>((user, srv) => srv.Get(user.Id > 1 ? user.Id : user.Field2.Length));
+
+        var gql = new QueryRequest { Query = "{ users { id config { type } } }" };
+
+        var context = new TestDataContext().FillWithTestData();
+        var sp = new ServiceCollection().AddSingleton(new ConfigService()).BuildServiceProvider();
+
+        var res = schema.ExecuteRequestWithContext(gql, context, sp, null);
+        Assert.Null(res.Errors);
+        dynamic users = res.Data!["users"]!;
+        Assert.Equal("Something", users[0].config.type);
+    }
+
+    /// <summary>
+    /// As above but selected below another service field, where the bulk path is unavailable and the per-item
+    /// resolver runs instead.
     /// </summary>
     [Fact]
     public void TestServiceFieldWithNewInServiceCallArgUnderServiceField()

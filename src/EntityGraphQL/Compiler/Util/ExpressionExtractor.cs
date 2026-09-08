@@ -87,7 +87,13 @@ public partial class ExpressionExtractor : ExpressionVisitor
 
     private void ProcessPotentialLeaf(Expression node)
     {
-        var shouldAddNotAdd = node.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node).Expression?.Type.IsNullableType() == true;
+        // A construction is not a leaf - it is a wrapper around the reads that build it. Visiting it with itself on
+        // the stack credits every one of those reads to the construction, so `srv.Get(new Key(ctx.A, ctx.B))` extracts
+        // that one node twice instead of ctx.A and ctx.B. Visit it without pushing so each read credits itself.
+        var shouldAddNotAdd =
+            (node.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node).Expression?.Type.IsNullableType() == true)
+            || node.NodeType == ExpressionType.New
+            || node.NodeType == ExpressionType.MemberInit;
         if (shouldAddNotAdd)
             Visit(node);
         else

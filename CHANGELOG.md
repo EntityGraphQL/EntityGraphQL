@@ -1,8 +1,13 @@
+# 6.2.3
+
+## Fixes
+
+- Fixed `An item with the same key has already been added` when a service field's resolver builds an object from more than one context member as an argument to the service call - `(ctx, srv) => srv.Get(new Key(ctx.A, ctx.B))`. `ExpressionExtractor` credited both member reads to the enclosing construction rather than to themselves, so it emitted the same `Expression` instance twice under the one name and `ExpressionReplacer` added each of them to a dictionary keyed by node identity. A construction is now walked through rather than treated as a leaf, so each read is extracted on its own. `ExpressionReplacer` also tolerates a repeated expression, which the extractor still emits for other shapes (a conditional argument, where the branch reads are both credited to the conditional).
+
 # 6.2.2
 
 ## Fixes
 
-- Fixed `An item with the same key has already been added` when a service field's resolver builds an object from more than one context member as an argument to the service call (`(ctx, srv) => srv.Get(new Key(ctx.A, ctx.B))`) and that field is selected below another service field. `ExpressionExtractor` credits both member reads to the enclosing construction rather than to themselves, so it emits the same `Expression` instance twice under the one name - which its own contract allows - and `ExpressionReplacer` was adding each of them to a dictionary keyed by node identity.
 - Fixed a field whose dotnet type is a nullable value type (`Instant?`, `DateTime?`, `int?`) resolving to `default(T)` instead of `null`, for a query that also selects an async field. Results are rebuilt after any async field is awaited, and each member's new type was taken from the resolved value's runtime type.
 
 # 6.2.1
