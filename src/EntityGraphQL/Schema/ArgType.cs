@@ -95,6 +95,10 @@ public class ArgType
         {
             markedRequired = true;
             argType = gqlLookupType = gqlLookupType.GetGenericArguments()[0];
+        }
+        var requiredAttribute = attributes.FirstOrDefault(a => a is RequiredAttribute) as RequiredAttribute;
+        if (markedRequired || requiredAttribute != null)
+        {
             // default value will often be the default value of the non-null type (e.g. 0 for int).
             // We are saying here it must be provided by the query
             defaultValue.Value = null;
@@ -118,7 +122,7 @@ public class ArgType
         {
             DefaultValue = defaultValue,
             IsRequired = markedRequired,
-            requiredAttribute = attributes.FirstOrDefault(a => a is RequiredAttribute) as RequiredAttribute,
+            requiredAttribute = requiredAttribute,
         };
 
         if (memberInfo?.GetCustomAttribute<GraphQLFieldAttribute>() is GraphQLFieldAttribute gqlFieldAttr)

@@ -39,6 +39,16 @@ It is worth noting that the GraphQL name of the argument will be that of the pro
 
 As you see above to make an argument required use the `ArgumentHelper.Required<T>()` method.
 
+If you use a class for your arguments, mark the property with `[Required]` instead. Either way the argument has no default value in the schema and the query must supply it - otherwise a value type property like `int Take` gets its C# default as the schema default (`take: Int! = 0`).
+
+```cs
+public class PersonArgs
+{
+    [Required]
+    public int Id { get; set; }
+}
+```
+
 See [Validation](../validation) for further information.
 
 ### Optional arguments

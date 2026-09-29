@@ -1,4 +1,8 @@
-# 6.2.5
+# 6.3.0
+
+## Changes
+
+- `[Required]` on an argument (a property/field of an arguments object or a method parameter) now behaves like `ArgumentHelper.Required<T>()` - the argument has no default value and must be provided by the query. Previously a value type kept its implicit `default(T)` as the schema default, so `[Required] int Take` printed `take: Int! = 0` (optional for clients) and a query leaving it out ran with `0`. It is now `take: Int!` and leaving it out is a `missing required argument` error. Remove `[Required]` if you relied on the old default.
 
 ## Fixes
 
