@@ -1,3 +1,10 @@
+# 6.2.5
+
+## Fixes
+
+- #562 - Fixed invalid SDL for argument default values of value types. `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` and `char` defaults were printed bare (`runId: ID! = 00000000-0000-0000-0000-000000000000`), which tools like GraphQL Code Generator reject. They are now quoted string literals (dates in ISO format). Numeric defaults are printed with the invariant culture (`3.14`, not `3,14` under `de-DE`) and string defaults are escaped (`"`, `\`, newlines).
+- Fixed introspection `__InputValue.defaultValue` stripping the quotes off string-like defaults. The spec defines it as the GraphQL literal, so a string default of `hello` is now returned as `"hello"` - the same text as in the SDL. Clients building a schema from introspection (`buildClientSchema`, GraphiQL, codegen against an endpoint) previously dropped such defaults or failed to parse them (`Guid`, strings with spaces).
+
 # 6.2.4
 
 ## Fixes
