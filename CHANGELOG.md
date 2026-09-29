@@ -1,3 +1,14 @@
+# 6.3.0
+
+## Changes
+
+- `[Required]` on an argument (a property/field of an arguments object or a method parameter) now behaves like `ArgumentHelper.Required<T>()` - the argument has no default value and must be provided by the query. Previously a value type kept its implicit `default(T)` as the schema default, so `[Required] int Take` printed `take: Int! = 0` (optional for clients) and a query leaving it out ran with `0`. It is now `take: Int!` and leaving it out is a `missing required argument` error. Remove `[Required]` if you relied on the old default.
+- Introspection `__InputValue.defaultValue` no longer strips the quotes off string-like defaults. The spec defines it as the GraphQL literal, so a string default of `hello` is now returned as `"hello"` - the same text as in the SDL. Clients building a schema from introspection (`buildClientSchema`, GraphiQL, codegen against an endpoint) previously dropped such defaults or failed to parse them (`Guid`, strings with spaces). If you read `defaultValue` directly as text rather than parsing it as GraphQL, string defaults now include their quotes.
+
+## Fixes
+
+- #562 - Fixed invalid SDL for argument default values of value types. `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` and `char` defaults were printed bare (`runId: ID! = 00000000-0000-0000-0000-000000000000`), which tools like GraphQL Code Generator reject. They are now quoted string literals (dates in ISO format). Numeric defaults are printed with the invariant culture (`3.14`, not `3,14` under `de-DE`) and string defaults are escaped (`"`, `\`, newlines).
+
 # 6.2.4
 
 ## Fixes

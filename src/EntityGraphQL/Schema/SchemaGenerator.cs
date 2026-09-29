@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using EntityGraphQL.Directives;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema.Directives;
@@ -158,6 +160,8 @@ public class SchemaGenerator
         return string.IsNullOrEmpty(args) ? string.Empty : $"({args})";
     }
 
+    private static readonly JsonSerializerOptions jsonLiteralOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
     public static string? GetArgDefaultValue(DefaultArgValue defaultArgValue, Func<string, string> fieldNamer, bool nullAsValue = true)
     {
         if (!defaultArgValue.IsSet)
@@ -173,19 +177,23 @@ public class SchemaGenerator
         var ret = string.Empty;
         var valueType = defaultArgValue.Value.GetType();
 
-        if (valueType == typeof(string))
-        {
-            return $"\"{(((string)defaultArgValue.Value == string.Empty) ? string.Empty : defaultArgValue.Value)}\"";
-        }
         if (valueType == typeof(bool))
         {
             return defaultArgValue.Value.ToString()?.ToLower(CultureInfo.InvariantCulture);
         }
-        else if (valueType.IsValueType)
+        if (valueType.IsEnum)
         {
             return defaultArgValue.Value.ToString();
         }
-        else if (defaultArgValue.Value is IEnumerable e)
+        if (valueType == typeof(string) || valueType.IsValueType)
+        {
+            // JSON number and string literals are valid GraphQL literals: invariant numbers, escaped + quoted strings,
+            // ISO formatted dates, quoted Guids. Structs serialize to JSON objects which are not, so fall through for those
+            var json = JsonSerializer.Serialize(defaultArgValue.Value, valueType, jsonLiteralOptions);
+            if (!json.StartsWith('{'))
+                return json;
+        }
+        if (defaultArgValue.Value is IEnumerable e)
         {
             return $"[{string.Join(", ", e.Cast<object>().Select(item => GetArgDefaultValue(new DefaultArgValue(true, item), fieldNamer)).Where(item => item != null))}]";
         }

@@ -352,7 +352,7 @@ public static class SchemaIntrospection
         {
             var type = BuildType(schema, arg.Value.Type, arg.Value.Type.TypeDotnet, true);
 
-            var stringValue = SchemaGenerator.GetArgDefaultValue(arg.Value.DefaultValue, schema.SchemaFieldNamer)?.Trim('"');
+            var stringValue = SchemaGenerator.GetArgDefaultValue(arg.Value.DefaultValue, schema.SchemaFieldNamer);
             var defaultValue = string.IsNullOrEmpty(stringValue) ? null : stringValue;
 
             args.Add(

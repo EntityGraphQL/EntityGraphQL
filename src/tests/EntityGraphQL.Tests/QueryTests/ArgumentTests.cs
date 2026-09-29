@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Extensions;
@@ -115,6 +116,40 @@ public class ArgumentTests
         var result = schema.ExecuteRequestWithContext(gql, new TestDataContext(), null, null);
         Assert.NotNull(result.Errors);
         Assert.Equal("Field 'user' - missing required argument 'id'", result.Errors[0].Message);
+    }
+
+    private class RequiredAttributeArgs
+    {
+        [Required]
+        public int Id { get; set; }
+
+        [Required]
+        public Guid RunId { get; set; }
+
+        public int Plain { get; set; }
+    }
+
+    [Fact]
+    public void RequiredAttributeValueTypeHasNoDefault()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>(new SchemaBuilderOptions { AutoCreateFieldWithIdArguments = false });
+        schema.Query().AddField("user", new RequiredAttributeArgs(), (ctx, param) => ctx.Users.FirstOrDefault(u => u.Id == param.Id), "Return a user by ID");
+
+        Assert.Contains("user(id: Int!, runId: ID!, plain: Int! = 0): User", schema.ToGraphQLSchemaString());
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ user { id } }" }, new TestDataContext(), null, null);
+        Assert.NotNull(result.Errors);
+        Assert.Contains(result.Errors, e => e.Message == "Field 'user' - missing required argument 'id'");
+        Assert.Contains(result.Errors, e => e.Message == "Field 'user' - missing required argument 'runId'");
+
+        result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ user(id: 100, runId: \"00000000-0000-0000-0000-000000000001\") { id } }" },
+            new TestDataContext().FillWithTestData(),
+            null,
+            null
+        );
+        Assert.Null(result.Errors);
+        Assert.Equal(100, ((dynamic)result.Data!["user"]!).id);
     }
 
     [Fact]
