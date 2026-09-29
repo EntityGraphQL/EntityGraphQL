@@ -356,6 +356,16 @@ public class ToGraphQLSchemaStringTests
     }
 
     [Fact]
+    public void TestGetArgDefaultValue_StringLikeValueTypes()
+    {
+        Assert.Equal("\"2024-01-02T03:04:05+10:00\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(10))), (e) => e));
+        Assert.Equal("\"2024-01-02\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new DateOnly(2024, 1, 2)), (e) => e));
+        Assert.Equal("\"03:04:05\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new TimeOnly(3, 4, 5)), (e) => e));
+        Assert.Equal("\"01:02:03\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new TimeSpan(1, 2, 3)), (e) => e));
+        Assert.Equal("\"a\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, 'a'), (e) => e));
+    }
+
+    [Fact]
     public void TestGetArgDefaultValue_String_Escaped()
     {
         Assert.Equal("\"a \\\"quote\\\" \\\\ \\n\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, "a \"quote\" \\ \n"), (e) => e));
