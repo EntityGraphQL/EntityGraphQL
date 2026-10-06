@@ -593,4 +593,35 @@ public class SchemaBuilderFromObjectTests
     {
         public Guid Id { get; set; }
     }
+
+    [Fact]
+    public void TestPropertyNamedLikeADbContextMemberIsAField()
+    {
+        // The names IgnoreProps used to hold by default left these out of every type, not just the DbContext
+        var schema = SchemaBuilder.FromObject<VehicleContext>();
+
+        Assert.True(schema.Type<Vehicle>().HasField("model", null));
+        Assert.True(schema.Type<Vehicle>().HasField("database", null));
+    }
+
+    [Fact]
+    public void TestIgnorePropsStillIgnoresByName()
+    {
+        var schema = SchemaBuilder.FromObject<VehicleContext>(new SchemaBuilderOptions { IgnoreProps = ["Model"] });
+
+        Assert.False(schema.Type<Vehicle>().HasField("model", null));
+        Assert.True(schema.Type<Vehicle>().HasField("database", null));
+    }
+
+    private class VehicleContext
+    {
+        public List<Vehicle> Vehicles { get; set; } = [];
+    }
+
+    private class Vehicle
+    {
+        public int Id { get; set; }
+        public string Model { get; set; } = "";
+        public string Database { get; set; } = "";
+    }
 }
