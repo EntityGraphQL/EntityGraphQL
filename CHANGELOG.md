@@ -10,6 +10,7 @@
 ## Fixes
 
 - #562 - Fixed invalid SDL for argument default values of value types. `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` and `char` defaults were printed bare (`runId: ID! = 00000000-0000-0000-0000-000000000000`), which tools like GraphQL Code Generator reject. They are now quoted string literals (dates in ISO format). Numeric defaults are printed with the invariant culture (`3.14`, not `3,14` under `de-DE`) and string defaults are escaped (`"`, `\`, newlines).
+- Fixed `UseOffsetPaging()` on a field that is not on the root query type when its collection comes from EF - e.g. `schema.Type<Actor>().ReplaceField("movies", new { }, (a, _) => a.Movies.OrderBy(m => m.Released)).UseOffsetPaging()` - failing with `The LINQ expression 'p_Movie => new Dynamic_items...' could not be translated`. The collection is part of the parent's projection, so EF has to translate the paging, and `items` was paged with EntityGraphQL's own `Skip`/`Take(int?)` helpers, which EF does not know. A collection that is not an `IQueryable` is now paged with `System.Linq`'s `Skip`/`Take` (a null `skip` is `0`, a null `take` is the rest of the collection - `int.MaxValue - skip`, as EF pages a nested collection with `row <= skip + take`, which would overflow an `int` on SQL Server and Postgres). `hasNextPage` on such a field is translated too: EF evaluated EntityGraphQL's `PageHasNext` helper in memory, loading the whole collection for every parent, and it is now an `EXISTS` query. Paging on root query fields was not affected.
 
 # 6.2.4
 

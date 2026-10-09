@@ -152,17 +152,27 @@ public class OffsetPagingExtension : BaseFieldExtension
 
         if (needsHasNext)
         {
-            var hasNextExp = Expression.Call(
-                isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
-                nameof(EnumerableExtensions.PageHasNext),
-                [listType!],
-                resolve,
-                skipExp,
-                takeExp
-            );
-            return Expression.MemberInit(
-                Expression.New(returnType.GetConstructor([typeof(int?), typeof(int?), typeof(bool?)])!, skipExp, takeExp, Expression.Convert(hasNextExp, typeof(bool?)))
-            );
+            Expression hasNextExp = isQueryable
+                ? Expression.Call(typeof(QueryableExtensions), nameof(QueryableExtensions.PageHasNext), [listType!], resolve, skipExp, takeExp)
+                // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so EF has
+                // to translate this. It does not know PageHasNext and would load the whole collection to call it, so spell
+                // it out with System.Linq: take.HasValue && source.Skip((skip ?? 0) + take.Value).Any()
+                : Expression.AndAlso(
+                    Expression.Property(takeExp, nameof(Nullable<int>.HasValue)),
+                    Expression.Call(
+                        typeof(Enumerable),
+                        nameof(Enumerable.Any),
+                        [listType!],
+                        Expression.Call(
+                            typeof(Enumerable),
+                            nameof(Enumerable.Skip),
+                            [listType!],
+                            resolve,
+                            Expression.Add(Expression.Coalesce(skipExp, Expression.Constant(0)), Expression.Property(takeExp, nameof(Nullable<int>.Value)))
+                        )
+                    )
+                );
+            return Expression.MemberInit(Expression.New(returnType.GetConstructor([typeof(int?), typeof(int?), typeof(bool?)])!, skipExp, takeExp, Expression.Convert(hasNextExp, typeof(bool?))));
         }
 
         var bindings = new List<MemberBinding>();
