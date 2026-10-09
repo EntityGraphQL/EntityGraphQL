@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using EntityGraphQL.Compiler.EntityQuery;
 using EntityGraphQL.Directives;
 using Microsoft.Extensions.Logging;
@@ -93,7 +96,17 @@ public interface ISchemaProvider
     void RemoveTypeAndAllFields<TSchemaType>();
     void RemoveTypeAndAllFields(string typeName);
     string ToGraphQLSchemaString(bool includeDescriptions = true);
-    string ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true);
+
+    /// <summary>SDL with only what the user in <paramref name="requestContext"/> may see. See SchemaProvider for details.</summary>
+    // default implementations so adding these does not break anyone implementing ISchemaProvider themselves
+    string ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true) => SchemaGenerator.Make(this, includeDescriptions, requestContext);
+
+    /// <summary>SDL with only what <paramref name="user"/> may see, filtered by this schema's AuthorizationService. See SchemaProvider for details.</summary>
+    async Task<string> ToGraphQLSchemaStringAsync(ClaimsPrincipal? user, bool includeDescriptions = true, CancellationToken cancellationToken = default)
+    {
+        var authorizationService = await AuthorizationService.PrepareForRequestAsync(this, user, cancellationToken);
+        return SchemaGenerator.Make(this, includeDescriptions, new QueryRequestContext(authorizationService, user));
+    }
     SchemaType<TType> Type<TType>();
     SchemaType<TType> Type<TType>(string typeName);
     ISchemaType Type(string typeName);

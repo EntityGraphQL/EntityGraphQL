@@ -1154,8 +1154,10 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// is authorized to access - the same rules introspection and query execution apply. Useful when handing a schema to a
     /// user or an AI agent where fields they cannot query are noise (or information they should not have).
     ///
-    /// If your <see cref="IGqlAuthorizationService"/> does async work per request (e.g. policy evaluation), build the
-    /// context from <c>await AuthorizationService.PrepareForRequestAsync(schema, user)</c> as query execution does.
+    /// Prefer <see cref="ToGraphQLSchemaStringAsync"/>, which uses this schema's <see cref="AuthorizationService"/>. A
+    /// QueryRequestContext built with a null authorization service falls back to role checks, so a schema using policies or
+    /// a custom service would be filtered by the wrong rules. If you build the context yourself, build it from
+    /// <c>await AuthorizationService.PrepareForRequestAsync(schema, user)</c> as query execution does.
     /// </summary>
     /// <param name="requestContext">The user and authorization service to filter by. Null outputs the full schema</param>
     /// <param name="includeDescriptions">Include descriptions (doc strings) in the output. Defaults to true</param>
@@ -1163,6 +1165,21 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     public string ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true)
     {
         return SchemaGenerator.Make(this, includeDescriptions, requestContext);
+    }
+
+    /// <summary>
+    /// Builds a GraphQL schema definition containing only the types and fields <paramref name="user"/> is authorized to
+    /// access, using this schema's <see cref="AuthorizationService"/> exactly as query execution does. The result is
+    /// self-consistent SDL: a type left empty by the filtering is removed along with everything referring to it.
+    /// </summary>
+    /// <param name="user">The user to filter by. Null is an anonymous user (not "no filtering" - use ToGraphQLSchemaString() for that)</param>
+    /// <param name="includeDescriptions">Include descriptions (doc strings) in the output. Defaults to true</param>
+    /// <param name="cancellationToken">Cancels any async work the authorization service does to prepare</param>
+    /// <returns>String containing the schema definition</returns>
+    public async Task<string> ToGraphQLSchemaStringAsync(ClaimsPrincipal? user, bool includeDescriptions = true, CancellationToken cancellationToken = default)
+    {
+        var authorizationService = await AuthorizationService.PrepareForRequestAsync(this, user, cancellationToken);
+        return SchemaGenerator.Make(this, includeDescriptions, new QueryRequestContext(authorizationService, user));
     }
 
     /// <summary>

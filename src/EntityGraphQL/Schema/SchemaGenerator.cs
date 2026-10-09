@@ -24,21 +24,22 @@ public class SchemaGenerator
         return input.Replace("\\", "\\\\").Replace("\"", "\\\"");
     }
 
-    /// <param name="requestContext">When supplied only types and fields this user may access are output, using the same
-    /// rules as introspection (see <see cref="SchemaIntrospection.IsVisible(QueryRequestContext?, IField)"/>). Null outputs everything</param>
+    /// <param name="requestContext">When supplied only the types and fields this user may access are output, using the same
+    /// rules as introspection (see <see cref="SchemaVisibility"/>). Null outputs everything</param>
     internal static string Make(ISchemaProvider schema, bool includeDescriptions = true, QueryRequestContext? requestContext = null)
     {
+        var visibility = SchemaVisibility.For(schema, requestContext);
         var rootQueryType = schema.GetSchemaType(schema.QueryContextType, false, null);
         var mutationType = schema.Mutation().SchemaType;
         var subscriptionType = schema.Subscription().SchemaType;
 
-        var types = BuildSchemaTypes(schema, includeDescriptions, requestContext);
+        var types = BuildSchemaTypes(schema, includeDescriptions, visibility);
 
         var schemaBuilder = new StringBuilder("schema {");
         schemaBuilder.AppendLine();
         schemaBuilder.AppendLine($"\tquery: {rootQueryType.Name}");
-        bool outputMutation = VisibleFields(mutationType, requestContext).Any();
-        bool outputSubscription = VisibleFields(subscriptionType, requestContext).Any();
+        bool outputMutation = VisibleFields(mutationType, visibility).Any();
+        bool outputSubscription = VisibleFields(subscriptionType, visibility).Any();
         if (outputMutation)
             schemaBuilder.AppendLine($"\tmutation: {mutationType.Name}");
         if (outputSubscription)
@@ -64,32 +65,32 @@ public class SchemaGenerator
         }
         schemaBuilder.AppendLine();
 
-        schemaBuilder.Append(BuildEnumTypes(schema, includeDescriptions, requestContext));
+        schemaBuilder.Append(BuildEnumTypes(schema, includeDescriptions, visibility));
 
-        schemaBuilder.AppendLine(OutputSchemaType(schema, schema.GetSchemaType(schema.QueryContextName, null), includeDescriptions, requestContext));
+        schemaBuilder.AppendLine(OutputSchemaType(schema, schema.GetSchemaType(schema.QueryContextName, null), includeDescriptions, visibility));
 
         schemaBuilder.Append(types);
 
         if (outputMutation)
-            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Mutation().SchemaType, includeDescriptions, requestContext));
+            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Mutation().SchemaType, includeDescriptions, visibility));
         if (outputSubscription)
-            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Subscription().SchemaType, includeDescriptions, requestContext));
+            schemaBuilder.AppendLine(OutputSchemaType(schema, schema.Subscription().SchemaType, includeDescriptions, visibility));
 
         return schemaBuilder.ToString();
     }
 
-    /// <summary>Fields of a type that are output: not internal (__) and, with a request context, visible to that user</summary>
-    private static IEnumerable<IField> VisibleFields(ISchemaType schemaType, QueryRequestContext? requestContext) =>
-        schemaType.GetFields().Where(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture) && SchemaIntrospection.IsVisible(requestContext, f));
+    /// <summary>Fields of a type that are output: not internal (__) and visible to the user, if filtering</summary>
+    private static IEnumerable<IField> VisibleFields(ISchemaType schemaType, SchemaVisibility visibility) =>
+        schemaType.GetFields().Where(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture) && visibility.IsFieldVisible(f));
 
-    private static string BuildEnumTypes(ISchemaProvider schema, bool includeDescriptions, QueryRequestContext? requestContext)
+    private static string BuildEnumTypes(ISchemaProvider schema, bool includeDescriptions, SchemaVisibility visibility)
     {
         var types = new StringBuilder();
         foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
         {
             if (typeItem.Name.StartsWith("__", StringComparison.InvariantCulture) || !typeItem.IsEnum)
                 continue;
-            if (!SchemaIntrospection.IsVisible(requestContext, typeItem.RequiredAuthorization))
+            if (!visibility.IsTypeVisible(typeItem))
                 continue;
 
             if (includeDescriptions && !string.IsNullOrEmpty(typeItem.Description))
@@ -113,7 +114,7 @@ public class SchemaGenerator
         return types.ToString();
     }
 
-    private static string BuildSchemaTypes(ISchemaProvider schema, bool includeDescriptions, QueryRequestContext? requestContext)
+    private static string BuildSchemaTypes(ISchemaProvider schema, bool includeDescriptions, SchemaVisibility visibility)
     {
         var types = new StringBuilder();
         foreach (var typeItem in schema.GetNonContextTypes().OrderBy(t => t.Name))
@@ -127,15 +128,15 @@ public class SchemaGenerator
             )
                 continue;
 
-            if (!SchemaIntrospection.IsVisible(requestContext, typeItem.RequiredAuthorization))
+            if (!visibility.IsTypeVisible(typeItem))
                 continue;
 
             if (!typeItem.GetFields().Any(f => !f.Name.StartsWith("__", StringComparison.InvariantCulture)) && typeItem.GqlType != GqlTypes.Union && typeItem.BaseTypesReadOnly.Count == 0)
                 continue;
 
-            var output = OutputSchemaType(schema, typeItem, includeDescriptions, requestContext);
+            var output = OutputSchemaType(schema, typeItem, includeDescriptions, visibility);
             // without a request context keep the historic output byte-for-byte (it appended even an empty union)
-            if (output.Length > 0 || requestContext == null)
+            if (output.Length > 0 || !visibility.IsFiltering)
                 types.AppendLine(output);
         }
 
@@ -260,20 +261,17 @@ public class SchemaGenerator
         return string.IsNullOrEmpty(allArgs) ? string.Empty : $"({allArgs})";
     }
 
-    private static string OutputSchemaType(ISchemaProvider schema, ISchemaType schemaType, bool includeDescriptions, QueryRequestContext? requestContext)
+    private static string OutputSchemaType(ISchemaProvider schema, ISchemaType schemaType, bool includeDescriptions, SchemaVisibility visibility)
     {
         var sb = new StringBuilder();
-        var fields = VisibleFields(schemaType, requestContext).OrderBy(s => s.Name).ToList();
-        // every field hidden from this user - an empty type is not valid SDL, and the type is not reachable anyway
-        if (requestContext != null && fields.Count == 0 && schemaType.GqlType != GqlTypes.Union)
-            return string.Empty;
+        var fields = VisibleFields(schemaType, visibility).OrderBy(s => s.Name).ToList();
 
         if (includeDescriptions && !string.IsNullOrEmpty(schemaType.Description))
             sb.AppendLine($"\"\"\"{EscapeString(schemaType.Description)}\"\"\"");
 
         if (schemaType.GqlType == GqlTypes.Union)
         {
-            var possibleTypes = schemaType.PossibleTypesReadOnly.Where(i => SchemaIntrospection.IsVisible(requestContext, i.RequiredAuthorization)).ToList();
+            var possibleTypes = schemaType.PossibleTypesReadOnly.Where(visibility.IsTypeVisible).ToList();
             if (possibleTypes.Count == 0)
             {
                 return string.Empty;
@@ -292,9 +290,18 @@ public class SchemaGenerator
         };
 
         var implements = "";
-        if (schemaType.BaseTypesReadOnly != null && schemaType.BaseTypesReadOnly.Count > 0)
+        var baseTypes = schemaType.BaseTypesReadOnly?.Where(visibility.IsTypeVisible).ToList();
+        if (baseTypes != null && baseTypes.Count > 0)
         {
-            implements += $" implements {string.Join(" & ", schemaType.BaseTypesReadOnly.Select(i => i.Name))}";
+            implements += $" implements {string.Join(" & ", baseTypes.Select(i => i.Name))}";
+        }
+
+        // the query root can be left with no fields (SchemaVisibility hides any other type it empties). The SDL grammar
+        // allows a type with no field block, so it stays a parseable root rather than disappearing from under `schema`
+        if (visibility.IsFiltering && fields.Count == 0 && schemaType.Name == schema.QueryContextName)
+        {
+            sb.AppendLine($"{type} {schemaType.Name}{implements}{GetDirectives(schemaType.Directives)}");
+            return sb.ToString();
         }
 
         sb.AppendLine($"{type} {schemaType.Name}{implements}{GetDirectives(schemaType.Directives)} {{");

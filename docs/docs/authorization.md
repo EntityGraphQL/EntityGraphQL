@@ -65,12 +65,13 @@ Introspection queries (`__schema` and `__type`) respect authorization — the re
 
 `schema.ToGraphQLSchemaString()` always outputs the full schema — use it to generate SDL files for tooling and type generation.
 
-To get SDL filtered for a user, pass a `QueryRequestContext`. The same rules as introspection apply: protected types are left out, as are fields that are protected or return a protected type.
+To get SDL filtered for a user, use `ToGraphQLSchemaStringAsync(user)`. It uses the schema's `AuthorizationService` exactly as query execution does, and applies the same rules as introspection.
 
 ```cs
-var requestContext = new QueryRequestContext(await schema.AuthorizationService.PrepareForRequestAsync(schema, user), user);
-var sdl = schema.ToGraphQLSchemaString(requestContext);
+var sdl = await schema.ToGraphQLSchemaStringAsync(user);
 ```
+
+The result is self-consistent SDL: nothing in it refers to a type it does not define. Protected types are left out, as are fields that are protected, return a hidden type or take an argument of a hidden type. A type whose fields are all hidden is itself hidden, which can in turn hide the fields returning it. Protected interfaces are dropped from `implements` lists, and protected types from union member lists. The query root always stays, even with no visible fields. Introspection hides exactly the same types and fields, so `__schema`, `__type` and the SDL agree.
 
 This is useful when handing a schema to a person or an AI agent (e.g. an MCP server tool), where fields they cannot query are noise or information they should not have. SDL is far more compact than an introspection result for the same information.
 
