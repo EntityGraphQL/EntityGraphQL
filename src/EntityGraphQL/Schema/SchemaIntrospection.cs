@@ -40,7 +40,7 @@ public static class SchemaIntrospection
             HasRoot(mutationRoot) ? new TypeElement("OBJECT", mutationRoot.Name) : null,
             HasRoot(subscriptionRoot) ? new TypeElement("OBJECT", subscriptionRoot.Name) : null,
             types.OrderBy(x => x.Name).ToList(),
-            BuildDirectives(schema)
+            BuildDirectives(schema, visibility)
         );
 
         return schemaDescription;
@@ -367,10 +367,11 @@ public static class SchemaIntrospection
         return args;
     }
 
-    private static List<Directive> BuildDirectives(ISchemaProvider schema)
+    private static List<Directive> BuildDirectives(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var directives = schema
             .GetDirectives()
+            .Where(visibility.IsDirectiveVisible)
             .Select(directive => new Directive(directive.Name)
             {
                 Description = directive.Description,

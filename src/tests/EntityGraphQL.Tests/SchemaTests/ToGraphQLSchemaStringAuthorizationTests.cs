@@ -3,6 +3,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using EntityGraphQL.Authorization;
+using EntityGraphQL.Directives;
 using EntityGraphQL.Schema;
 using Xunit;
 
@@ -162,6 +163,33 @@ public class ToGraphQLSchemaStringAuthorizationTests
         Assert.Contains("price: Money", admin);
     }
 
+    /// <summary>
+    /// A directive with an argument of a hidden type is hidden whole - in the SDL and in introspection - rather than naming
+    /// the type or being described without that argument.
+    /// </summary>
+    [Fact]
+    public async System.Threading.Tasks.Task DirectiveWithAHiddenArgumentTypeIsHidden()
+    {
+        var schema = MakeVisibilitySchema();
+        schema.AddDirective(new LevelDirective());
+
+        var anonymous = await schema.ToGraphQLSchemaStringAsync(Anonymous);
+        Assert.DoesNotContain("@atLevel", anonymous);
+        Assert.DoesNotContain("Level", anonymous);
+        // directives without hidden argument types are untouched
+        Assert.Contains("directive @include", anonymous);
+        AssertEveryReferencedTypeIsDefined(anonymous);
+
+        var admin = await schema.ToGraphQLSchemaStringAsync(UserWith("admin"));
+        Assert.Contains("directive @atLevel(level: Level!)", admin);
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ __schema { directives { name } } }" }, new VisibilityContext(), null, Anonymous);
+        Assert.Null(result.Errors);
+        var directives = ((IEnumerable<object>)((dynamic)result.Data!["__schema"]!).directives).Cast<dynamic>().Select(d => (string)d.name).ToList();
+        Assert.DoesNotContain("atLevel", directives);
+        Assert.Contains("include", directives);
+    }
+
     /// <summary>Introspection hides the same things, so a client building a schema from it gets the same result</summary>
     [Fact]
     public void IntrospectionHidesTheSameTypesAndFields()
@@ -265,6 +293,18 @@ public class ToGraphQLSchemaStringAuthorizationTests
     }
 
     public class Money { }
+
+    public class LevelDirectiveArgs
+    {
+        public Level Level { get; set; }
+    }
+
+    public class LevelDirective : DirectiveProcessor<LevelDirectiveArgs>
+    {
+        public override string Name => "atLevel";
+        public override string Description => "Only at a level";
+        public override List<ExecutableDirectiveLocation> Location => [ExecutableDirectiveLocation.Field];
+    }
 
     public class Filter
     {

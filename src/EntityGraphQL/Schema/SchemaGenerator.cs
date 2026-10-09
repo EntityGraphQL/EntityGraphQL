@@ -56,7 +56,7 @@ public class SchemaGenerator
         }
         schemaBuilder.AppendLine();
 
-        foreach (var directive in schema.GetDirectives().OrderBy(t => t.Name))
+        foreach (var directive in schema.GetDirectives().Where(visibility.IsDirectiveVisible).OrderBy(t => t.Name))
         {
             if (includeDescriptions && !string.IsNullOrEmpty(directive.Description))
                 schemaBuilder.AppendLine($"\"\"\"{EscapeString(directive.Description)}\"\"\"");

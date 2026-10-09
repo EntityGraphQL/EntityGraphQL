@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using EntityGraphQL.Directives;
 
 namespace EntityGraphQL.Schema;
 
@@ -12,7 +13,7 @@ namespace EntityGraphQL.Schema;
 /// Checking each type and field on its own is not enough: hiding one thing can leave another referring to it. A type whose
 /// fields are all protected is empty (not valid GraphQL) so it is hidden, which hides the fields returning it, which can
 /// empty another type, and so on. The same goes for a field whose argument is a hidden enum or input type, a hidden
-/// interface in an implements list, and a union whose members are all hidden. So the hidden set is computed up front and
+/// interface in an implements list, a union whose members are all hidden, and a directive with an argument of a hidden type. So the hidden set is computed up front and
 /// repeated until nothing changes.
 ///
 /// No request context means no filtering, exactly as before.
@@ -65,6 +66,19 @@ internal sealed class SchemaVisibility
             return false;
 
         return field.ArgumentsAreInternal || field.Arguments.Values.All(arg => !hiddenTypes.Contains(arg.Type.SchemaType.Name));
+    }
+
+    /// <summary>
+    /// A directive is visible when every argument's type is visible. Hidden whole rather than without the argument: dropping
+    /// an argument (possibly a required one) would describe a different directive.
+    /// </summary>
+    public bool IsDirectiveVisible(IDirectiveProcessor directive)
+    {
+        if (schema == null || requestContext == null)
+            return true;
+
+        var arguments = directive.GetArguments(schema);
+        return arguments == null || arguments.Values.All(arg => !hiddenTypes.Contains(arg.Type.SchemaType.Name));
     }
 
     private bool IsAuthorized(RequiredAuthorization? requiredAuthorization) => requestContext == null || requestContext.AuthorizationService.IsAuthorized(requestContext.User, requiredAuthorization);
