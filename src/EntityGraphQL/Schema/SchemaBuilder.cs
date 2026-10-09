@@ -438,9 +438,16 @@ public static class SchemaBuilder
         return field;
     }
 
+    /// <summary>
+    /// EF Core's own DbContext members - Database, Model, ChangeTracker, ContextId - are its machinery,
+    /// not data. Matched by where they are declared, so a property of the same name on an entity is
+    /// still a field, and by type name, so EntityGraphQL needs no reference to EF.
+    /// </summary>
+    private static bool IsDeclaredOnDbContext(MemberInfo member) => member.DeclaringType?.FullName == "Microsoft.EntityFrameworkCore.DbContext";
+
     private static bool ShouldIncludeMember(MemberInfo prop, SchemaBuilderOptions options, bool isInputType)
     {
-        if (options.IgnoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
+        if (IsDeclaredOnDbContext(prop) || options.IgnoreProps.Contains(prop.Name) || GraphQLIgnoreAttribute.ShouldIgnoreMemberFromQuery(prop))
             return false;
 
         if (isInputType && GraphQLIgnoreAttribute.ShouldIgnoreMemberFromInput(prop))
