@@ -9,40 +9,50 @@ namespace EntityGraphQL.Schema;
 public static class SchemaIntrospection
 {
     /// <summary>
-    /// Creates an Introspection schema. When a requestContext is supplied the result only includes the types
-    /// and fields the requesting user is authorized to access. Note ToGraphQLSchemaString()/SchemaGenerator
-    /// does not use this - a generated SDL file always contains the full schema.
+    /// Creates an Introspection schema. When a requestContext is supplied the result only includes the types and fields
+    /// the requesting user may see (see <see cref="SchemaVisibility"/>) - the same set ToGraphQLSchemaString(requestContext)
+    /// outputs as SDL. Without a request context nothing is filtered.
     /// </summary>
     /// <param name="schema"></param>
     /// <param name="requestContext">The executing request's context (user) used to filter protected types/fields. Null does no filtering</param>
     /// <returns></returns>
     public static Models.Schema Make(ISchemaProvider schema, QueryRequestContext? requestContext = null)
     {
+        var visibility = SchemaVisibility.For(schema, requestContext);
         var types = new List<TypeElement>
         {
             new("OBJECT", schema.QueryContextName) { Description = "The query type, represents all of the entry points into our object graph", OfType = null },
         };
-        types.AddRange(BuildQueryTypes(schema, requestContext));
-        types.AddRange(BuildInputTypes(schema, requestContext));
-        types.AddRange(BuildEnumTypes(schema, requestContext));
-        types.AddRange(BuildScalarTypes(schema));
+        types.AddRange(BuildQueryTypes(schema, visibility));
+        types.AddRange(BuildInputTypes(schema, visibility));
+        types.AddRange(BuildEnumTypes(schema, visibility));
+        types.AddRange(BuildScalarTypes(schema, visibility));
+
+        // a root none of whose fields the user may see is not advertised, as in the SDL
+        bool HasRoot(ISchemaType rootType) => schema.HasType(rootType.TypeDotnet) && (!visibility.IsFiltering || rootType.GetFields().Any(f => !IsInternal(f) && visibility.IsFieldVisible(f)));
+        var mutationRoot = schema.Mutation().SchemaType;
+        var subscriptionRoot = schema.Subscription().SchemaType;
+        if (visibility.IsFiltering)
+            types.RemoveAll(t => (t.Name == mutationRoot.Name && !HasRoot(mutationRoot)) || (t.Name == subscriptionRoot.Name && !HasRoot(subscriptionRoot)));
 
         var schemaDescription = new Models.Schema(
             new TypeElement("OBJECT", schema.QueryContextName),
-            schema.HasType(schema.Mutation().SchemaType.TypeDotnet) ? new TypeElement("OBJECT", schema.Mutation().SchemaType.Name) : null,
-            schema.HasType(schema.Subscription().SchemaType.TypeDotnet) ? new TypeElement("OBJECT", schema.Subscription().SchemaType.Name) : null,
+            HasRoot(mutationRoot) ? new TypeElement("OBJECT", mutationRoot.Name) : null,
+            HasRoot(subscriptionRoot) ? new TypeElement("OBJECT", subscriptionRoot.Name) : null,
             types.OrderBy(x => x.Name).ToList(),
-            BuildDirectives(schema)
+            BuildDirectives(schema, visibility)
         );
 
         return schemaDescription;
     }
 
-    private static List<TypeElement> BuildScalarTypes(ISchemaProvider schema)
+    private static bool IsInternal(IField field) => field.Name.StartsWith("__", StringComparison.InvariantCulture);
+
+    private static List<TypeElement> BuildScalarTypes(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var types = new List<TypeElement>();
 
-        foreach (var customScalar in schema.GetScalarTypes())
+        foreach (var customScalar in schema.GetScalarTypes().Where(visibility.IsTypeVisible))
         {
             var typeElement = new TypeElement("SCALAR", customScalar.Name) { Description = customScalar.Description };
 
@@ -54,28 +64,13 @@ public static class SchemaIntrospection
         return types;
     }
 
-    /// <summary>
-    /// True when the requesting user may see something protected by the given RequiredAuthorization.
-    /// No request context (e.g. schema tooling) means no filtering.
-    /// </summary>
-    private static bool IsVisible(QueryRequestContext? requestContext, RequiredAuthorization? requiredAuthorization)
-    {
-        return requestContext == null || requestContext.AuthorizationService.IsAuthorized(requestContext.User, requiredAuthorization);
-    }
-
-    private static bool IsVisible(QueryRequestContext? requestContext, IField field)
-    {
-        // same rules as executing a query - the field itself and the type it returns must both be accessible
-        return IsVisible(requestContext, field.RequiredAuthorization) && IsVisible(requestContext, field.ReturnType.SchemaType.RequiredAuthorization);
-    }
-
-    private static List<TypeElement> BuildQueryTypes(ISchemaProvider schema, QueryRequestContext? requestContext)
+    private static List<TypeElement> BuildQueryTypes(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var types = new List<TypeElement>();
 
         foreach (var st in schema.GetNonContextTypes().Where(s => !s.IsInput && !s.IsEnum && !s.IsScalar))
         {
-            if (!IsVisible(requestContext, st.RequiredAuthorization))
+            if (!visibility.IsTypeVisible(st))
                 continue;
 
             var kind = st.GqlType switch
@@ -88,12 +83,12 @@ public static class SchemaIntrospection
             var typeElement = new TypeElement(kind, st.Name)
             {
                 Description = st.Description,
-                PossibleTypes = st.PossibleTypesReadOnly.Select(i => new TypeElement("OBJECT", i.Name))?.ToArray() ?? Array.Empty<TypeElement>(),
+                PossibleTypes = st.PossibleTypesReadOnly.Where(visibility.IsTypeVisible).Select(i => new TypeElement("OBJECT", i.Name))?.ToArray() ?? Array.Empty<TypeElement>(),
             };
 
             if (st.BaseTypesReadOnly != null && st.BaseTypesReadOnly.Count > 0)
             {
-                typeElement.Interfaces = st.BaseTypesReadOnly.Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();
+                typeElement.Interfaces = st.BaseTypesReadOnly.Where(visibility.IsTypeVisible).Select(baseType => new TypeElement("INTERFACE", baseType.Name)).ToArray();
             }
 
             types.Add(typeElement);
@@ -110,7 +105,7 @@ public static class SchemaIntrospection
     /// Since Types and Inputs cannot have the same name, camelCase the name to prevent duplicates.
     /// </remarks>
     /// <returns></returns>
-    private static List<TypeElement> BuildInputTypes(ISchemaProvider schema, QueryRequestContext? requestContext)
+    private static List<TypeElement> BuildInputTypes(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var types = new List<TypeElement>();
 
@@ -119,7 +114,7 @@ public static class SchemaIntrospection
             if (schemaType.Name.StartsWith("__", StringComparison.InvariantCulture))
                 continue;
 
-            if (!IsVisible(requestContext, schemaType.RequiredAuthorization))
+            if (!visibility.IsTypeVisible(schemaType))
                 continue;
 
             var inputValues = new List<InputValue>();
@@ -128,7 +123,7 @@ public static class SchemaIntrospection
                 if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
-                if (!IsVisible(requestContext, field))
+                if (!visibility.IsFieldVisible(field))
                     continue;
 
                 // Skip any property with special attribute
@@ -161,7 +156,7 @@ public static class SchemaIntrospection
         return types;
     }
 
-    private static List<TypeElement> BuildEnumTypes(ISchemaProvider schema, QueryRequestContext? requestContext)
+    private static List<TypeElement> BuildEnumTypes(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var types = new List<TypeElement>();
 
@@ -172,7 +167,7 @@ public static class SchemaIntrospection
             if (schemaType.Name.StartsWith("__", StringComparison.InvariantCulture))
                 continue;
 
-            if (!IsVisible(requestContext, schemaType.RequiredAuthorization))
+            if (!visibility.IsTypeVisible(schemaType))
                 continue;
 
             var enumTypes = new List<EnumValue>();
@@ -255,14 +250,15 @@ public static class SchemaIntrospection
             return null;
         }
 
+        var visibility = SchemaVisibility.For(schema, requestContext);
         Models.Field[] fields;
         if (typeName == schema.QueryContextName)
         {
-            fields = BuildRootQueryFields(schema, requestContext);
+            fields = BuildRootQueryFields(schema, visibility);
         }
         else if (typeName == schema.Mutation().SchemaType.Name)
         {
-            fields = BuildMutationFields(schema, requestContext);
+            fields = BuildMutationFields(schema, visibility);
         }
         else
         {
@@ -272,12 +268,14 @@ public static class SchemaIntrospection
                 return fieldDescs;
             }
             var type = schema.Type(typeName);
+            if (!visibility.IsTypeVisible(type))
+                return fieldDescs;
             foreach (var field in type.GetFields())
             {
                 if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                     continue;
 
-                if (!IsVisible(requestContext, field))
+                if (!visibility.IsFieldVisible(field))
                     continue;
 
                 var f = new Models.Field(field.Name, BuildType(schema, field.ReturnType, field.ReturnType.TypeDotnet)) { Args = BuildArgs(schema, field).ToArray(), Description = field.Description };
@@ -294,7 +292,7 @@ public static class SchemaIntrospection
         return fields.Where(f => !f.IsDeprecated);
     }
 
-    private static Models.Field[] BuildRootQueryFields(ISchemaProvider schema, QueryRequestContext? requestContext)
+    private static Models.Field[] BuildRootQueryFields(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var rootFields = new List<Models.Field>();
 
@@ -307,7 +305,7 @@ public static class SchemaIntrospection
             if (field.ReturnType.TypeDotnet.IsEnum)
                 continue;
 
-            if (!IsVisible(requestContext, field))
+            if (!visibility.IsFieldVisible(field))
                 continue;
 
             //== Fields ==//
@@ -320,7 +318,7 @@ public static class SchemaIntrospection
         return rootFields.ToArray();
     }
 
-    private static Models.Field[] BuildMutationFields(ISchemaProvider schema, QueryRequestContext? requestContext)
+    private static Models.Field[] BuildMutationFields(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var rootFields = new List<Models.Field>();
 
@@ -329,7 +327,7 @@ public static class SchemaIntrospection
             if (field.Name.StartsWith("__", StringComparison.InvariantCulture))
                 continue;
 
-            if (!IsVisible(requestContext, field))
+            if (!visibility.IsFieldVisible(field))
                 continue;
 
             var args = BuildArgs(schema, field).ToArray();
@@ -369,10 +367,11 @@ public static class SchemaIntrospection
         return args;
     }
 
-    private static List<Directive> BuildDirectives(ISchemaProvider schema)
+    private static List<Directive> BuildDirectives(ISchemaProvider schema, SchemaVisibility visibility)
     {
         var directives = schema
             .GetDirectives()
+            .Where(visibility.IsDirectiveVisible)
             .Select(directive => new Directive(directive.Name)
             {
                 Description = directive.Description,
