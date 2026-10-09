@@ -281,4 +281,78 @@ public class PagingTests
         Assert.Equal("Child", actors.items[1].name);
         Assert.Equal("Parent", actors.items[1].children[0].name);
     }
+
+    // A paged collection selected on a parent object is part of the parent's projection, so EF has to translate
+    // the paging - "The LINQ expression 'p_Movie => new Dynamic_items...' could not be translated" before.
+    [Fact]
+    public void TestNestedOffsetPagingOnNavigation()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+
+        schema.Type<Actor>().ReplaceField("movies", new { }, (a, _) => a.Movies.OrderByDescending(m => m.Released), "Movies, newest first").UseOffsetPaging();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    actor(id: 1) {
+                        movies(take: 1) {
+                            totalItems
+                            hasNextPage
+                            items { name }
+                        }
+                    }
+                }",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic movies = ((dynamic)result.Data!["actor"]!).movies;
+        Assert.Equal(2, movies.totalItems);
+        Assert.True(movies.hasNextPage);
+        Assert.Equal(1, Enumerable.Count(movies.items));
+        Assert.Equal("Newer", movies.items[0].name);
+    }
+
+    [Fact]
+    public void TestNestedOffsetPagingOnNavigationHasNextPageOnly()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+
+        schema.Type<Actor>().ReplaceField("movies", new { }, (a, _) => a.Movies.OrderByDescending(m => m.Released), "Movies, newest first").UseOffsetPaging();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    actors {
+                        movies(skip: 1, take: 1) {
+                            hasNextPage
+                            items { name }
+                        }
+                    }
+                }",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic movies = ((dynamic)result.Data!["actors"]!)[0].movies;
+        Assert.False(movies.hasNextPage);
+        Assert.Equal(1, Enumerable.Count(movies.items));
+        Assert.Equal("Older", movies.items[0].name);
+    }
+
+    private static TestDbContext CreateActorWithMovies(TestDbContextFactory factory)
+    {
+        var data = factory.CreateContext();
+        data.Actors.Add(
+            new Actor("Actor") { Id = 1, Movies = [new Movie("Older") { Id = 1, Released = new DateTime(2020, 1, 1) }, new Movie("Newer") { Id = 2, Released = new DateTime(2021, 1, 1) }] }
+        );
+        data.SaveChanges();
+        return data;
+    }
 }

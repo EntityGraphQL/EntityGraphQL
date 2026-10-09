@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
@@ -112,19 +113,30 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
             throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "OffsetPagingItemsExtension requires an argument parameter to be passed in");
 
         // Build our items expression with the paging
-        newItemsExp = Expression.Call(
-            isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
-            nameof(EnumerableExtensions.Take),
-            [listType],
-            Expression.Call(
-                isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
-                nameof(EnumerableExtensions.Skip),
+        var skipExp = Expression.PropertyOrField(argumentParam, "skip");
+        var takeExp = Expression.PropertyOrField(argumentParam, "take");
+        if (isQueryable)
+        {
+            newItemsExp = Expression.Call(
+                typeof(QueryableExtensions),
+                nameof(QueryableExtensions.Take),
                 [listType],
-                newItemsExp,
-                Expression.PropertyOrField(argumentParam, "skip")
-            ),
-            Expression.PropertyOrField(argumentParam, "take")
-        );
+                Expression.Call(typeof(QueryableExtensions), nameof(QueryableExtensions.Skip), [listType], newItemsExp, skipExp),
+                takeExp
+            );
+        }
+        else
+        {
+            // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so a LINQ
+            // provider like EF has to translate it. It knows System.Linq's Skip/Take but not our int? overloads.
+            newItemsExp = Expression.Call(
+                typeof(Enumerable),
+                nameof(Enumerable.Take),
+                [listType],
+                Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [listType], newItemsExp, Expression.Coalesce(skipExp, Expression.Constant(0))),
+                Expression.Coalesce(takeExp, Expression.Constant(int.MaxValue))
+            );
+        }
 
         // we have moved the expression from the parent node to here. We need to call the before callback
         if (fieldNode.ParentNode?.IsRootField == true)
