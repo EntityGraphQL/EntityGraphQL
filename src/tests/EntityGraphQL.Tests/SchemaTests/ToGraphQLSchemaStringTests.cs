@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Schema;
@@ -324,6 +325,73 @@ public class ToGraphQLSchemaStringTests
     public void TestGetArgDefaultValue_Decimal()
     {
         Assert.Equal("3.14", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, 3.14), (e) => e));
+    }
+
+    [Fact]
+    public void TestGetArgDefaultValue_Decimal_NonInvariantCulture()
+    {
+        var culture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+            Assert.Equal("3.14", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, 3.14m), (e) => e));
+            Assert.Equal("3.14", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, 3.14), (e) => e));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [Fact]
+    public void TestGetArgDefaultValue_Guid()
+    {
+        Assert.Equal("\"00000000-0000-0000-0000-000000000000\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, Guid.Empty), (e) => e));
+    }
+
+    [Fact]
+    public void TestGetArgDefaultValue_DateTime()
+    {
+        Assert.Equal("\"2024-01-02T03:04:05\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new DateTime(2024, 1, 2, 3, 4, 5)), (e) => e));
+    }
+
+    [Fact]
+    public void TestGetArgDefaultValue_StringLikeValueTypes()
+    {
+        Assert.Equal("\"2024-01-02T03:04:05+10:00\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(10))), (e) => e));
+        Assert.Equal("\"2024-01-02\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new DateOnly(2024, 1, 2)), (e) => e));
+        Assert.Equal("\"03:04:05\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new TimeOnly(3, 4, 5)), (e) => e));
+        Assert.Equal("\"01:02:03\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, new TimeSpan(1, 2, 3)), (e) => e));
+        Assert.Equal("\"a\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, 'a'), (e) => e));
+    }
+
+    [Fact]
+    public void TestGetArgDefaultValue_String_Escaped()
+    {
+        Assert.Equal("\"a \\\"quote\\\" \\\\ \\n\"", SchemaGenerator.GetArgDefaultValue(new DefaultArgValue(true, "a \"quote\" \\ \n"), (e) => e));
+    }
+
+    [Fact]
+    public void TestGetArgDefaultValue_GuidArgInSchema()
+    {
+        var schema = SchemaBuilder.FromObject<IgnoreTestSchema>();
+        schema.Query().AddField("byGuid", new { runId = Guid.Empty, name = "a \"b\"" }, (db, args) => db.Albums.FirstOrDefault(), "test");
+        var sdl = schema.ToGraphQLSchemaString();
+        Assert.Contains("runId: ID! = \"00000000-0000-0000-0000-000000000000\"", sdl);
+        Assert.Contains("= \"a \\\"b\\\"\")", sdl);
+
+        // introspection defaultValue is the same GraphQL literal as the SDL, quotes included
+        var res = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ __type(name: \"Query\") { fields { name args { name defaultValue } } } }" },
+            new IgnoreTestSchema(),
+            null,
+            null
+        );
+        Assert.Null(res.Errors);
+        dynamic type = res.Data!["__type"]!;
+        var args = ((IEnumerable<dynamic>)type.fields).First(f => f.name == "byGuid").args;
+        Assert.Equal("\"00000000-0000-0000-0000-000000000000\"", args[0].defaultValue);
+        Assert.Equal("\"a \\\"b\\\"\"", args[1].defaultValue);
     }
 
     [Fact]
