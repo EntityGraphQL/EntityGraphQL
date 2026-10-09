@@ -1,6 +1,9 @@
 using System;
 using System.Buffers;
 using System.Buffers.Text;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
@@ -107,18 +110,31 @@ public static class ConnectionHelper
         }
     }
 
+    private static readonly ConcurrentDictionary<(Type, string), FieldInfo[]> cursorFieldsCache = new();
+
     /// <summary>
     /// Used at runtime for a nested collection: sets the cursor fields of the already-projected edges. The edges are
-    /// rows skip + 1, skip + 2, ... of the collection. reverse when the page was taken in reverse order (last).
-    /// cursorFields is a comma separated list of field names
+    /// rows skip + 1, skip + 2, ... of the collection. cursorFields is a comma separated list of field names.
+    ///
+    /// reversedFromCount is set when the page was taken in reverse (last): the edges are the last of that many rows,
+    /// newest first. They are put back in order and skip is `after` - any rows up to it are dropped
     /// </summary>
-    public static System.Collections.Generic.List<TEdge>? SetCursors<TEdge>(System.Collections.Generic.List<TEdge>? edges, int skip, bool reverse, string cursorFields)
+    public static List<TEdge>? SetCursors<TEdge>(List<TEdge>? edges, int skip, int? reversedFromCount, string cursorFields)
     {
         if (edges == null)
             return null;
-        if (reverse)
+        if (reversedFromCount != null)
+        {
             edges.Reverse();
-        var fields = Array.ConvertAll(cursorFields.Split(','), name => typeof(TEdge).GetField(name)!);
+            var rowsBefore = reversedFromCount.Value - edges.Count;
+            if (rowsBefore < skip)
+            {
+                edges.RemoveRange(0, Math.Min(skip - rowsBefore, edges.Count));
+                rowsBefore = skip;
+            }
+            skip = rowsBefore;
+        }
+        var fields = cursorFieldsCache.GetOrAdd((typeof(TEdge), cursorFields), key => Array.ConvertAll(key.Item2.Split(','), name => key.Item1.GetField(name)!));
         for (var i = 0; i < edges.Count; i++)
         {
             var cursor = SerializeCursor(skip + i + 1);
@@ -126,6 +142,15 @@ public static class ConnectionHelper
                 field.SetValue(edges[i], cursor);
         }
         return edges;
+    }
+
+    /// <summary>
+    /// Used at runtime: the row number of the after cursor, 0 if none
+    /// </summary>
+    public static int GetAfterNumber(dynamic arguments)
+    {
+        int? after = arguments.AfterNum;
+        return after ?? 0;
     }
 
     /// <summary>

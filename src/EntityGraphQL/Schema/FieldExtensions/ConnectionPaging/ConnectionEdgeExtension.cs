@@ -14,13 +14,20 @@ public class ConnectionEdgeExtension : BaseFieldExtension
     private readonly ParameterExpression firstSelectParam;
 
     /// <param name="listType">The element type of the paged collection</param>
-    /// <param name="isQueryable">Not used. The edges field is shared by every field paging a collection of listType, root
-    /// (IQueryable) or nested (e.g. a navigation property), so this is decided per use from the expression</param>
-    public ConnectionEdgeExtension(Type listType, bool isQueryable)
+    public ConnectionEdgeExtension(Type listType)
     {
-        _ = isQueryable;
         this.listType = listType;
         firstSelectParam = Expression.Parameter(listType, "edgeNode");
+    }
+
+    /// <param name="listType">The element type of the paged collection</param>
+    /// <param name="isQueryable">Not used. The edges field is shared by every field paging a collection of listType, root
+    /// (IQueryable) or nested (e.g. a navigation property), so this is decided per use from the expression</param>
+    [Obsolete("isQueryable is not used, it is decided per use from the expression. Use ConnectionEdgeExtension(Type listType). This constructor will be removed in 7.0")]
+    public ConnectionEdgeExtension(Type listType, bool isQueryable)
+        : this(listType)
+    {
+        _ = isQueryable;
     }
 
     public override (Expression? expression, ParameterExpression? originalArgParam, ParameterExpression? newArgParam, object? argumentValue) GetExpressionAndArguments(
@@ -178,7 +185,9 @@ public class ConnectionEdgeExtension : BaseFieldExtension
                 // The last N of each parent's own collection. GetSkipNumber/GetTakeNumber use arguments.TotalCount, which
                 // is one value per request so only works for a root field. Skip(Count() - N) has the outer row in a
                 // correlated subquery EF can't translate on every provider, so take the first N in reverse order and
-                // flip them back once materialized (ProcessExpressionPostSelection)
+                // flip them back once materialized (ProcessExpressionPostSelection). `after` is applied there too, as
+                // Skip(after).Reverse() needs SQL APPLY (not supported by SQLite) - it can only drop rows from this page.
+                // Reverse() needs an ordered collection for EF. An unordered in-memory collection works, so we can't reject it here
                 edgeExpression = Expression.Call(
                     typeof(Enumerable),
                     nameof(Enumerable.Take),
@@ -276,7 +285,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         );
 
         nodeField.Expression = Expression.PropertyOrField(edgeParam, "Node");
-        if (FindPagingCall(baseExpression).pagingCall == null)
+        if (FindPagingCall(baseExpression) == null)
         {
             // assign cursors while enumerating (in memory - this is what executes the DB query above).
             // ApplyCursors computes the argument-dependent cursor base once per request rather than per row.
@@ -308,17 +317,22 @@ public class ConnectionEdgeExtension : BaseFieldExtension
 
         // The edges of a page are rows skip + 1, skip + 2, ... of the collection. Use the paging built in GetExpressionAndArguments
         // as it is per parent for `last`. EF translates it alongside the page and calls SetCursors with the materialized list
-        var (pagingCall, takeArg) = FindPagingCall(resultExpression);
-        if (pagingCall == null)
+        var pagingCall = FindPagingCall(resultExpression);
+        if (pagingCall == null || context.ArgumentParameter == null)
             return resultExpression;
         Expression skip;
+        Expression reversedFromCount;
         if (pagingCall.Method.Name == nameof(Enumerable.Reverse))
         {
-            var count = Expression.Call(typeof(Enumerable), nameof(Enumerable.Count), [listType], pagingCall.Arguments[0]);
-            skip = Expression.Condition(Expression.GreaterThan(count, takeArg!), Expression.Subtract(count, takeArg!), Expression.Constant(0));
+            // the last of each parent's own Count() rows, taken in reverse. SetCursors drops the rows up to `after`
+            skip = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetAfterNumber), null, context.ArgumentParameter);
+            reversedFromCount = Expression.Convert(Expression.Call(typeof(Enumerable), nameof(Enumerable.Count), [listType], pagingCall.Arguments[0]), typeof(int?));
         }
         else
+        {
             skip = pagingCall.Arguments[1];
+            reversedFromCount = Expression.Constant(null, typeof(int?));
+        }
 
         // field names as a string - EF rejects non-primitive constants passed to a method in a client projection
         return Expression.Call(
@@ -327,16 +341,16 @@ public class ConnectionEdgeExtension : BaseFieldExtension
             [elementType],
             resultExpression,
             skip,
-            Expression.Constant(pagingCall.Method.Name == nameof(Enumerable.Reverse)),
+            reversedFromCount,
             Expression.Constant(string.Join(",", cursorFields))
         );
     }
 
     /// <summary>
-    /// Finds the Skip() (or Reverse() for last) built for a nested collection in GetExpressionAndArguments, and the Take()
-    /// count above it. Null if the paging was not built for a nested collection
+    /// Finds the Skip() (or Reverse() for last) under the Take() built for a nested collection in GetExpressionAndArguments.
+    /// Null if the paging was not built for a nested collection
     /// </summary>
-    private (MethodCallExpression? pagingCall, Expression? takeArg) FindPagingCall(Expression expression)
+    private MethodCallExpression? FindPagingCall(Expression expression)
     {
         while (expression is MethodCallExpression call)
         {
@@ -348,11 +362,11 @@ public class ConnectionEdgeExtension : BaseFieldExtension
                     && call.Arguments[0] is MethodCallExpression { Method.Name: nameof(Enumerable.Skip) or nameof(Enumerable.Reverse) } paging
                     && paging.Method.DeclaringType == typeof(Enumerable)
                 )
-                    return (paging, call.Arguments[1]);
-                return (null, null);
+                    return paging;
+                return null;
             }
             expression = call.Arguments[0];
         }
-        return (null, null);
+        return null;
     }
 }

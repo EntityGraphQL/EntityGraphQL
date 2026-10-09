@@ -21,6 +21,11 @@ public sealed class FieldExtensionPostSelectionContext
     public Dictionary<IFieldKey, CompiledField> SelectionExpressions { get; set; } = null!;
 
     /// <summary>
+    /// The argument parameter for the field, when one exists.
+    /// </summary>
+    public ParameterExpression? ArgumentParameter { get; set; }
+
+    /// <summary>
     /// True when compiling the service-enabled execution pass.
     /// </summary>
     public bool ServicesPass { get; set; }

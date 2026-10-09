@@ -105,7 +105,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
         // if they have 2 fields with the type and paging we don't want to add extension multiple times
         // See OffsetPagingTests.TestMultiUseWithArgs
         if (!edgesField.Extensions.Any(e => e is ConnectionEdgeExtension))
-            edgesField.AddExtension(new ConnectionEdgeExtension(listType, isQueryable));
+            edgesField.AddExtension(new ConnectionEdgeExtension(listType));
 
         OriginalFieldExpression = field.ResolveExpression;
 

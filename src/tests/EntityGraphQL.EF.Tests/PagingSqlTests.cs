@@ -257,6 +257,37 @@ public class PagingSqlTests
         Assert.DoesNotContain("\"Released\"", page);
     }
 
+    // Relay: apply after, then take the last N of what is left
+    [Theory]
+    [InlineData(8, new[] { 9, 10 })]
+    [InlineData(3, new[] { 6, 7, 8, 9, 10 })]
+    [InlineData(12, new int[0])]
+    public void NestedConnectionPagingLastAndAfter(int after, int[] expected)
+    {
+        var (factory, data, sql, schema) = MakeNestedConnectionPaging();
+        using var _ = factory;
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest
+            {
+                Query =
+                    $@"{{ actors {{ movies(last: 5, after: ""{ConnectionHelper.SerializeCursor(after)}"") {{ pageInfo {{ hasPreviousPage hasNextPage }} edges {{ cursor node {{ name }} }} }} }} }}",
+            },
+            data,
+            null,
+            null
+        );
+
+        Assert.Null(result.Errors);
+        dynamic movies = ((dynamic)result.Data!["actors"]!)[0].movies;
+        var edges = ((IEnumerable<dynamic>)movies.edges).ToList();
+        Assert.Equal(expected.Select(i => $"Movie{i}"), edges.Select(e => (string)e.node.name));
+        Assert.Equal(expected.Select(ConnectionHelper.SerializeCursor), edges.Select(e => (string)e.cursor));
+        Assert.True((bool)movies.pageInfo.hasPreviousPage);
+        Assert.False((bool)movies.pageInfo.hasNextPage);
+        Assert.Single(Commands(sql), c => c.Contains("ROW_NUMBER()"));
+    }
+
     [Fact]
     public void NestedConnectionPagingHasNextPageIsTranslated()
     {

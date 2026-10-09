@@ -218,6 +218,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                 {
                     ResultExpression = resultExpression,
                     SelectionExpressions = selectionFields,
+                    ArgumentParameter = argumentParams,
                     ServicesPass = contextChanged,
                 }
             );
