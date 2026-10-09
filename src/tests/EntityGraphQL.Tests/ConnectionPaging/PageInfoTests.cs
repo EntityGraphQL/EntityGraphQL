@@ -54,6 +54,13 @@ public class PageInfoTests
     }
 
     [Fact]
+    public void TestLastLeavesOneBefore()
+    {
+        Assert.True(new ConnectionPageInfo(3, new ConnectionArgs { Last = 2 }).HasPreviousPage);
+        Assert.False(new ConnectionPageInfo(2, new ConnectionArgs { Last = 2 }).HasPreviousPage);
+    }
+
+    [Fact]
     public void TestLastAndBefore()
     {
         var args = new ConnectionArgs { Last = 3, BeforeNum = 6 };

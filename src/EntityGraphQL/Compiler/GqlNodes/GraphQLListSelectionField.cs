@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler;
 
@@ -209,6 +210,18 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                     Expression.Constant(Field!.ReturnType.TypeNotNullable)
                 )
                 : Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [resultElementType], resultExpression);
+
+        foreach (var extension in Field?.Extensions ?? [])
+        {
+            resultExpression = extension.ProcessExpressionPostSelection(
+                new FieldExtensionPostSelectionContext
+                {
+                    ResultExpression = resultExpression,
+                    SelectionExpressions = selectionFields,
+                    ServicesPass = contextChanged,
+                }
+            );
+        }
 
         return resultExpression;
     }

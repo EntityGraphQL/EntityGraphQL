@@ -207,12 +207,32 @@ public class ConnectionPagingExtension : BaseFieldExtension
 
         if (!needsCount && pageInfoNode?.QueryFields?.Any(f => f.Field?.Name == "hasNextPage") == true)
         {
-            var sourceType = isQueryable ? typeof(IQueryable<>) : typeof(System.Collections.Generic.IEnumerable<>);
-            var pageHasNext = typeof(ConnectionHelper)
-                .GetMethods()
-                .First(m => m.Name == nameof(ConnectionHelper.PageHasNext) && m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == sourceType)
-                .MakeGenericMethod(listType!);
-            var hasNextExp = Expression.Convert(Expression.Call(pageHasNext, resolve, argumentParam), typeof(bool?));
+            Expression hasNextExp;
+            if (isQueryable)
+            {
+                var pageHasNext = typeof(ConnectionHelper)
+                    .GetMethods()
+                    .First(m => m.Name == nameof(ConnectionHelper.PageHasNext) && m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IQueryable<>))
+                    .MakeGenericMethod(listType!);
+                hasNextExp = Expression.Call(pageHasNext, resolve, argumentParam);
+            }
+            else
+            {
+                // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so EF has
+                // to translate this. It does not know PageHasNext and would load the whole collection to call it, so spell
+                // it out with System.Linq: skip.HasValue && source.Skip(skip.Value).Any()
+                var skipExp = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetHasNextSkip), null, argumentParam);
+                hasNextExp = Expression.AndAlso(
+                    Expression.Property(skipExp, nameof(Nullable<int>.HasValue)),
+                    Expression.Call(
+                        typeof(Enumerable),
+                        nameof(Enumerable.Any),
+                        [listType!],
+                        Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [listType!], resolve, Expression.Property(skipExp, nameof(Nullable<int>.Value)))
+                    )
+                );
+            }
+            hasNextExp = Expression.Convert(hasNextExp, typeof(bool?));
             return Expression.MemberInit(Expression.New(returnType!.GetConstructor([argumentParam.Type, typeof(bool?)])!, argumentParam, hasNextExp));
         }
 

@@ -12,12 +12,14 @@ public class ConnectionEdgeExtension : BaseFieldExtension
 {
     private readonly Type listType;
     private readonly ParameterExpression firstSelectParam;
-    private readonly bool isQueryable;
 
+    /// <param name="listType">The element type of the paged collection</param>
+    /// <param name="isQueryable">Not used. The edges field is shared by every field paging a collection of listType, root
+    /// (IQueryable) or nested (e.g. a navigation property), so this is decided per use from the expression</param>
     public ConnectionEdgeExtension(Type listType, bool isQueryable)
     {
+        _ = isQueryable;
         this.listType = listType;
-        this.isQueryable = isQueryable;
         firstSelectParam = Expression.Parameter(listType, "edgeNode");
     }
 
@@ -115,6 +117,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         }
 
         arguments ??= new { };
+        var isQueryable = expression.Type.IsGenericTypeQueryable();
 
         // check and set up arguments
         if (arguments.Before != null && arguments.After != null)
@@ -145,25 +148,60 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         if (arguments.First == null && arguments.Last == null && pagingExtension.DefaultPageSize != null)
             arguments.First = pagingExtension.DefaultPageSize;
 
-        Expression? edgeExpression = Expression.Call(
-            isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
-            nameof(EnumerableExtensions.Take),
-            [listType],
-            Expression.Call(
-                isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
-                nameof(EnumerableExtensions.Skip),
-                [listType],
-                expression,
-                Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(true))
-            ),
-            Expression.Call(
-                typeof(ConnectionHelper),
-                nameof(ConnectionHelper.GetTakeNumber),
-                null,
-                argumentParam,
-                Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(false))
-            )
+        Expression skipExp = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(true));
+        Expression takeExp = Expression.Call(
+            typeof(ConnectionHelper),
+            nameof(ConnectionHelper.GetTakeNumber),
+            null,
+            argumentParam,
+            Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(false))
         );
+        Expression? edgeExpression;
+        // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so a LINQ
+        // provider like EF has to translate it. A root field's collection is executed by itself, as is the services pass in memory
+        var nestedProjection = !isQueryable && !servicesPass && fieldNode.ParentNode.IsRootField != true;
+        if (!nestedProjection)
+        {
+            edgeExpression = Expression.Call(
+                isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions),
+                nameof(EnumerableExtensions.Take),
+                [listType],
+                Expression.Call(isQueryable ? typeof(QueryableExtensions) : typeof(EnumerableExtensions), nameof(EnumerableExtensions.Skip), [listType], expression, skipExp),
+                takeExp
+            );
+        }
+        else
+        {
+            // EF knows System.Linq's Skip/Take but not our int? overloads
+            if (arguments.Last != null && arguments.BeforeNum == null)
+            {
+                // The last N of each parent's own collection. GetSkipNumber/GetTakeNumber use arguments.TotalCount, which
+                // is one value per request so only works for a root field. Skip(Count() - N) has the outer row in a
+                // correlated subquery EF can't translate on every provider, so take the first N in reverse order and
+                // flip them back once materialized (ProcessExpressionPostSelection)
+                edgeExpression = Expression.Call(
+                    typeof(Enumerable),
+                    nameof(Enumerable.Take),
+                    [listType],
+                    Expression.Call(typeof(Enumerable), nameof(Enumerable.Reverse), [listType], expression),
+                    Expression.Constant((int)arguments.Last)
+                );
+            }
+            else
+            {
+                skipExp = Expression.Coalesce(skipExp, Expression.Constant(0));
+                // No take means the rest of the collection: int.MaxValue - skip rather than int.MaxValue, as EF pages a nested
+                // collection with ROW_NUMBER() and `row <= skip + take`, which overflows an int on SQL Server/Postgres
+                takeExp = Expression.Coalesce(takeExp, Expression.Subtract(Expression.Constant(int.MaxValue), skipExp));
+                edgeExpression = Expression.Call(
+                    typeof(Enumerable),
+                    nameof(Enumerable.Take),
+                    [listType],
+                    Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [listType], expression, skipExp),
+                    takeExp
+                );
+            }
+        }
 
         // we have moved the expression from the parent node to here. We need to call the before callback
         if (fieldNode.ParentNode?.IsRootField == true)
@@ -217,6 +255,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         // we now know the fields they want to select so we rebuild the base expression
         // remove the above Select(new ConnectionEdge<T>(), ...)
         baseExpression = ((MethodCallExpression)baseExpression).Arguments[0];
+        var isQueryable = baseExpression.Type.IsGenericTypeQueryable();
         // remove null check as it is not required
         var nodeField = selectionExpressions.First(f => f.Key.SchemaName == "node").Value;
         var anonNewExpression = nodeField.Expression;
@@ -236,14 +275,84 @@ public class ConnectionEdgeExtension : BaseFieldExtension
             Expression.Lambda(Expression.MemberInit(Expression.New(edgeType), new List<MemberBinding> { Expression.Bind(edgeType.GetProperty("Node")!, newNodeExpression) }), firstSelectParam)
         );
 
-        // assign cursors while enumerating (in memory - this is what executes the DB query above).
-        // ApplyCursors computes the argument-dependent cursor base once per request rather than per row.
-        baseExpression = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.ApplyCursors), [anonType], baseExpression, argumentParam);
-
         nodeField.Expression = Expression.PropertyOrField(edgeParam, "Node");
-        if (selectionExpressions.Any(f => f.Key.Name == "cursor"))
-            selectionExpressions.First(f => f.Key.Name == "cursor").Value.Expression = Expression.PropertyOrField(edgeParam, "Cursor");
+        if (FindPagingCall(baseExpression).pagingCall == null)
+        {
+            // assign cursors while enumerating (in memory - this is what executes the DB query above).
+            // ApplyCursors computes the argument-dependent cursor base once per request rather than per row.
+            baseExpression = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.ApplyCursors), [anonType], baseExpression, argumentParam);
+            foreach (var cursorField in selectionExpressions.Where(f => f.Key.SchemaName == "cursor"))
+                cursorField.Value.Expression = Expression.PropertyOrField(edgeParam, "Cursor");
+        }
+        else
+        {
+            // A nested collection is part of the parent's projection and the provider (e.g. EF) can not translate
+            // ApplyCursors there. Select no cursor here and set it once the edges are a list - see ProcessExpressionPostSelection
+            foreach (var cursorField in selectionExpressions.Where(f => f.Key.SchemaName == "cursor"))
+                cursorField.Value.Expression = Expression.Constant(null, typeof(string));
+        }
 
         return (baseExpression, selectionExpressions, edgeParam);
+    }
+
+    public override Expression ProcessExpressionPostSelection(FieldExtensionPostSelectionContext context)
+    {
+        var resultExpression = context.ResultExpression;
+        if (context.ServicesPass)
+            return resultExpression;
+        // only the nested case left the cursors to us - see ProcessExpressionSelection
+        var cursorFields = context.SelectionExpressions.Where(f => f.Key.SchemaName == "cursor" && f.Value.Expression is ConstantExpression { Value: null }).Select(f => f.Key.Name).ToArray();
+        var elementType = resultExpression.Type.GetEnumerableOrArrayType();
+        if (cursorFields.Length == 0 || elementType == null || !typeof(List<>).MakeGenericType(elementType).IsAssignableFrom(resultExpression.Type))
+            return resultExpression;
+
+        // The edges of a page are rows skip + 1, skip + 2, ... of the collection. Use the paging built in GetExpressionAndArguments
+        // as it is per parent for `last`. EF translates it alongside the page and calls SetCursors with the materialized list
+        var (pagingCall, takeArg) = FindPagingCall(resultExpression);
+        if (pagingCall == null)
+            return resultExpression;
+        Expression skip;
+        if (pagingCall.Method.Name == nameof(Enumerable.Reverse))
+        {
+            var count = Expression.Call(typeof(Enumerable), nameof(Enumerable.Count), [listType], pagingCall.Arguments[0]);
+            skip = Expression.Condition(Expression.GreaterThan(count, takeArg!), Expression.Subtract(count, takeArg!), Expression.Constant(0));
+        }
+        else
+            skip = pagingCall.Arguments[1];
+
+        // field names as a string - EF rejects non-primitive constants passed to a method in a client projection
+        return Expression.Call(
+            typeof(ConnectionHelper),
+            nameof(ConnectionHelper.SetCursors),
+            [elementType],
+            resultExpression,
+            skip,
+            Expression.Constant(pagingCall.Method.Name == nameof(Enumerable.Reverse)),
+            Expression.Constant(string.Join(",", cursorFields))
+        );
+    }
+
+    /// <summary>
+    /// Finds the Skip() (or Reverse() for last) built for a nested collection in GetExpressionAndArguments, and the Take()
+    /// count above it. Null if the paging was not built for a nested collection
+    /// </summary>
+    private (MethodCallExpression? pagingCall, Expression? takeArg) FindPagingCall(Expression expression)
+    {
+        while (expression is MethodCallExpression call)
+        {
+            // the paging Take() is the outermost one on the collection
+            if (call.Method.Name == nameof(Enumerable.Take) && call.Method.IsGenericMethod && call.Method.GetGenericArguments()[0] == listType)
+            {
+                if (
+                    call.Method.DeclaringType == typeof(Enumerable)
+                    && call.Arguments[0] is MethodCallExpression { Method.Name: nameof(Enumerable.Skip) or nameof(Enumerable.Reverse) } paging
+                    && paging.Method.DeclaringType == typeof(Enumerable)
+                )
+                    return (paging, call.Arguments[1]);
+                return (null, null);
+            }
+            expression = call.Arguments[0];
+        }
+        return (null, null);
     }
 }

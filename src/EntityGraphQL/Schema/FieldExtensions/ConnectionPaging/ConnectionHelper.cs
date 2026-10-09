@@ -108,6 +108,27 @@ public static class ConnectionHelper
     }
 
     /// <summary>
+    /// Used at runtime for a nested collection: sets the cursor fields of the already-projected edges. The edges are
+    /// rows skip + 1, skip + 2, ... of the collection. reverse when the page was taken in reverse order (last).
+    /// cursorFields is a comma separated list of field names
+    /// </summary>
+    public static System.Collections.Generic.List<TEdge>? SetCursors<TEdge>(System.Collections.Generic.List<TEdge>? edges, int skip, bool reverse, string cursorFields)
+    {
+        if (edges == null)
+            return null;
+        if (reverse)
+            edges.Reverse();
+        var fields = Array.ConvertAll(cursorFields.Split(','), name => typeof(TEdge).GetField(name)!);
+        for (var i = 0; i < edges.Count; i++)
+        {
+            var cursor = SerializeCursor(skip + i + 1);
+            foreach (var field in fields)
+                field.SetValue(edges[i], cursor);
+        }
+        return edges;
+    }
+
+    /// <summary>
     /// Used at runtime in the expression built above
     /// </summary>
     public static int? GetSkipNumber(dynamic arguments, bool fixNegativeOffset = true)
@@ -133,12 +154,23 @@ public static class ConnectionHelper
     /// </summary>
     public static bool PageHasNext<TSource>(System.Linq.IQueryable<TSource> source, dynamic arguments)
     {
+        int? skip = GetHasNextSkip(arguments);
+        if (skip == null)
+            return false; // no page size = the whole remaining collection was returned
+        return System.Linq.Queryable.Any(System.Linq.Queryable.Skip(source, skip.Value));
+    }
+
+    /// <summary>
+    /// Used at runtime: how many items to skip to check for an item past the current page (forward paging), null when
+    /// there is no page size so the whole remaining collection was returned
+    /// </summary>
+    public static int? GetHasNextSkip(dynamic arguments)
+    {
         int? first = arguments.First;
         if (first == null)
-            return false; // no page size = the whole remaining collection was returned
+            return null;
         string? after = arguments.After;
-        int skip = (DeserializeCursor(after) ?? 0) + first.Value;
-        return System.Linq.Queryable.Any(System.Linq.Queryable.Skip(source, skip));
+        return (DeserializeCursor(after) ?? 0) + first.Value;
     }
 
     /// <summary>

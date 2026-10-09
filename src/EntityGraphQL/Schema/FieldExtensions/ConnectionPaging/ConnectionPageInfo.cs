@@ -54,5 +54,6 @@ public class ConnectionPageInfo
     public bool HasNextPage => hasNextPageOverride ?? (arguments.First != null ? ((arguments.AfterNum ?? 0) + arguments.First) < totalCount : arguments.BeforeNum < totalCount);
 
     [Description("If there is data previous to this page")]
-    public bool HasPreviousPage => (arguments.AfterNum ?? 0) > 0 || (arguments.BeforeNum ?? totalCount) - (arguments.Last ?? totalCount) > 1;
+    // without before, last counts back from just past the end - as StartCursor
+    public bool HasPreviousPage => (arguments.AfterNum ?? 0) > 0 || (arguments.BeforeNum ?? (totalCount + 1)) - (arguments.Last ?? totalCount) > 1;
 }
