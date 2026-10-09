@@ -129,12 +129,15 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         {
             // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so a LINQ
             // provider like EF has to translate it. It knows System.Linq's Skip/Take but not our int? overloads.
+            // No take means the rest of the collection: int.MaxValue - skip rather than int.MaxValue, as EF pages a nested
+            // collection with ROW_NUMBER() and `row <= skip + take`, which overflows an int on SQL Server/Postgres
+            var skipOrZero = Expression.Coalesce(skipExp, Expression.Constant(0));
             newItemsExp = Expression.Call(
                 typeof(Enumerable),
                 nameof(Enumerable.Take),
                 [listType],
-                Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [listType], newItemsExp, Expression.Coalesce(skipExp, Expression.Constant(0))),
-                Expression.Coalesce(takeExp, Expression.Constant(int.MaxValue))
+                Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [listType], newItemsExp, skipOrZero),
+                Expression.Coalesce(takeExp, Expression.Subtract(Expression.Constant(int.MaxValue), skipOrZero))
             );
         }
 
