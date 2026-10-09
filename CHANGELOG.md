@@ -1,11 +1,8 @@
 # 6.3.0
 
-## Features
-
-- `ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true)` outputs SDL containing only the types and fields the user in the request context is authorized to access - the same rules introspection applies (protected types, and fields that are protected or return a protected type, are left out; the mutation/subscription root is omitted when none of its fields are visible). Useful for handing a schema to a user or AI agent (e.g. an MCP server tool) where SDL is more compact than introspection. `ToGraphQLSchemaString()` without a context still outputs the full schema.
-
 ## Changes
 
+- `ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true)` outputs SDL containing only the types and fields the user in the request context is authorized to access - the same rules introspection applies (protected types, and fields that are protected or return a protected type, are left out; the mutation/subscription root is omitted when none of its fields are visible). Useful for handing a schema to a user or AI agent (e.g. an MCP server tool) where SDL is more compact than introspection. `ToGraphQLSchemaString()` without a context still outputs the full schema.
 - `[Required]` on an argument (a property/field of an arguments object or a method parameter) now behaves like `ArgumentHelper.Required<T>()` - the argument has no default value and must be provided by the query. Previously a value type kept its implicit `default(T)` as the schema default, so `[Required] int Take` printed `take: Int! = 0` (optional for clients) and a query leaving it out ran with `0`. It is now `take: Int!` and leaving it out is a `missing required argument` error. Remove `[Required]` if you relied on the old default.
 - Introspection `__InputValue.defaultValue` no longer strips the quotes off string-like defaults. The spec defines it as the GraphQL literal, so a string default of `hello` is now returned as `"hello"` - the same text as in the SDL. Clients building a schema from introspection (`buildClientSchema`, GraphiQL, codegen against an endpoint) previously dropped such defaults or failed to parse them (`Guid`, strings with spaces). If you read `defaultValue` directly as text rather than parsing it as GraphQL, string defaults now include their quotes.
 
