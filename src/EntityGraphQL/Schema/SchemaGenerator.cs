@@ -48,7 +48,7 @@ public class SchemaGenerator
 
         schemaBuilder.AppendLine();
 
-        foreach (var item in schema.GetScalarTypes().Distinct().OrderBy(t => t.Name))
+        foreach (var item in schema.GetScalarTypes().Distinct().Where(visibility.IsTypeVisible).OrderBy(t => t.Name))
         {
             if (includeDescriptions && !string.IsNullOrEmpty(item.Description))
                 schemaBuilder.AppendLine($"\"\"\"{EscapeString(item.Description)}\"\"\"");

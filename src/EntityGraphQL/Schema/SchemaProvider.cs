@@ -1171,6 +1171,9 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     /// Builds a GraphQL schema definition containing only the types and fields <paramref name="user"/> is authorized to
     /// access, using this schema's <see cref="AuthorizationService"/> exactly as query execution does. The result is
     /// self-consistent SDL: a type left empty by the filtering is removed along with everything referring to it.
+    ///
+    /// A user who can see no query fields gets a bare <c>type Query</c> - it parses, but schema validation (e.g. graphql-js
+    /// validateSchema) rejects a type with no fields. No valid SDL exists for that user; check for it if it matters to you.
     /// </summary>
     /// <param name="user">The user to filter by. Null is an anonymous user (not "no filtering" - use ToGraphQLSchemaString() for that)</param>
     /// <param name="includeDescriptions">Include descriptions (doc strings) in the output. Defaults to true</param>

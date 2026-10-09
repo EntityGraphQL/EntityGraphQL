@@ -144,6 +144,24 @@ public class ToGraphQLSchemaStringAuthorizationTests
         AssertEveryReferencedTypeIsDefined(sdl);
     }
 
+    /// <summary>A protected scalar's name is not in the SDL, as it is not in introspection</summary>
+    [Fact]
+    public async System.Threading.Tasks.Task ProtectedScalarIsHidden()
+    {
+        var schema = MakeVisibilitySchema();
+        schema.AddScalarType<Money>("Money", "An amount").RequiresAnyRole("admin");
+        schema.Type<Car>().AddField("price", c => new Money(), "Price");
+
+        var anonymous = await schema.ToGraphQLSchemaStringAsync(Anonymous);
+        Assert.DoesNotContain("Money", anonymous);
+        Assert.DoesNotContain("price", anonymous);
+        AssertEveryReferencedTypeIsDefined(anonymous);
+
+        var admin = await schema.ToGraphQLSchemaStringAsync(UserWith("admin"));
+        Assert.Contains("scalar Money", admin);
+        Assert.Contains("price: Money", admin);
+    }
+
     /// <summary>Introspection hides the same things, so a client building a schema from it gets the same result</summary>
     [Fact]
     public void IntrospectionHidesTheSameTypesAndFields()
@@ -245,6 +263,8 @@ public class ToGraphQLSchemaStringAuthorizationTests
         Low,
         High,
     }
+
+    public class Money { }
 
     public class Filter
     {
