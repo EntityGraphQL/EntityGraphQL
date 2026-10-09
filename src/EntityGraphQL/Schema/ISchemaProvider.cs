@@ -93,6 +93,7 @@ public interface ISchemaProvider
     void RemoveTypeAndAllFields<TSchemaType>();
     void RemoveTypeAndAllFields(string typeName);
     string ToGraphQLSchemaString(bool includeDescriptions = true);
+    string ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true);
     SchemaType<TType> Type<TType>();
     SchemaType<TType> Type<TType>(string typeName);
     ISchemaType Type(string typeName);

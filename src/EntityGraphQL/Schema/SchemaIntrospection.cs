@@ -10,7 +10,7 @@ public static class SchemaIntrospection
 {
     /// <summary>
     /// Creates an Introspection schema. When a requestContext is supplied the result only includes the types
-    /// and fields the requesting user is authorized to access. Note ToGraphQLSchemaString()/SchemaGenerator
+    /// and fields the requesting user is authorized to access. ToGraphQLSchemaString(requestContext) applies the same rules to SDL; ToGraphQLSchemaString()/SchemaGenerator
     /// does not use this - a generated SDL file always contains the full schema.
     /// </summary>
     /// <param name="schema"></param>
@@ -58,12 +58,12 @@ public static class SchemaIntrospection
     /// True when the requesting user may see something protected by the given RequiredAuthorization.
     /// No request context (e.g. schema tooling) means no filtering.
     /// </summary>
-    private static bool IsVisible(QueryRequestContext? requestContext, RequiredAuthorization? requiredAuthorization)
+    internal static bool IsVisible(QueryRequestContext? requestContext, RequiredAuthorization? requiredAuthorization)
     {
         return requestContext == null || requestContext.AuthorizationService.IsAuthorized(requestContext.User, requiredAuthorization);
     }
 
-    private static bool IsVisible(QueryRequestContext? requestContext, IField field)
+    internal static bool IsVisible(QueryRequestContext? requestContext, IField field)
     {
         // same rules as executing a query - the field itself and the type it returns must both be accessible
         return IsVisible(requestContext, field.RequiredAuthorization) && IsVisible(requestContext, field.ReturnType.SchemaType.RequiredAuthorization);

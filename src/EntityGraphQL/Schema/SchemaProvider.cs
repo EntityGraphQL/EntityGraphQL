@@ -395,7 +395,8 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
         // evaluate Fields lazily so we don't end up in endless loop
         // The QueryRequestContext is injected by the engine so introspection only shows the requesting user
-        // the types/fields they are authorized to access. ToGraphQLSchemaString() still outputs the full schema.
+        // the types/fields they are authorized to access. ToGraphQLSchemaString() still outputs the full schema;
+        // ToGraphQLSchemaString(requestContext) applies the same filtering to SDL.
         Type<Models.TypeElement>("__Type")
             .ReplaceField("fields", new { includeDeprecated = false }, "Fields available on type")
             .Resolve<QueryRequestContext>((t, p, requestContext) => SchemaIntrospection.BuildFieldsForType(this, t.Name!, t.Kind, p.includeDeprecated, requestContext))
@@ -1146,6 +1147,22 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     public string ToGraphQLSchemaString(bool includeDescriptions = true)
     {
         return SchemaGenerator.Make(this, includeDescriptions);
+    }
+
+    /// <summary>
+    /// Builds a GraphQL schema definition containing only the types and fields the user in <paramref name="requestContext"/>
+    /// is authorized to access - the same rules introspection and query execution apply. Useful when handing a schema to a
+    /// user or an AI agent where fields they cannot query are noise (or information they should not have).
+    ///
+    /// If your <see cref="IGqlAuthorizationService"/> does async work per request (e.g. policy evaluation), build the
+    /// context from <c>await AuthorizationService.PrepareForRequestAsync(schema, user)</c> as query execution does.
+    /// </summary>
+    /// <param name="requestContext">The user and authorization service to filter by. Null outputs the full schema</param>
+    /// <param name="includeDescriptions">Include descriptions (doc strings) in the output. Defaults to true</param>
+    /// <returns>String containing the schema definition</returns>
+    public string ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true)
+    {
+        return SchemaGenerator.Make(this, includeDescriptions, requestContext);
     }
 
     /// <summary>

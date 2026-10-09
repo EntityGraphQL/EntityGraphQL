@@ -63,7 +63,16 @@ A bare attribute with no roles or policies — `[GraphQLAuthorize]` or `[Authori
 
 Introspection queries (`__schema` and `__type`) respect authorization — the result only includes the types and fields the requesting user is authorized to access, so protected type/field names are not discoverable by unauthorized users. Querying `__type(name: ...)` for a protected type returns `null`.
 
-Note this applies only to introspection queries at runtime. `schema.ToGraphQLSchemaString()` always outputs the full schema — use it to generate SDL files for tooling and type generation.
+`schema.ToGraphQLSchemaString()` always outputs the full schema — use it to generate SDL files for tooling and type generation.
+
+To get SDL filtered for a user, pass a `QueryRequestContext`. The same rules as introspection apply: protected types are left out, as are fields that are protected or return a protected type.
+
+```cs
+var requestContext = new QueryRequestContext(await schema.AuthorizationService.PrepareForRequestAsync(schema, user), user);
+var sdl = schema.ToGraphQLSchemaString(requestContext);
+```
+
+This is useful when handing a schema to a person or an AI agent (e.g. an MCP server tool), where fields they cannot query are noise or information they should not have. SDL is far more compact than an introspection result for the same information.
 
 ## Mutations
 
