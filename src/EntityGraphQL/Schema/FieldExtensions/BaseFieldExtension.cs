@@ -41,6 +41,14 @@ public abstract class BaseFieldExtension : IFieldExtension
     }
 
     /// <summary>
+    /// Called after a list field's selection has been built. Lets an extension wrap the projected result
+    /// </summary>
+    public virtual Expression ProcessExpressionPostSelection(FieldExtensionPostSelectionContext context)
+    {
+        return context.ResultExpression;
+    }
+
+    /// <summary>
     /// Called when a scalar field expression is being finalized for execution
     /// </summary>
     public virtual Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer)

@@ -210,6 +210,8 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                 )
                 : Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [resultElementType], resultExpression);
 
+        resultExpression = ProcessExtensionsPostSelection(resultExpression, selectionFields, argumentParams, contextChanged);
+
         return resultExpression;
     }
 

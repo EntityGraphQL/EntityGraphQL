@@ -346,6 +346,209 @@ public class PagingTests
         Assert.Equal("Older", movies.items[0].name);
     }
 
+    // A connection paged collection selected on a parent object is part of the parent's projection, so EF has to translate
+    // the paging and can not run ApplyCursors - "The LINQ expression 'edgeNode => ...' could not be translated" before
+    [Fact]
+    public void TestNestedConnectionPagingOnNavigation()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderByDescending(m => m.Released), "Movies, newest first").UseConnectionPaging();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"{
+                    actor(id: 1) {
+                        movies(first: 1) {
+                            totalCount
+                            pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+                            edges { cursor c2: cursor node { name } }
+                        }
+                    }
+                }",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic movies = ((dynamic)result.Data!["actor"]!).movies;
+        Assert.Equal(2, movies.totalCount);
+        Assert.True(movies.pageInfo.hasNextPage);
+        Assert.False(movies.pageInfo.hasPreviousPage);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), movies.pageInfo.startCursor);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), movies.pageInfo.endCursor);
+        Assert.Equal(1, Enumerable.Count(movies.edges));
+        Assert.Equal("Newer", movies.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), movies.edges[0].cursor);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), movies.edges[0].c2);
+    }
+
+    [Fact]
+    public void TestNestedConnectionPagingOnNavigationAfter()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderByDescending(m => m.Released), "Movies, newest first").UseConnectionPaging();
+        var gql = new QueryRequest
+        {
+            Query = $@"{{ actors {{ movies(first: 1, after: ""{ConnectionHelper.SerializeCursor(1)}"") {{ pageInfo {{ hasNextPage }} edges {{ cursor node {{ name }} }} }} }} }}",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic movies = ((dynamic)result.Data!["actors"]!)[0].movies;
+        Assert.False(movies.pageInfo.hasNextPage);
+        Assert.Equal(1, Enumerable.Count(movies.edges));
+        Assert.Equal("Older", movies.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(2), movies.edges[0].cursor);
+    }
+
+    // last pages from the end of each parent's own collection, not a total shared across the request
+    [Fact]
+    public void TestNestedConnectionPagingOnNavigationLast()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+        data.Actors.Add(
+            new Actor("Actor2")
+            {
+                Id = 2,
+                Movies =
+                [
+                    new Movie("A") { Id = 3, Released = new DateTime(2019, 1, 1) },
+                    new Movie("B") { Id = 4, Released = new DateTime(2018, 1, 1) },
+                    new Movie("C") { Id = 5, Released = new DateTime(2017, 1, 1) },
+                ],
+            }
+        );
+        data.SaveChanges();
+
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderByDescending(m => m.Released), "Movies, newest first").UseConnectionPaging();
+        var gql = new QueryRequest { Query = @"{ actors { name movies(last: 2) { totalCount pageInfo { hasPreviousPage startCursor endCursor } edges { cursor node { name } } } } }" };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic actors = result.Data!["actors"]!;
+        dynamic first = Enumerable.Single((IEnumerable<dynamic>)actors, a => a.name == "Actor").movies;
+        Assert.Equal(2, first.totalCount);
+        Assert.False(first.pageInfo.hasPreviousPage);
+        Assert.Equal(new[] { "Newer", "Older" }, ((IEnumerable<dynamic>)first.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { ConnectionHelper.SerializeCursor(1), ConnectionHelper.SerializeCursor(2) }, ((IEnumerable<dynamic>)first.edges).Select(e => (string)e.cursor));
+
+        dynamic second = Enumerable.Single((IEnumerable<dynamic>)actors, a => a.name == "Actor2").movies;
+        Assert.Equal(3, second.totalCount);
+        Assert.True(second.pageInfo.hasPreviousPage);
+        Assert.Equal(ConnectionHelper.SerializeCursor(2), second.pageInfo.startCursor);
+        Assert.Equal(ConnectionHelper.SerializeCursor(3), second.pageInfo.endCursor);
+        Assert.Equal(new[] { "B", "C" }, ((IEnumerable<dynamic>)second.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { ConnectionHelper.SerializeCursor(2), ConnectionHelper.SerializeCursor(3) }, ((IEnumerable<dynamic>)second.edges).Select(e => (string)e.cursor));
+    }
+
+    [Fact]
+    public void TestNestedConnectionPagingOnNavigationLastBefore()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderByDescending(m => m.Released), "Movies, newest first").UseConnectionPaging();
+        var gql = new QueryRequest { Query = $@"{{ actor(id: 1) {{ movies(last: 1, before: ""{ConnectionHelper.SerializeCursor(2)}"") {{ edges {{ cursor node {{ name }} }} }} }} }}" };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic movies = ((dynamic)result.Data!["actor"]!).movies;
+        Assert.Equal(1, Enumerable.Count(movies.edges));
+        Assert.Equal("Newer", movies.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), movies.edges[0].cursor);
+    }
+
+    // the same Connection type paged at the root (IQueryable) and nested (a navigation) share the edges field
+    [Fact]
+    public void TestNestedAndRootConnectionPagingSameType()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+
+        schema.Query().ReplaceField("movies", db => db.Movies.OrderByDescending(m => m.Released), "Movies").UseConnectionPaging();
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderByDescending(m => m.Released), "Movies, newest first").UseConnectionPaging();
+        var gql = new QueryRequest { Query = @"{ movies(first: 1) { edges { cursor node { name } } } actor(id: 1) { movies(first: 1) { edges { cursor node { name } } } } }" };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic root = result.Data!["movies"]!;
+        Assert.Equal("Newer", root.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), root.edges[0].cursor);
+        dynamic nested = ((dynamic)result.Data!["actor"]!).movies;
+        Assert.Equal("Newer", nested.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), nested.edges[0].cursor);
+    }
+
+    // A before cursor shared by every parent can be past the end of a shorter collection. last: 3 before it is then the
+    // last 3 of that collection - not a page that ends at the cursor and so misses rows
+    [Fact]
+    public void TestNestedConnectionPagingLastBeforePastTheEnd()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = factory.CreateContext();
+        data.Actors.Add(new Actor("Long") { Id = 1, Movies = Enumerable.Range(1, 6).Select(i => new Movie($"L{i}") { Id = i, Released = new DateTime(2000 + i, 1, 1) }).ToList() });
+        data.Actors.Add(new Actor("Short") { Id = 2, Movies = Enumerable.Range(1, 3).Select(i => new Movie($"S{i}") { Id = 10 + i, Released = new DateTime(2000 + i, 1, 1) }).ToList() });
+        data.SaveChanges();
+
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderBy(m => m.Released), "Movies").UseConnectionPaging();
+        var gql = new QueryRequest
+        {
+            Query =
+                $@"{{ actors {{ name movies(last: 3, before: ""{ConnectionHelper.SerializeCursor(6)}"") {{ pageInfo {{ hasNextPage hasPreviousPage startCursor endCursor }} edges {{ cursor node {{ name }} }} }} }} }}",
+        };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic actors = result.Data!["actors"]!;
+        dynamic longMovies = Enumerable.Single((IEnumerable<dynamic>)actors, a => a.name == "Long").movies;
+        Assert.Equal(new[] { "L3", "L4", "L5" }, ((IEnumerable<dynamic>)longMovies.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { 3, 4, 5 }.Select(ConnectionHelper.SerializeCursor), ((IEnumerable<dynamic>)longMovies.edges).Select(e => (string)e.cursor));
+        Assert.True(longMovies.pageInfo.hasNextPage);
+        Assert.True(longMovies.pageInfo.hasPreviousPage);
+
+        dynamic shortMovies = Enumerable.Single((IEnumerable<dynamic>)actors, a => a.name == "Short").movies;
+        Assert.Equal(new[] { "S1", "S2", "S3" }, ((IEnumerable<dynamic>)shortMovies.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { 1, 2, 3 }.Select(ConnectionHelper.SerializeCursor), ((IEnumerable<dynamic>)shortMovies.edges).Select(e => (string)e.cursor));
+        Assert.False(shortMovies.pageInfo.hasNextPage);
+        Assert.False(shortMovies.pageInfo.hasPreviousPage);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), shortMovies.pageInfo.startCursor);
+        Assert.Equal(ConnectionHelper.SerializeCursor(3), shortMovies.pageInfo.endCursor);
+    }
+
+    [Fact]
+    public void TestRootConnectionPagingLastBeforePastTheEnd()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = CreateActorWithMovies(factory);
+
+        schema.Query().ReplaceField("movies", db => db.Movies.OrderBy(m => m.Released), "Movies").UseConnectionPaging();
+        var gql = new QueryRequest { Query = $@"{{ movies(last: 2, before: ""{ConnectionHelper.SerializeCursor(5)}"") {{ edges {{ cursor node {{ name }} }} }} }}" };
+
+        var result = schema.ExecuteRequestWithContext(gql, data, null, null);
+        Assert.Null(result.Errors);
+
+        dynamic movies = result.Data!["movies"]!;
+        Assert.Equal(new[] { "Older", "Newer" }, ((IEnumerable<dynamic>)movies.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { 1, 2 }.Select(ConnectionHelper.SerializeCursor), ((IEnumerable<dynamic>)movies.edges).Select(e => (string)e.cursor));
+    }
+
     private static TestDbContext CreateActorWithMovies(TestDbContextFactory factory)
     {
         var data = factory.CreateContext();

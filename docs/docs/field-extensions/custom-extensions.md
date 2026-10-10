@@ -70,6 +70,16 @@ public class FormatStringExtension : IFieldExtension
         // ConnectionEdgeNodeExtension provides a good example of this from UseConnectionPaging
         return (baseExpression, selectionExpressions, selectContextParam);
     }
+
+    public Expression ProcessExpressionPostSelection(FieldExtensionPostSelectionContext context)
+    {
+        // Only called for collection fields, after the Select() of the fields asked for has been built
+        // (and the ToList() for a collection on a parent object). Lets you wrap the projected result.
+        // Optional - IFieldExtension and BaseFieldExtension both return context.ResultExpression by default.
+        // ConnectionEdgeExtension uses it to set cursors on a nested collection once a LINQ provider like EF
+        // has materialized the page
+        return context.ResultExpression;
+    }
 }
 ```
 

@@ -19,6 +19,12 @@ public class ConnectionPageInfo
         this.hasNextPageOverride = hasNextPageOverride;
     }
 
+    /// <summary>
+    /// The before cursor, counting back from just past the end when it is past the end of this collection - `last: 3,
+    /// before: 5` of 3 items is all 3. Per instance: a nested collection's parents share the arguments but not the count
+    /// </summary>
+    private int? BeforeNum => arguments.BeforeNum == null ? null : Math.Min((int)arguments.BeforeNum, totalCount + 1);
+
     [Description("Last cursor in the page. Use this as the next from argument")]
     public string EndCursor
     {
@@ -29,8 +35,8 @@ public class ConnectionPageInfo
                 idx = Math.Min(totalCount, arguments.AfterNum + arguments.First);
             else if (arguments.First != null)
                 idx = arguments.First;
-            else if (arguments.BeforeNum != null)
-                idx = arguments.BeforeNum - 1;
+            else if (BeforeNum != null)
+                idx = BeforeNum.Value - 1;
 
             return ConnectionHelper.SerializeCursor(idx);
         }
@@ -45,14 +51,15 @@ public class ConnectionPageInfo
             if (arguments.AfterNum != null)
                 idx = arguments.AfterNum + 1;
             else if (arguments.Last != null)
-                idx = Math.Max((arguments.BeforeNum ?? (totalCount + 1)) - arguments.Last, 1);
+                idx = Math.Max((BeforeNum ?? (totalCount + 1)) - arguments.Last, 1);
             return ConnectionHelper.SerializeCursor(idx);
         }
     }
 
     [Description("If there is more data after this page")]
-    public bool HasNextPage => hasNextPageOverride ?? (arguments.First != null ? ((arguments.AfterNum ?? 0) + arguments.First) < totalCount : arguments.BeforeNum < totalCount);
+    public bool HasNextPage => hasNextPageOverride ?? (arguments.First != null ? ((arguments.AfterNum ?? 0) + arguments.First) < totalCount : BeforeNum <= totalCount);
 
     [Description("If there is data previous to this page")]
-    public bool HasPreviousPage => (arguments.AfterNum ?? 0) > 0 || (arguments.BeforeNum ?? totalCount) - (arguments.Last ?? totalCount) > 1;
+    // without before, last counts back from just past the end - as StartCursor
+    public bool HasPreviousPage => (arguments.AfterNum ?? 0) > 0 || (BeforeNum ?? (totalCount + 1)) - (arguments.Last ?? totalCount) > 1;
 }
