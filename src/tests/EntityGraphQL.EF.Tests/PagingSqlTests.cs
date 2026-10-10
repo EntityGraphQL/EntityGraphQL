@@ -299,7 +299,8 @@ public class PagingSqlTests
         Assert.Null(result.Errors);
         Assert.True((bool)((dynamic)result.Data!["actors"]!)[0].movies.pageInfo.hasNextPage);
         var page = Assert.Single(Commands(sql));
-        Assert.Contains("EXISTS", page);
+        // once - pageInfo is a non-null read off the new Connection, so it is not null-checked (which repeated the EXISTS)
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(page, "EXISTS"));
         Assert.DoesNotContain("COUNT", page);
         // hasNextPage evaluated in memory would load every column of every movie of every actor
         Assert.DoesNotContain("\"Released\"", page);

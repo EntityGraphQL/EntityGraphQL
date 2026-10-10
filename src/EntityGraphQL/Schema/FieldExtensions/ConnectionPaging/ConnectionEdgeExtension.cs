@@ -155,18 +155,20 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         if (arguments.First == null && arguments.Last == null && pagingExtension.DefaultPageSize != null)
             arguments.First = pagingExtension.DefaultPageSize;
 
-        Expression skipExp = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(true));
+        // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so a LINQ
+        // provider like EF has to translate it. A root field's collection is executed by itself, as is the services pass in memory
+        var nestedProjection = !isQueryable && !servicesPass && fieldNode.ParentNode.IsRootField != true;
+        // arguments.TotalCount is this collection's count only for a root field - a nested collection's parents share the arguments
+        var limitBefore = Expression.Constant(fieldNode.ParentNode.IsRootField == true);
+        Expression skipExp = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(true), limitBefore);
         Expression takeExp = Expression.Call(
             typeof(ConnectionHelper),
             nameof(ConnectionHelper.GetTakeNumber),
             null,
             argumentParam,
-            Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(false))
+            Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetSkipNumber), null, argumentParam, Expression.Constant(false), limitBefore)
         );
         Expression? edgeExpression;
-        // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so a LINQ
-        // provider like EF has to translate it. A root field's collection is executed by itself, as is the services pass in memory
-        var nestedProjection = !isQueryable && !servicesPass && fieldNode.ParentNode.IsRootField != true;
         if (!nestedProjection)
         {
             edgeExpression = Expression.Call(
@@ -198,6 +200,10 @@ public class ConnectionEdgeExtension : BaseFieldExtension
             }
             else
             {
+                // last + before: the page ending at before, which is wrong for a parent whose collection does not reach the
+                // cursor - ProcessExpressionPostSelection adds that parent's tail. GetLastBeforeSkip marks this page for it
+                if (arguments.Last != null)
+                    skipExp = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetLastBeforeSkip), null, argumentParam);
                 skipExp = Expression.Coalesce(skipExp, Expression.Constant(0));
                 // No take means the rest of the collection: int.MaxValue - skip rather than int.MaxValue, as EF pages a nested
                 // collection with ROW_NUMBER() and `row <= skip + take`, which overflows an int on SQL Server/Postgres
@@ -289,7 +295,14 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         {
             // assign cursors while enumerating (in memory - this is what executes the DB query above).
             // ApplyCursors computes the argument-dependent cursor base once per request rather than per row.
-            baseExpression = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.ApplyCursors), [anonType], baseExpression, argumentParam);
+            baseExpression = Expression.Call(
+                typeof(ConnectionHelper),
+                nameof(ConnectionHelper.ApplyCursors),
+                [anonType],
+                baseExpression,
+                argumentParam,
+                Expression.Constant(LimitsBefore(baseExpression))
+            );
             foreach (var cursorField in selectionExpressions.Where(f => f.Key.SchemaName == "cursor"))
                 cursorField.Value.Expression = Expression.PropertyOrField(edgeParam, "Cursor");
         }
@@ -307,26 +320,53 @@ public class ConnectionEdgeExtension : BaseFieldExtension
     public override Expression ProcessExpressionPostSelection(FieldExtensionPostSelectionContext context)
     {
         var resultExpression = context.ResultExpression;
-        if (context.ServicesPass)
+        if (context.ServicesPass || context.ArgumentParameter == null)
             return resultExpression;
-        // only the nested case left the cursors to us - see ProcessExpressionSelection
-        var cursorFields = context.SelectionExpressions.Where(f => f.Key.SchemaName == "cursor" && f.Value.Expression is ConstantExpression { Value: null }).Select(f => f.Key.Name).ToArray();
         var elementType = resultExpression.Type.GetEnumerableOrArrayType();
-        if (cursorFields.Length == 0 || elementType == null || !typeof(List<>).MakeGenericType(elementType).IsAssignableFrom(resultExpression.Type))
+        if (elementType == null || !typeof(List<>).MakeGenericType(elementType).IsAssignableFrom(resultExpression.Type))
+            return resultExpression;
+        var paging = FindPaging(resultExpression);
+        if (paging == null)
+            return resultExpression;
+        var (takeCall, pagingCall) = paging.Value;
+
+        // only the nested case left the cursors to us - see ProcessExpressionSelection
+        var cursorFields = string.Join(",", context.SelectionExpressions.Where(f => f.Key.SchemaName == "cursor" && f.Value.Expression is ConstantExpression { Value: null }).Select(f => f.Key.Name));
+        var collection = pagingCall.Arguments[0];
+        var argumentParam = context.ArgumentParameter;
+
+        // last + before: also select each parent's tail (its last items, in reverse) and its count, and pick per parent
+        // once materialized - see ConnectionHelper.PickLastBeforePage. Done even without cursors as it picks the rows
+        if (pagingCall.Method.Name == nameof(Enumerable.Skip) && CallsMethod(pagingCall.Arguments[1], nameof(ConnectionHelper.GetLastBeforeSkip)))
+        {
+            var last = Expression.Convert(Expression.PropertyOrField(argumentParam, "Last"), typeof(int));
+            var tailTake = Expression.Call(typeof(Enumerable), nameof(Enumerable.Take), [listType], Expression.Call(typeof(Enumerable), nameof(Enumerable.Reverse), [listType], collection), last);
+            var tail = new ReplaceNode(takeCall, tailTake).Visit(resultExpression)!;
+            return Expression.Call(
+                typeof(ConnectionHelper),
+                nameof(ConnectionHelper.PickLastBeforePage),
+                [elementType],
+                resultExpression,
+                tail,
+                Expression.Call(typeof(Enumerable), nameof(Enumerable.Count), [listType], collection),
+                Expression.Convert(Expression.PropertyOrField(argumentParam, "BeforeNum"), typeof(int)),
+                last,
+                Expression.Constant(cursorFields)
+            );
+        }
+
+        if (cursorFields.Length == 0)
             return resultExpression;
 
         // The edges of a page are rows skip + 1, skip + 2, ... of the collection. Use the paging built in GetExpressionAndArguments
         // as it is per parent for `last`. EF translates it alongside the page and calls SetCursors with the materialized list
-        var pagingCall = FindPagingCall(resultExpression);
-        if (pagingCall == null || context.ArgumentParameter == null)
-            return resultExpression;
         Expression skip;
         Expression reversedFromCount;
         if (pagingCall.Method.Name == nameof(Enumerable.Reverse))
         {
             // the last of each parent's own Count() rows, taken in reverse. SetCursors drops the rows up to `after`
-            skip = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetAfterNumber), null, context.ArgumentParameter);
-            reversedFromCount = Expression.Convert(Expression.Call(typeof(Enumerable), nameof(Enumerable.Count), [listType], pagingCall.Arguments[0]), typeof(int?));
+            skip = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetAfterNumber), null, argumentParam);
+            reversedFromCount = Expression.Convert(Expression.Call(typeof(Enumerable), nameof(Enumerable.Count), [listType], collection), typeof(int?));
         }
         else
         {
@@ -335,22 +375,14 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         }
 
         // field names as a string - EF rejects non-primitive constants passed to a method in a client projection
-        return Expression.Call(
-            typeof(ConnectionHelper),
-            nameof(ConnectionHelper.SetCursors),
-            [elementType],
-            resultExpression,
-            skip,
-            reversedFromCount,
-            Expression.Constant(string.Join(",", cursorFields))
-        );
+        return Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.SetCursors), [elementType], resultExpression, skip, reversedFromCount, Expression.Constant(cursorFields));
     }
 
     /// <summary>
-    /// Finds the Skip() (or Reverse() for last) under the Take() built for a nested collection in GetExpressionAndArguments.
-    /// Null if the paging was not built for a nested collection
+    /// Finds the Take() built for a nested collection in GetExpressionAndArguments and the Skip() (or Reverse() for last)
+    /// under it. Null if the paging was not built for a nested collection
     /// </summary>
-    private MethodCallExpression? FindPagingCall(Expression expression)
+    private (MethodCallExpression take, MethodCallExpression paging)? FindPaging(Expression expression)
     {
         while (expression is MethodCallExpression call)
         {
@@ -362,11 +394,43 @@ public class ConnectionEdgeExtension : BaseFieldExtension
                     && call.Arguments[0] is MethodCallExpression { Method.Name: nameof(Enumerable.Skip) or nameof(Enumerable.Reverse) } paging
                     && paging.Method.DeclaringType == typeof(Enumerable)
                 )
-                    return paging;
+                    return (call, paging);
                 return null;
             }
             expression = call.Arguments[0];
         }
         return null;
+    }
+
+    private MethodCallExpression? FindPagingCall(Expression expression) => FindPaging(expression)?.paging;
+
+    /// <summary>Whether the page was built limiting a before cursor to the collection's count (a root field)</summary>
+    private static bool LimitsBefore(Expression expression) =>
+        FindCall(expression, call => call.Method.Name == nameof(ConnectionHelper.GetSkipNumber) && call.Arguments.Count == 3 && call.Arguments[2] is ConstantExpression { Value: true }) != null;
+
+    private static bool CallsMethod(Expression expression, string name) => FindCall(expression, call => call.Method.DeclaringType == typeof(ConnectionHelper) && call.Method.Name == name) != null;
+
+    private static MethodCallExpression? FindCall(Expression expression, Func<MethodCallExpression, bool> match)
+    {
+        var finder = new CallFinder(match);
+        finder.Visit(expression);
+        return finder.Found;
+    }
+
+    private sealed class CallFinder(Func<MethodCallExpression, bool> match) : ExpressionVisitor
+    {
+        public MethodCallExpression? Found { get; private set; }
+
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            if (Found == null && match(node))
+                Found = node;
+            return base.VisitMethodCall(node);
+        }
+    }
+
+    private sealed class ReplaceNode(Expression from, Expression to) : ExpressionVisitor
+    {
+        public override Expression? Visit(Expression? node) => node == from ? to : base.Visit(node);
     }
 }

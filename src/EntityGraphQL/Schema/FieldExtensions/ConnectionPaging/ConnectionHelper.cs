@@ -73,17 +73,21 @@ public static class ConnectionHelper
 
     /// <summary>
     /// The row index a cursor represents. Every branch is linear in idx, so the value at idx 0 is a per-request
-    /// base the per-row cursors can be derived from (see <see cref="ApplyCursors{TEntity}"/>).
+    /// base the per-row cursors can be derived from (see ApplyCursors).
     /// </summary>
-    public static int GetCursorIndex(dynamic arguments, int idx, int? offset = null)
+    public static int GetCursorIndex(dynamic arguments, int idx, int? offset = null) => GetCursorIndex(arguments, idx, offset, false);
+
+    /// <param name="limitBeforeToTotalCount">See GetSkipNumber</param>
+    public static int GetCursorIndex(dynamic arguments, int idx, int? offset, bool limitBeforeToTotalCount)
     {
         var index = idx + 1;
         if (arguments.AfterNum != null)
             index += arguments.AfterNum;
         if (arguments.Last != null)
         {
-            if (arguments.BeforeNum != null)
-                index = arguments.BeforeNum - arguments.Last + idx;
+            int? before = GetBeforeNumber(arguments, limitBeforeToTotalCount);
+            if (before != null)
+                index = before.Value - (int)arguments.Last + idx;
             else
                 index += arguments.TotalCount - (arguments.Last ?? 0);
         }
@@ -98,10 +102,18 @@ public static class ConnectionHelper
     /// Used at runtime: enumerates the page (executing the DB query for an IQueryable source) and assigns each
     /// edge its cursor. The dynamic argument math runs once per request here, not once per row.
     /// </summary>
-    public static System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> ApplyCursors<TEntity>(System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> edges, dynamic arguments)
+    public static System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> ApplyCursors<TEntity>(System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> edges, dynamic arguments) =>
+        ApplyCursors(edges, arguments, false);
+
+    /// <param name="limitBeforeToTotalCount">See GetSkipNumber</param>
+    public static System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> ApplyCursors<TEntity>(
+        System.Collections.Generic.IEnumerable<ConnectionEdge<TEntity>> edges,
+        dynamic arguments,
+        bool limitBeforeToTotalCount
+    )
     {
-        int? offset = GetSkipNumber(arguments, false);
-        int baseIndex = GetCursorIndex(arguments, 0, offset);
+        int? offset = GetSkipNumber(arguments, false, limitBeforeToTotalCount);
+        int baseIndex = GetCursorIndex(arguments, 0, offset, limitBeforeToTotalCount);
         var i = 0;
         foreach (var edge in edges)
         {
@@ -156,13 +168,22 @@ public static class ConnectionHelper
     /// <summary>
     /// Used at runtime in the expression built above
     /// </summary>
-    public static int? GetSkipNumber(dynamic arguments, bool fixNegativeOffset = true)
+    public static int? GetSkipNumber(dynamic arguments, bool fixNegativeOffset = true) => GetSkipNumber(arguments, fixNegativeOffset, false);
+
+    /// <summary>
+    /// Used at runtime in the expression built above.
+    /// </summary>
+    /// <param name="limitBeforeToTotalCount">A before cursor past the end of the collection counts back from its end -
+    /// `last: 3, before: 5` of 3 items is all 3. Only for a collection arguments.TotalCount was counted from: a nested
+    /// collection's parents share one arguments object, so it is not theirs</param>
+    public static int? GetSkipNumber(dynamic arguments, bool fixNegativeOffset, bool limitBeforeToTotalCount)
     {
         if (arguments.AfterNum != null)
             return arguments.AfterNum;
         if (arguments.Last != null)
         {
-            var c = ((arguments.BeforeNum - 1) ?? arguments.TotalCount) - arguments.Last;
+            int? before = GetBeforeNumber(arguments, limitBeforeToTotalCount);
+            var c = ((before - 1) ?? (int)arguments.TotalCount) - (int)arguments.Last;
 
             // Enumerable.Skip does not accept negative numbers.
             if (fixNegativeOffset)
@@ -223,5 +244,44 @@ public static class ConnectionHelper
         // See SkipTakeTests.TestLastAndBefore_WhenLastGreaterThanBeforeNum
         var offsetAdjustedLast = offset >= 0 ? arguments.Last : arguments.Last + offset;
         return arguments.First ?? offsetAdjustedLast ?? (arguments.BeforeNum - 1);
+    }
+
+    private static int? GetBeforeNumber(dynamic arguments, bool limitBeforeToTotalCount)
+    {
+        int? before = arguments.BeforeNum;
+        int totalCount = arguments.TotalCount;
+        return limitBeforeToTotalCount && before > totalCount + 1 ? totalCount + 1 : before;
+    }
+
+    /// <summary>
+    /// Used at runtime for a nested collection with last and before: the skip of the page that ends at before. Its own
+    /// method so ConnectionEdgeExtension can tell this page apart once the selection is built
+    /// </summary>
+    public static int? GetLastBeforeSkip(dynamic arguments) => GetSkipNumber(arguments, true, false);
+
+    /// <summary>
+    /// Used at runtime for a nested collection with last and before. page is the last items before the cursor, which is
+    /// right when the collection reaches the cursor. When it is shorter there is nothing at or past the cursor, so the
+    /// page is the end of the collection: tail, the last items taken in reverse. Each parent's own count decides, as
+    /// the cursor is shared by every parent. Sets the cursor fields too (cursorFields is comma separated, may be empty)
+    /// </summary>
+    public static List<TEdge>? PickLastBeforePage<TEdge>(List<TEdge>? page, List<TEdge>? tail, int count, int before, int last, string cursorFields)
+    {
+        List<TEdge>? edges;
+        int skip;
+        if (count >= before - 1)
+        {
+            edges = page;
+            skip = Math.Max(before - 1 - last, 0);
+        }
+        else
+        {
+            edges = tail;
+            edges?.Reverse();
+            skip = Math.Max(count - last, 0);
+        }
+        if (edges == null || cursorFields.Length == 0)
+            return edges;
+        return SetCursors(edges, skip, null, cursorFields);
     }
 }

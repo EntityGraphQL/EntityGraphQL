@@ -72,6 +72,18 @@ public class PageInfoTests
         Assert.Equal(ConnectionHelper.SerializeCursor(5), info.EndCursor);
     }
 
+    // a before cursor past the end counts back from just past the end - last: 3 of 3 items is all of them
+    [Fact]
+    public void TestLastAndBeforePastTheEnd()
+    {
+        var info = new ConnectionPageInfo(3, new ConnectionArgs { Last = 3, BeforeNum = 6 });
+
+        Assert.False(info.HasNextPage);
+        Assert.False(info.HasPreviousPage);
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), info.StartCursor);
+        Assert.Equal(ConnectionHelper.SerializeCursor(3), info.EndCursor);
+    }
+
     [Fact]
     public void TestOnlyBefore()
     {
