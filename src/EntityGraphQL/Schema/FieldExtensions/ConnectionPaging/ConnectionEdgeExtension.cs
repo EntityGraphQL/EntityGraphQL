@@ -11,13 +11,11 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 public class ConnectionEdgeExtension : BaseFieldExtension
 {
     private readonly Type listType;
-    private readonly ParameterExpression firstSelectParam;
 
     /// <param name="listType">The element type of the paged collection</param>
     public ConnectionEdgeExtension(Type listType)
     {
         this.listType = listType;
-        firstSelectParam = Expression.Parameter(listType, "edgeNode");
     }
 
     /// <param name="listType">The element type of the paged collection</param>
@@ -98,7 +96,8 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         }
         else
         {
-            expression = parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentField.FieldParam!, grandparentContext!);
+            var parentContext = compileContext.GetFieldContext(fieldNode.ParentNode) ?? grandparentContext!;
+            expression = parameterReplacer.Replace(pagingExtension.OriginalFieldExpression!, parentField.FieldParam!, parentContext);
         }
 
         // expression here is the adjusted Connection<T>(). This field (edges) is where we deal with the list again - field.Resolve
@@ -232,6 +231,10 @@ public class ConnectionEdgeExtension : BaseFieldExtension
         // First we select the edge node as the full object
         // we later change this to a anonymous object to not have the full table returned from EF
         // This happens later as we don't know what the query has selected yet
+        // A parameter per use, not per extension: the edges field is shared by every connection of listType, so the same
+        // field below its own node (actor.movies.node.actors.node.movies) would otherwise declare the same parameter in
+        // nested lambdas, which EF can not rewrite
+        var firstSelectParam = Expression.Parameter(listType, "edgeNode");
         expression = Expression.Call(
             isQueryable ? typeof(Queryable) : typeof(Enumerable),
             nameof(Enumerable.Select),
@@ -269,7 +272,9 @@ public class ConnectionEdgeExtension : BaseFieldExtension
 
         // we now know the fields they want to select so we rebuild the base expression
         // remove the above Select(new ConnectionEdge<T>(), ...)
-        baseExpression = ((MethodCallExpression)baseExpression).Arguments[0];
+        var edgeSelect = (MethodCallExpression)baseExpression;
+        var firstSelectParam = ((LambdaExpression)(edgeSelect.Arguments[1] is UnaryExpression { NodeType: ExpressionType.Quote } quote ? quote.Operand : edgeSelect.Arguments[1])).Parameters[0];
+        baseExpression = edgeSelect.Arguments[0];
         var isQueryable = baseExpression.Type.IsGenericTypeQueryable();
         // remove null check as it is not required
         var nodeField = selectionExpressions.First(f => f.Key.SchemaName == "node").Value;

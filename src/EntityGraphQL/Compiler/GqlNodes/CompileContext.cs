@@ -147,6 +147,19 @@ public class CompileContext
     public bool WasFirstPassMaterialized(IGraphQLNode node) => firstPassMaterializedNodes.Contains(node);
 
     /// <summary>
+    /// The context a field with extensions was compiled against (bound to its field parameter). A paging field's
+    /// edges/items field rebuilds the collection from the original field expression and needs the same context. The
+    /// grandparent node's NextFieldContext is not it when the paging field is on an object selected from a schema
+    /// expression, e.g. the `node` of another connection (p_ConnectionEdge.Node, not the edge being selected). Stored
+    /// here as the node belongs to the cached document shared across requests.
+    /// </summary>
+    private readonly Dictionary<IGraphQLNode, Expression> fieldContexts = [];
+
+    internal void SetFieldContext(IGraphQLNode node, Expression context) => fieldContexts[node] = context;
+
+    internal Expression? GetFieldContext(IGraphQLNode node) => fieldContexts.TryGetValue(node, out var context) ? context : null;
+
+    /// <summary>
     /// Carry the first pass's state into the context used for the second (services) pass.
     /// </summary>
     internal void CopyPossibleNextContextTypesFrom(CompileContext other)
