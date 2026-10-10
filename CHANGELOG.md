@@ -1,3 +1,9 @@
+# 6.3.1
+
+## Fixes
+
+- #577 - Fixed paging on the `node` of another connection - e.g. `movies(first: 2) { edges { node { actors(first: 1) { ... } } } }` with `UseConnectionPaging()` (or `UseOffsetPaging()`) on both - failing with `unbound variable: p_ConnectionEdge`1`, in memory and with EF. The inner paging's edges/items rebuilt its collection from the schema's `node` expression rather than the edge being selected. Also, as the edges field is shared by every connection of a type, the same connection field at two levels (`actor.movies ... actors.node.movies`) declared the same parameter in nested lambdas, which EF can not rewrite. Note that EF needs SQL `APPLY` to page a nested collection inside another paged nested collection, which SQLite does not support (SQL Server and Postgres do).
+
 # 6.3.0
 
 ## Changes
