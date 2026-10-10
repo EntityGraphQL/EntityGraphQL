@@ -787,6 +787,52 @@ public class ConnectionPagingTests
         public Project? Project { get; set; }
     }
 
+    // paging on the node of another connection. The inner paging rebuilds its collection from the context its field is
+    // compiled against - the edge being selected - not the schema's p_ConnectionEdge.Node ("unbound variable" before)
+    [Fact]
+    public void TestPagingInConnectionNode()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        var data = new TestDataContext();
+        FillProjectData(data);
+
+        schema.Query().ReplaceField("projects", ctx => ctx.Projects.OrderBy(p => p.Id), "Projects").UseConnectionPaging();
+        schema.Type<Project>().ReplaceField("tasks", p => p.Tasks.OrderBy(t => t.Id), "Tasks").UseConnectionPaging();
+        schema.Type<Project>().AddField("pagedTasks", p => p.Tasks.OrderBy(t => t.Id), "Tasks").UseOffsetPaging();
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest
+            {
+                Query =
+                    $@"{{
+                        projects(first: 1) {{
+                            edges {{ cursor node {{
+                                name
+                                tasks(first: 2, after: ""{ConnectionHelper.SerializeCursor(1)}"") {{ totalCount edges {{ cursor node {{ name }} }} }}
+                                pagedTasks(skip: 3, take: 5) {{ totalItems hasNextPage items {{ name }} }}
+                            }} }}
+                        }}
+                    }}",
+            },
+            data,
+            null,
+            null
+        );
+        Assert.Null(result.Errors);
+
+        dynamic project = ((dynamic)result.Data!["projects"]!).edges[0];
+        Assert.Equal(ConnectionHelper.SerializeCursor(1), project.cursor);
+        Assert.Equal("Project 1", project.node.name);
+        dynamic tasks = project.node.tasks;
+        Assert.Equal(5, tasks.totalCount);
+        Assert.Equal(new[] { "Task 2", "Task 3" }, ((IEnumerable<dynamic>)tasks.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { ConnectionHelper.SerializeCursor(2), ConnectionHelper.SerializeCursor(3) }, ((IEnumerable<dynamic>)tasks.edges).Select(e => (string)e.cursor));
+        dynamic pagedTasks = project.node.pagedTasks;
+        Assert.Equal(5, pagedTasks.totalItems);
+        Assert.False(pagedTasks.hasNextPage);
+        Assert.Equal(new[] { "Task 4", "Task 5" }, ((IEnumerable<dynamic>)pagedTasks.items).Select(i => (string)i.name));
+    }
+
     private static void FillProjectData(TestDataContext data)
     {
         data.Projects =

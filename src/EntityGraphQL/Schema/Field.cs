@@ -238,6 +238,10 @@ public class Field : BaseField
     )
     {
         Expression? expression = fieldExpression;
+        // extensions are given the field's own expression as Context. Record the context it is bound to below so an
+        // extension compiling a child field can rebuild from it - see CompileContext.GetFieldContext
+        if (fieldContext != null && fieldNode != null && !contextChanged && Extensions.Count > 0)
+            compileContext.SetFieldContext(fieldNode, fieldContext);
         // don't store parameterReplacer as a class field as GetExpression is called in compiling - i.e. across threads
         (var result, var argumentParam) = PrepareFieldExpression(args, expression!, replacer, expression, fieldNode, docParam, docVariables, contextChanged, withoutServiceFields, compileContext);
         if (result == null)

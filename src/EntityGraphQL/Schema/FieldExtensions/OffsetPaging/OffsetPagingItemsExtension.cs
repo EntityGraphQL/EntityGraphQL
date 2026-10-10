@@ -84,7 +84,8 @@ public class OffsetPagingItemsExtension : BaseFieldExtension
         }
         else
         {
-            newItemsExp = parameterReplacer.Replace(offsetPagingExtension.OriginalFieldExpression!, originalFieldParam, grandparentContext!);
+            var parentContext = compileContext.GetFieldContext(fieldNode.ParentNode) ?? grandparentContext!;
+            newItemsExp = parameterReplacer.Replace(offsetPagingExtension.OriginalFieldExpression!, originalFieldParam, parentContext);
         }
 
         // other extensions defined on the original field need to run on the collection

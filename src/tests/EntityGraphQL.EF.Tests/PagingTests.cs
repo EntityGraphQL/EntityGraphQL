@@ -549,6 +549,131 @@ public class PagingTests
         Assert.Equal(new[] { 1, 2 }.Select(ConnectionHelper.SerializeCursor), ((IEnumerable<dynamic>)movies.edges).Select(e => (string)e.cursor));
     }
 
+    // a nested connection on the node of a root one
+    [Fact]
+    public void TestNestedConnectionPagingInConnectionNode()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = factory.CreateContext();
+        AddActorsAndMovies(data);
+        data.SaveChanges();
+
+        schema.Query().ReplaceField("movies", db => db.Movies.OrderBy(m => m.Id), "Movies").UseConnectionPaging();
+        schema.Type<Movie>().ReplaceField("actors", m => m.Actors.OrderBy(a => a.Id), "Actors").UseConnectionPaging();
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = @"{ movies(last: 2) { edges { cursor node { name actors(last: 2) { totalCount edges { cursor node { name } } } } } } }" },
+            data,
+            null,
+            null
+        );
+        Assert.Null(result.Errors);
+        var edges = ((IEnumerable<dynamic>)((dynamic)result.Data!["movies"]!).edges).ToList();
+        Assert.Equal(new[] { "M2", "M3" }, edges.Select(e => (string)e.node.name));
+        Assert.Equal(new[] { ConnectionHelper.SerializeCursor(2), ConnectionHelper.SerializeCursor(3) }, edges.Select(e => (string)e.cursor));
+        // M2's actors are A, B and M3's A, B, C
+        Assert.Equal(2, edges[0].node.actors.totalCount);
+        Assert.Equal(new[] { "A", "B" }, ((IEnumerable<dynamic>)edges[0].node.actors.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { ConnectionHelper.SerializeCursor(1), ConnectionHelper.SerializeCursor(2) }, ((IEnumerable<dynamic>)edges[0].node.actors.edges).Select(e => (string)e.cursor));
+        Assert.Equal(3, edges[1].node.actors.totalCount);
+        Assert.Equal(new[] { "B", "C" }, ((IEnumerable<dynamic>)edges[1].node.actors.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { ConnectionHelper.SerializeCursor(2), ConnectionHelper.SerializeCursor(3) }, ((IEnumerable<dynamic>)edges[1].node.actors.edges).Select(e => (string)e.cursor));
+    }
+
+    // The same connection field at two levels (actor.movies ... actors.node.movies). EF needs SQL APPLY to page a nested
+    // collection inside another paged nested collection, which SQLite does not support (SQL Server and Postgres do), so this
+    // runs in memory and checks the expression EF would be given: the edges field is shared, and its Select must not declare
+    // the same parameter in nested lambdas - EF can't rewrite that ("When called from 'VisitLambda', rewriting a node...")
+    [Fact]
+    public void TestNestedConnectionPagingSameFieldAtTwoLevels()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        using var factory = new TestDbContextFactory();
+        var data = factory.CreateContext();
+        var actors = AddActorsAndMovies(data);
+
+        schema.Query().ReplaceField("actor", new { id = 0 }, (db, args) => actors.FirstOrDefault(a => a.Id == args.id), "Actor");
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderBy(m => m.Id), "Movies").UseConnectionPaging();
+        schema.Type<Movie>().ReplaceField("actors", m => m.Actors.OrderBy(a => a.Id), "Actors").UseConnectionPaging();
+
+        var expressions = new List<System.Linq.Expressions.Expression>();
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest
+            {
+                Query =
+                    $@"{{ actor(id: 1) {{
+                        movies(last: 2) {{ totalCount edges {{ cursor node {{ name
+                            actors(first: 1, after: ""{ConnectionHelper.SerializeCursor(1)}"") {{ totalCount pageInfo {{ hasNextPage }} edges {{ cursor node {{ name
+                                movies(last: 1) {{ edges {{ cursor node {{ name }} }} }}
+                            }} }} }}
+                        }} }} }}
+                    }} }}",
+            },
+            data,
+            null,
+            null,
+            new ExecutionOptions
+            {
+                BeforeExecuting = (e, _) =>
+                {
+                    expressions.Add(e);
+                    return e;
+                },
+            }
+        );
+        Assert.Null(result.Errors);
+        Assert.All(expressions, e => new NoShadowedParameters().Visit(e));
+
+        dynamic movies = ((dynamic)result.Data!["actor"]!).movies;
+        Assert.Equal(3, movies.totalCount);
+        Assert.Equal(new[] { "M2", "M3" }, ((IEnumerable<dynamic>)movies.edges).Select(e => (string)e.node.name));
+        Assert.Equal(new[] { ConnectionHelper.SerializeCursor(2), ConnectionHelper.SerializeCursor(3) }, ((IEnumerable<dynamic>)movies.edges).Select(e => (string)e.cursor));
+        // M2's actors are A, B - after A
+        dynamic m2Actors = movies.edges[0].node.actors;
+        Assert.Equal(2, m2Actors.totalCount);
+        Assert.False(m2Actors.pageInfo.hasNextPage);
+        Assert.Equal("B", m2Actors.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(2), m2Actors.edges[0].cursor);
+        // B's movies are M2, M3 - last 1
+        Assert.Equal("M3", m2Actors.edges[0].node.movies.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(2), m2Actors.edges[0].node.movies.edges[0].cursor);
+        // M3's actors are A, B, C - after A, first 1
+        dynamic m3Actors = movies.edges[1].node.actors;
+        Assert.Equal(3, m3Actors.totalCount);
+        Assert.True(m3Actors.pageInfo.hasNextPage);
+        Assert.Equal("B", m3Actors.edges[0].node.name);
+        Assert.Equal(ConnectionHelper.SerializeCursor(2), m3Actors.edges[0].cursor);
+    }
+
+    private sealed class NoShadowedParameters : System.Linq.Expressions.ExpressionVisitor
+    {
+        private readonly HashSet<System.Linq.Expressions.ParameterExpression> inScope = [];
+
+        protected override System.Linq.Expressions.Expression VisitLambda<T>(System.Linq.Expressions.Expression<T> node)
+        {
+            foreach (var p in node.Parameters)
+                Assert.True(inScope.Add(p), $"Parameter '{p.Name}' is declared by a lambda nested in another declaring it");
+            base.VisitLambda(node);
+            foreach (var p in node.Parameters)
+                inScope.Remove(p);
+            return node;
+        }
+    }
+
+    private static List<Actor> AddActorsAndMovies(TestDbContext data)
+    {
+        var m1 = new Movie("M1") { Id = 1, Released = new DateTime(2020, 1, 1) };
+        var m2 = new Movie("M2") { Id = 2, Released = new DateTime(2021, 1, 1) };
+        var m3 = new Movie("M3") { Id = 3, Released = new DateTime(2022, 1, 1) };
+        List<Actor> actors = [new Actor("A") { Id = 1, Movies = [m1, m2, m3] }, new Actor("B") { Id = 2, Movies = [m2, m3] }, new Actor("C") { Id = 3, Movies = [m3] }];
+        m1.Actors = [actors[0]];
+        m2.Actors = [actors[0], actors[1]];
+        m3.Actors = [actors[0], actors[1], actors[2]];
+        data.Actors.AddRange(actors);
+        return actors;
+    }
+
     private static TestDbContext CreateActorWithMovies(TestDbContextFactory factory)
     {
         var data = factory.CreateContext();
