@@ -199,10 +199,18 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         else
         {
             var isNullable = !nextFieldContext.Type.IsValueType || nextFieldContext.Type.IsNullableType();
-            // A non-null field read off an object built right here (e.g. new Connection<T>(...).PageInfo) can't be null. A null
-            // check would repeat the whole expression, and a LINQ provider like EF translates it twice (e.g. an EXISTS subquery)
-            var readOffNewObject = nextFieldContext is MemberExpression { Expression: NewExpression or MemberInitExpression } && Field?.ReturnType.TypeNotNullable == true;
-            if (isNullable && !readOffNewObject && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
+            // pageInfo read off the Connection<T> built right here (new Connection<T>(...).PageInfo) is never null - Connection
+            // creates it on demand. A null check would repeat the whole expression, and a LINQ provider like EF translates it
+            // twice (e.g. an EXISTS subquery). Only for Connection: any other object's member can be null
+            var connectionPageInfo =
+                nextFieldContext
+                    is MemberExpression
+                    {
+                        Expression: NewExpression or MemberInitExpression,
+                        Member: { Name: nameof(Connection<object>.PageInfo), DeclaringType: { IsGenericType: true } declaringType }
+                    }
+                && declaringType.GetGenericTypeDefinition() == typeof(Connection<>);
+            if (isNullable && !connectionPageInfo && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
             {
                 // make a null check from this new expression
                 nextFieldContext = Expression.Condition(

@@ -18,7 +18,7 @@
 - Fixed connection paging `pageInfo.hasPreviousPage` being `false` for `last` without `before` when exactly one item comes before the page (e.g. `last: 2` of 3 items).
 - Fixed connection paging with `last` and a `before` cursor past the end of the collection - e.g. `last: 3, before: <cursor 5>` of 3 items - returning too few items (`2` and `3` rather than all 3), as the page was taken as ending at the cursor. It is now the last items of the collection, with matching cursors and `pageInfo`. On a nested collection the cursor is shared by every parent and can be past the end of only some of them: each parent's page is chosen from its own count, at the cost of also selecting the last `last` items of each parent alongside the page.
 - Fixed connection paging `pageInfo.hasNextPage` being `false` for `before` when the cursor is the last item (e.g. `last: 3, before: <cursor 6>` of 6 items), although the item at the cursor comes after the page.
-- A non-null object field read off an object built in the same expression (e.g. a connection's `pageInfo`) is no longer null checked. The check repeated the whole expression, so EF translated it twice - `pageInfo { hasNextPage }` on a nested connection ran its `EXISTS` subquery twice per parent.
+- A connection's `pageInfo` is no longer null checked - it can't be null. The check repeated the whole connection expression, so EF translated it twice - `pageInfo { hasNextPage }` on a nested connection ran its `EXISTS` subquery twice per parent.
 
 # 6.2.4
 

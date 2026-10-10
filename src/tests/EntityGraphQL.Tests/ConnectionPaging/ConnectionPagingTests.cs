@@ -769,6 +769,24 @@ public class ConnectionPagingTests
         Assert.Equal(200, results.edges[0].node.height);
     }
 
+    // pageInfo read off the new Connection<T> is not null checked (EF translated the check's EXISTS twice). Other objects built
+    // in the expression keep the null check - their members can be null even when the field is declared non-null
+    [Fact]
+    public void TestNullCheckKeptOnMemberOfOtherNewObject()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("wrapped", ctx => new ProjectWrapper { Project = null }.Project, "Wrapped project").IsNullable(false);
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ wrapped { name } }" }, new TestDataContext(), null, null);
+
+        Assert.Null(result.Errors);
+    }
+
+    private class ProjectWrapper
+    {
+        public Project? Project { get; set; }
+    }
+
     private static void FillProjectData(TestDataContext data)
     {
         data.Projects =
