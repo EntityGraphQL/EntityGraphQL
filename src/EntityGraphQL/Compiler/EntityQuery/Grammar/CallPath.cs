@@ -21,7 +21,7 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         {
             if (parts[0] is CallExpression ce)
             {
-                return MakeMethodCall(schema, parser, methodProvider, ref context!, ce.Name, ce.Arguments, requestContext);
+                return MakeMethodCall(schema, parser, methodProvider, ref context!, ce.Name, ce.Arguments, requestContext, compileContext);
             }
             if (parts[0] is IdentityExpression ie)
             {
@@ -35,7 +35,7 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
             {
                 if (next is CallExpression ce)
                 {
-                    return MakeMethodCall(schema, parser, methodProvider, ref currentContext, ce.Name, ce.Arguments, requestContext);
+                    return MakeMethodCall(schema, parser, methodProvider, ref currentContext, ce.Name, ce.Arguments, requestContext, compileContext);
                 }
                 if (next is IdentityExpression ie)
                 {
@@ -54,7 +54,8 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         ref Expression currentContext,
         string name,
         IReadOnlyList<IExpression>? arguments,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        EqlCompileContext? compileContext = null
     )
     {
         if (currentContext == null)
@@ -69,6 +70,10 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         var outerContext = currentContext;
         // some methods might have a different inner context (IEnumerable etc)
         var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
+        // A method on a collection (any, where...) has its element as the context of its arguments: of
+        // the collection's schema type, where the collection's dotnet type could not say which.
+        if (compileContext != null && methodArgContext != outerContext && compileContext.SchemaTypes.TryGetValue(outerContext, out var collectionSchemaType))
+            compileContext.SchemaTypes[methodArgContext] = collectionSchemaType;
         currentContext = methodArgContext;
         // build our method call
         var localContext = currentContext; // Create a local variable to store the value of currentContext

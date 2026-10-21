@@ -1,4 +1,11 @@
-# 6.3.1
+# 6.4.0
+
+## Changes
+
+- Schema types that share one dotnet type are supported - e.g. EF Core [shared-type entities](https://learn.microsoft.com/ef/core/modeling/entity-types#shared-type-entity-types), tables mapped to property bags (`Dictionary<string, object>`) with no class per table, as when the tables are only known at runtime. Add a schema type for each and name it on each field with `Returns("TypeName")`. See "Types known only at runtime" in the schema creation docs.
+  - `UseFilter()` takes its context's schema type from the field being filtered, and follows each field's schema type through references (`author.name == "Ada"`) and into collection methods (`priorities.any(score > 8)`). It looked the type up by dotnet type, so on a shared type it got whichever schema type was registered first for it - `Field 'score' not found on type 'Author'`. Where the field's schema type is not of the expression's dotnet type (a paged field's `Page`/`Connection` wrapper over its collection) the lookup by dotnet type is still used, as before.
+  - A field returning the named type itself is a single object, even when that type is enumerable. A dictionary is a collection of its key/value pairs, so a `Dictionary<string, object>` field with `Returns("Author")` was treated as a list - `Could not find extension method Select on types System.Linq.Enumerable`.
+- `Field.Returns(string)` keeps the field's own dotnet type in `ReturnType.TypeDotnet` (e.g. `List<T>`), as `GqlTypeInfo` holds it everywhere else. It took the named schema type's dotnet type, which left a list field with no element type, so `UseSort()` on a field with `Returns("Type")` failed with `Value cannot be null. (Parameter 'type')`. If you read `ReturnType.TypeDotnet` on such a field expecting the element type, use `GetEnumerableOrArrayType()`.
 
 ## Fixes
 

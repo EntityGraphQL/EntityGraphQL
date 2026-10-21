@@ -58,7 +58,14 @@ public class FilterExpressionExtension : BaseFieldExtension
                 try
                 {
                     var eqlContext = new EqlCompileContext(compileContext);
-                    var compiled = ExpressionUtil.BuildEntityQueryExpression(field.Schema, listType!, filter.Text!, eqlContext, fieldNode.NextFieldContext as ParameterExpression);
+                    var compiled = ExpressionUtil.BuildEntityQueryExpression(
+                        field.Schema,
+                        listType!,
+                        filter.Text!,
+                        eqlContext,
+                        fieldNode.NextFieldContext as ParameterExpression,
+                        field.ReturnType.SchemaType
+                    );
                     // Set back the compiled lambda to the arguments.Filter.Query property
                     filter.Query = (LambdaExpression)compiled;
                     filter.ServiceFieldDependencies = eqlContext.ServiceFieldDependencies;

@@ -51,11 +51,11 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         }
 
         // we have a schema we follow it for fields etc
-        var schemaType = schema.GetSchemaType(context.Type, false, requestContext);
+        var schemaType = compileContext.SchemaTypeOf(context, schema, requestContext);
 
         if (!schemaType.HasField(name, requestContext))
         {
-            return MakeConstantFromIdentity(context, schema, name, requestContext);
+            return MakeConstantFromIdentity(context, schema, name, requestContext, schemaType);
         }
 
         if (schemaType.IsEnum)
@@ -131,10 +131,14 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
             exp = Expression.Call(marker, exp);
         }
 
+        // What the field returns is of the field's schema type, whatever its dotnet type says.
+        if (exp != null)
+            compileContext.RecordSchemaType(exp, gqlField.ReturnType.SchemaType);
+
         return exp!;
     }
 
-    private static Expression MakeConstantFromIdentity(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext)
+    private static Expression MakeConstantFromIdentity(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, ISchemaType? contextSchemaType = null)
     {
         var enumField = schema!.GetEnumTypes().Select(e => e.GetFields().FirstOrDefault(f => f.Name == name)).Where(f => f != null).FirstOrDefault();
         if (enumField != null)
@@ -152,6 +156,9 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
             }
         }
 
-        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, false, null)?.Name ?? context!.Type.Name}'");
+        throw new EntityGraphQLException(
+            GraphQLErrorCategory.DocumentError,
+            $"Field '{name}' not found on type '{contextSchemaType?.Name ?? schema?.GetSchemaType(context!.Type, false, null)?.Name ?? context!.Type.Name}'"
+        );
     }
 }
