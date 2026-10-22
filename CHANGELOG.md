@@ -10,8 +10,6 @@
   - Building the fields of a type with a list of property bags (e.g. a page of them) no longer fails with `Value cannot be null. (Parameter 'key')` - a dictionary was unwrapped as a list a second time - and the `item(id)` field it makes beside such a list reads the id through the schema's `id` field when the type has no `Id` member.
 - `Field.Returns(string)` keeps the field's own dotnet type in `ReturnType.TypeDotnet` (e.g. `List<T>`, or what an async field's `Task` gives), as `GqlTypeInfo` holds it everywhere else. It took the named schema type's dotnet type, which left a list field with no element type, so `UseSort()` on a field with `Returns("Type")` failed with `Value cannot be null. (Parameter 'type')`. Nullability still comes from the named type, so the SDL is unchanged. If you read `ReturnType.TypeDotnet` on such a field expecting the element type, use `GetEnumerableOrArrayType()`.
 
-# 6.3.1
-
 ## Fixes
 
 - #577 - Fixed paging on the `node` of another connection - e.g. `movies(first: 2) { edges { node { actors(first: 1) { ... } } } }` with `UseConnectionPaging()` (or `UseOffsetPaging()`) on both - failing with `unbound variable: p_ConnectionEdge`1`, in memory and with EF. The inner paging's edges/items rebuilt its collection from the schema's `node` expression rather than the edge being selected. Also, as the edges field is shared by every connection of a type, the same connection field at two levels (`actor.movies ... actors.node.movies`) declared the same parameter in nested lambdas, which EF can not rewrite. Note that EF needs SQL `APPLY` to page a nested collection inside another paged nested collection, which SQLite does not support (SQL Server and Postgres do).
