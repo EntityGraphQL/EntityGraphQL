@@ -168,7 +168,9 @@ public class AggregateExtension : BaseFieldExtension
 
         var elementType =
             original.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLSchemaException($"Could not determine element type for field {field.Name} to use {nameof(AggregateExtension)}");
-        var elementSchemaType = schema.GetSchemaType(elementType, null);
+        // The items' schema type as paging found it - by dotnet type it could be another sharing the type.
+        var elementSchemaType =
+            (paging is OffsetPagingExtension offset ? offset.OriginalSchemaType : ((ConnectionPagingExtension)paging).OriginalSchemaType) ?? schema.GetSchemaType(elementType, null);
 
         var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, allowedFieldNames);
 

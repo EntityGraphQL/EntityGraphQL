@@ -218,13 +218,14 @@ public class Field : BaseField
     {
         var schemaDotnetType = Schema.Type(schemaTypeName).TypeDotnet;
         // The field's own dotnet type (e.g. the List<T>), as GqlTypeInfo holds everywhere else - the
-        // schema type's would leave a list field with no element type for UseSort to find.
-        var dotnetType = ResolveExpression?.Type ?? schemaDotnetType;
+        // schema type's would leave a list field with no element type for UseSort to find. ReturnType's
+        // first: an async field's resolve is the Task, its ReturnType what the Task gives.
+        var dotnetType = ReturnType?.TypeDotnet ?? ResolveExpression?.Type ?? schemaDotnetType;
         var gqlTypeInfo = new GqlTypeInfo(() => Schema.Type(schemaTypeName), dotnetType)
         {
-            // A field returning the named type itself is one of it, even when that type is enumerable -
-            // a property bag (Dictionary<string, object>) is a collection of its key/value pairs.
-            IsList = dotnetType.IsEnumerableOrArray() && !schemaDotnetType.IsAssignableFrom(dotnetType),
+            IsList = GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType),
+            // From the named type, as it always was - a List<int> named as Int stays [Int!]!.
+            TypeNotNullable = schemaDotnetType.IsValueType && !schemaDotnetType.IsNullableType(),
         };
         Returns(gqlTypeInfo);
         return this;

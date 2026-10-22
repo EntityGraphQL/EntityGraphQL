@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
+using Humanizer;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
@@ -14,6 +15,9 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 public class OffsetPagingExtension : BaseFieldExtension
 {
     public Expression? OriginalFieldExpression { get; private set; }
+
+    /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
+    internal ISchemaType? OriginalSchemaType { get; private set; }
     public List<IFieldExtension> Extensions { get; private set; } = [];
     private bool isQueryable;
     private Type? listType;
@@ -55,12 +59,20 @@ public class OffsetPagingExtension : BaseFieldExtension
             field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()
             ?? throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use {nameof(OffsetPagingExtension)}. Found type {field.ReturnType.TypeDotnet}");
 
+        OriginalSchemaType = field.ReturnType.SchemaType;
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
         var pageType = typeof(OffsetPage<>).MakeGenericType(listType);
-        if (!schema.HasType(pageType))
+        // By name, not by dotnet type: schema types that share a dotnet type (property bags) share
+        // OffsetPage<T> too, but each needs a page of its own.
+        if (!schema.HasType(page))
         {
             returnSchemaType = schema.AddType(pageType, page, $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)").AddAllFields();
+            var itemsName = schema.SchemaFieldNamer("Items");
+            PointAt(returnSchemaType.GetField(itemsName, null), OriginalSchemaType);
+            // and item(id), which AddAllFields makes beside a list whose items have an id
+            if (returnSchemaType.HasField(itemsName.Singularize(), null))
+                PointAt(returnSchemaType.GetField(itemsName.Singularize(), null), OriginalSchemaType);
         }
         else
         {
@@ -262,5 +274,15 @@ public class OffsetPagingExtension : BaseFieldExtension
         // Build our field expression and hold it for use in the next step
         Expression fieldExpression = BuildTotalCountExpression(fieldNode, returnType!, newItemsExp, argumentParam);
         return (fieldExpression, originalArgParam, argumentParam, arguments);
+    }
+
+    /// <summary>
+    /// Has a page member return the paged items' schema type. AddAllFields found it by dotnet type,
+    /// which for schema types sharing one (property bags) is whichever was registered first.
+    /// </summary>
+    internal static void PointAt(IField member, ISchemaType itemsSchemaType)
+    {
+        if (member.ReturnType.SchemaType != itemsSchemaType)
+            member.Returns(member.ReturnType.WithSchemaType(itemsSchemaType));
     }
 }

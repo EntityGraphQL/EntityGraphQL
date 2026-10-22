@@ -106,6 +106,28 @@ public class GqlTypeInfo
             ElementTypeNullable = ElementTypeNullable,
         };
 
+    /// <summary>The same type info - nullability - of another schema type, and whether it is a list of it.</summary>
+    internal GqlTypeInfo WithSchemaType(ISchemaType schemaType) =>
+        new(() => schemaType, TypeDotnet)
+        {
+            TypeNotNullable = TypeNotNullable,
+            IsList = IsListOf(TypeDotnet, schemaType.TypeDotnet),
+            ElementTypeNullable = ElementTypeNullable,
+        };
+
+    /// <summary>
+    /// Whether a value of dotnetType is a list of schemaDotnetType: an enumerable, unless it is itself the
+    /// schema type and its items are not - a property bag (Dictionary&lt;string, object&gt;) is a collection
+    /// of its key/value pairs, but a List&lt;object&gt; named as an object type is still a list of them.
+    /// </summary>
+    internal static bool IsListOf(Type dotnetType, Type schemaDotnetType)
+    {
+        if (!dotnetType.IsEnumerableOrArray())
+            return false;
+        var elementType = dotnetType.GetEnumerableOrArrayType();
+        return !schemaDotnetType.IsAssignableFrom(dotnetType) || (elementType != null && schemaDotnetType.IsAssignableFrom(elementType));
+    }
+
     public static GqlTypeInfo FromGqlType(ISchemaProvider schema, Type dotnetType, string gqlType)
     {
         var strippedType = gqlType.Trim('!').Trim('[').Trim(']').Trim('!');

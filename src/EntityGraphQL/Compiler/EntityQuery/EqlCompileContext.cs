@@ -44,8 +44,14 @@ public class EqlCompileContext : CompileContext
     /// </summary>
     internal void RecordSchemaType(Expression expression, ISchemaType schemaType)
     {
+        // Only a type with fields can have one looked up on it - most field accesses in a filter are
+        // scalars, and stop here.
+        if (schemaType.IsScalar || schemaType.IsEnum)
+            return;
         var dotnetType = schemaType.TypeDotnet;
-        if (dotnetType.IsAssignableFrom(expression.Type) || (expression.Type.GetEnumerableOrArrayType() is { } elementType && dotnetType.IsAssignableFrom(elementType)))
+        if (dotnetType == expression.Type || dotnetType.IsAssignableFrom(expression.Type))
+            SchemaTypes[expression] = schemaType;
+        else if ((expression.Type.IsGenericType || expression.Type.IsArray) && expression.Type.GetEnumerableOrArrayType() is { } elementType && dotnetType.IsAssignableFrom(elementType))
             SchemaTypes[expression] = schemaType;
     }
 

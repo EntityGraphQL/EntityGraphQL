@@ -42,7 +42,7 @@ public class SharedTypeEntityTests
         }
     }
 
-    private static (SchemaProvider<BagContext> Schema, BagContext Db, SqliteConnection Connection) Build()
+    private static (SchemaProvider<BagContext> Schema, BagContext Db, SqliteConnection Connection) Build(bool paged = false)
     {
         var connection = new SqliteConnection("DataSource=:memory:");
         connection.Open();
@@ -89,20 +89,26 @@ public class SharedTypeEntityTests
         priority.AddField("score", p => Microsoft.EntityFrameworkCore.EF.Property<int>(p, "score"), null);
         priority.AddField("author", p => Microsoft.EntityFrameworkCore.EF.Property<Dictionary<string, object>>(p, "author"), null).Returns("Author");
 
-        schema.Query().AddField("authors", c => c.Set<Dictionary<string, object>>("authors"), null).Returns("Author").UseFilter().UseSort(true);
-        schema.Query().AddField("priorities", c => c.Set<Dictionary<string, object>>("priorities"), null).Returns("Priority").UseFilter().UseSort(true);
+        var authors = schema.Query().AddField("authors", c => c.Set<Dictionary<string, object>>("authors"), null).Returns("Author").UseFilter().UseSort(true);
+        var priorities = schema.Query().AddField("priorities", c => c.Set<Dictionary<string, object>>("priorities"), null).Returns("Priority").UseFilter().UseSort(true);
+        if (paged)
+        {
+            authors.UseConnectionPaging();
+            priorities.UseOffsetPaging();
+        }
         return (schema, db, connection);
     }
 
-    private static List<dynamic> Run(string query, string field)
+    private static List<dynamic> Run(string query, string field, bool paged = false)
     {
-        var (schema, db, connection) = Build();
+        var (schema, db, connection) = Build(paged);
         using (connection)
         using (db)
         {
             var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = query }, db, null, null);
             Assert.Null(result.Errors);
-            return Enumerable.ToList((IEnumerable<dynamic>)((IDictionary<string, object?>)result.Data!)[field]!);
+            var value = ((IDictionary<string, object?>)result.Data!)[field]!;
+            return value is IEnumerable<dynamic> list ? Enumerable.ToList(list) : [value];
         }
     }
 
@@ -147,5 +153,21 @@ public class SharedTypeEntityTests
         var authors = Run("{ authors(sort: [{ id: ASC }]) { name priorities { mergeRequest } } }", "authors");
         Assert.Equal(2, Enumerable.Count(authors[0].priorities));
         Assert.Equal(1, Enumerable.Count(authors[1].priorities));
+    }
+
+    [Fact]
+    public void FilterAndOffsetPagingTranslate()
+    {
+        var page = Run("{ priorities(filter: \"score > 5\", sort: [{ score: ASC }], take: 1) { items { mergeRequest } totalItems } }", "priorities", paged: true);
+        Assert.Equal(2, (int)page[0].totalItems);
+        Assert.Equal("!14", (string)Enumerable.First(page[0].items).mergeRequest);
+    }
+
+    [Fact]
+    public void FilterAndConnectionPagingTranslate()
+    {
+        var connection = Run("{ authors(filter: \"priorities.any(score > 8)\", first: 5) { totalCount edges { node { name } } } }", "authors", paged: true);
+        Assert.Equal(1, (int)connection[0].totalCount);
+        Assert.Equal("Ada", (string)Enumerable.First(connection[0].edges).node.name);
     }
 }

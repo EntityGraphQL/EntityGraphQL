@@ -71,11 +71,15 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         var pagingExt = gqlField.Extensions.FirstOrDefault(e => e is OffsetPagingExtension or ConnectionPagingExtension);
         if (pagingExt != null && gqlField.FieldParam != null)
         {
-            var original = pagingExt is OffsetPagingExtension offset ? offset.OriginalFieldExpression : ((ConnectionPagingExtension)pagingExt).OriginalFieldExpression;
+            var (original, itemsSchemaType) = pagingExt is OffsetPagingExtension offset
+                ? (offset.OriginalFieldExpression, offset.OriginalSchemaType)
+                : (((ConnectionPagingExtension)pagingExt).OriginalFieldExpression, ((ConnectionPagingExtension)pagingExt).OriginalSchemaType);
             if (original != null)
             {
                 var collection = new Util.ParameterReplacer().Replace(original, gqlField.FieldParam, context);
                 compileContext.PagedFieldExpressions.Add(collection);
+                if (itemsSchemaType != null)
+                    compileContext.RecordSchemaType(collection, itemsSchemaType);
                 return collection;
             }
         }

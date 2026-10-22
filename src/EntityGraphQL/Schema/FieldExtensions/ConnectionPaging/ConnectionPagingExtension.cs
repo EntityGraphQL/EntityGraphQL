@@ -18,6 +18,9 @@ public class ConnectionPagingExtension : BaseFieldExtension
     private Type? returnType;
 
     public Expression? OriginalFieldExpression { get; private set; }
+
+    /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
+    internal ISchemaType? OriginalSchemaType { get; private set; }
     public int? DefaultPageSize { get; }
     public int? MaxPageSize { get; }
     public List<IFieldExtension> ExtensionsBeforePaging { get; private set; } = [];
@@ -63,20 +66,25 @@ public class ConnectionPagingExtension : BaseFieldExtension
             schema.AddType<ConnectionPageInfo>("PageInfo", "Metadata about a page of data").AddAllFields();
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
         isQueryable = field.ReturnType.TypeDotnet.IsGenericTypeQueryable();
+        OriginalSchemaType = field.ReturnType.SchemaType;
 
+        // Edge and connection types by name, not by dotnet type: schema types that share a dotnet type
+        // (property bags) share ConnectionEdge<T> and Connection<T> too, but each needs its own.
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
-        if (!schema.HasType(edgeType))
+        var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
+        if (!schema.HasType(edgeName))
         {
-            var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
-            schema.AddType(edgeType, edgeName, "Metadata about an edge of page result").AddAllFields();
+            var edgeSchemaType = schema.AddType(edgeType, edgeName, "Metadata about an edge of page result").AddAllFields();
+            OffsetPagingExtension.PointAt(edgeSchemaType.GetField(schema.SchemaFieldNamer("Node"), null), OriginalSchemaType);
         }
 
         ISchemaType returnSchemaType;
         var connectionType = typeof(Connection<>).MakeGenericType(listType);
         var connectionName = $"{field.ReturnType.SchemaType.Name}Connection";
-        if (!schema.HasType(connectionType))
+        if (!schema.HasType(connectionName))
         {
             returnSchemaType = schema.AddType(connectionType, connectionName, $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)").AddAllFields();
+            OffsetPagingExtension.PointAt(returnSchemaType.GetField(schema.SchemaFieldNamer("Edges"), null), schema.Type(edgeName));
         }
         else
         {

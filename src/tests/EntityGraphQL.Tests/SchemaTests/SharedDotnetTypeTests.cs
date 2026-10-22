@@ -41,7 +41,7 @@ public class SharedDotnetTypeTests
         public List<Dictionary<string, object>> Priorities { get; } = [];
     }
 
-    private static (SchemaProvider<BagContext> Schema, BagContext Data) Build()
+    private static (SchemaProvider<BagContext> Schema, BagContext Data) Build(bool paged = false)
     {
         var data = new BagContext();
         var ada = Author(1, "Ada");
@@ -57,7 +57,9 @@ public class SharedDotnetTypeTests
 
         author.AddField("id", a => (int)a["id"], null);
         author.AddField("name", a => (string)a["name"], null);
-        author.AddField("priorities", a => (List<Dictionary<string, object>>)a["priorities"], null).Returns("Priority");
+        var authorPriorities = author.AddField("priorities", a => (List<Dictionary<string, object>>)a["priorities"], null).Returns("Priority");
+        if (paged)
+            authorPriorities.UseOffsetPaging();
 
         priority.AddField("id", p => (int)p["id"], null);
         priority.AddField("mergeRequest", p => (string)p["mergeRequest"], null);
@@ -65,16 +67,19 @@ public class SharedDotnetTypeTests
         priority.AddField("author", p => (Dictionary<string, object>)p["author"], null).Returns("Author");
 
         schema.Query().AddField("authors", c => c.Authors, null).Returns("Author").UseFilter().UseSort(true);
-        schema.Query().AddField("priorities", c => c.Priorities, null).Returns("Priority").UseFilter().UseSort(true);
+        var priorities = schema.Query().AddField("priorities", c => c.Priorities, null).Returns("Priority").UseFilter().UseSort(true);
+        if (paged)
+            priorities.UseOffsetPaging().UseAggregate(AggregatePlacement.PagingWrapper);
         return (schema, data);
     }
 
-    private static List<object?> Run(string query, string field)
+    private static List<object?> Run(string query, string field, bool paged = false)
     {
-        var (schema, data) = Build();
+        var (schema, data) = Build(paged);
         var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = query }, data, null, null);
         Assert.Null(result.Errors);
-        return ((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)[field]!).ToList();
+        var value = ((IDictionary<string, object?>)result.Data!)[field]!;
+        return value is IEnumerable<object?> list ? list.ToList() : [value];
     }
 
     private static object? Get(object? item, string name) => item!.GetType().GetField(name)!.GetValue(item);
@@ -120,6 +125,70 @@ public class SharedDotnetTypeTests
     {
         var priorities = Run("{ priorities(sort: [{ score: DESC }]) { mergeRequest } }", "priorities");
         Assert.Equal(["!12", "!14", "!13"], priorities.Select(p => Get(p, "mergeRequest")));
+    }
+
+    [Fact]
+    public void A_filter_on_a_paged_field_uses_the_items_schema_type()
+    {
+        // Paging replaces the field's schema type with its Page wrapper; the filter is still over Priority.
+        var page = Run("{ priorities(filter: \"score > 5\") { items { mergeRequest } } }", "priorities", paged: true);
+        Assert.Equal(["!12", "!14"], ((IEnumerable<object?>)Get(page[0], "items")!).Select(p => Get(p, "mergeRequest")));
+    }
+
+    [Fact]
+    public void A_filter_through_a_paged_field_uses_its_items_schema_type()
+    {
+        var authors = Run("{ authors(filter: \"priorities.items.any(score > 8)\") { name } }", "authors", paged: true);
+        Assert.Equal(["Ada"], authors.Select(a => Get(a, "name")));
+    }
+
+    [Fact]
+    public void Chained_collection_methods_keep_the_elements_schema_type()
+    {
+        var authors = Run("{ authors(filter: \"priorities.where(score > 5).any(score > 8)\") { name } }", "authors");
+        Assert.Equal(["Ada"], authors.Select(a => Get(a, "name")));
+    }
+
+    [Fact]
+    public void A_single_item_from_a_collection_keeps_its_schema_type()
+    {
+        var authors = Run("{ authors(filter: \"priorities.first().score == 9\") { name } }", "authors");
+        Assert.Equal(["Ada"], authors.Select(a => Get(a, "name")));
+    }
+
+    [Fact]
+    public void An_aggregate_on_a_paging_wrapper_uses_the_items_schema_type()
+    {
+        var page = Run("{ priorities { aggregate { count max { score } } } }", "priorities", paged: true);
+        var aggregate = Get(page[0], "aggregate");
+        Assert.Equal(3, Get(aggregate, "count"));
+        Assert.Equal(9, Get(Get(aggregate, "max"), "score"));
+    }
+
+    [Fact]
+    public void Two_tables_sharing_a_dotnet_type_each_get_their_own_paging_types()
+    {
+        // OffsetPage<T>, ConnectionEdge<T> and Connection<T> are one dotnet type for every property bag.
+        var (schema, data) = Build();
+        schema.Query().ReplaceField("authors", c => c.Authors, null).Returns("Author").UseConnectionPaging();
+        schema.Query().ReplaceField("priorities", c => c.Priorities, null).Returns("Priority").UseOffsetPaging();
+
+        var sdl = schema.ToGraphQLSchemaString();
+        Assert.Contains("items: [Priority]!", sdl);
+        Assert.Contains("item(id: Int!): Priority", sdl);
+        Assert.Contains("node: Author!", sdl);
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ authors(first: 1) { edges { node { name } } } priorities(take: 2) { items { mergeRequest } } }" },
+            data,
+            null,
+            null
+        );
+        Assert.Null(result.Errors);
+        dynamic authors = ((IDictionary<string, object?>)result.Data!)["authors"]!;
+        dynamic priorities = ((IDictionary<string, object?>)result.Data!)["priorities"]!;
+        Assert.Equal("Ada", (string)Enumerable.First(authors.edges).node.name);
+        Assert.Equal(2, Enumerable.Count(priorities.items));
     }
 
     [Fact]

@@ -155,7 +155,15 @@ public static class SchemaBuilder
         var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
         Type arrayContextType = returnSchemaType.TypeDotnet;
         var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
-        var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
+        // The member, where the type has one; else the id field's own expression - a property bag
+        // (Dictionary<string, object>) has its id in the bag, not as a member.
+        var hasIdMember =
+            arrayContextType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase) != null
+            || arrayContextType.GetField("Id", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase) != null;
+        var ctxId =
+            hasIdMember || idFieldDef.FieldParam == null
+                ? Expression.PropertyOrField(arrayContextParam, "Id")
+                : new ParameterReplacer().Replace(idFieldDef.ResolveExpression, idFieldDef.FieldParam, arrayContextParam);
         Expression argId = Expression.PropertyOrField(argTypeParam, "id");
         argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
         var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
@@ -539,8 +547,10 @@ public static class SchemaBuilder
             returnType = returnType.IsEnumerableOrArray() ? returnType.GetEnumerableOrArrayType()! : returnType.GetNonNullableType()!;
 
         Type baseReturnType = returnType;
+        // A list of lists. Not a list of dictionaries: a dictionary is enumerable but has no one element
+        // type, so a property bag (Dictionary<string, object>) is the base type itself.
         if (baseReturnType.IsEnumerableOrArray())
-            baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
+            baseReturnType = baseReturnType.GetEnumerableOrArrayType() ?? baseReturnType;
         return baseReturnType;
     }
 
