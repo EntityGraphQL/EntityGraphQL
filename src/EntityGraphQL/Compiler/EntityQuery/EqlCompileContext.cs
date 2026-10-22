@@ -37,10 +37,11 @@ public class EqlCompileContext : CompileContext
     internal Dictionary<Expression, ISchemaType> SchemaTypes { get; } = new();
 
     /// <summary>
-    /// Records that an expression - or, for a collection, its elements - is of a schema type. Only when
-    /// the schema type's dotnet type is the expression's (or its elements'): a paged field's schema type
-    /// is its Page/Connection wrapper while the filter works on the collection beneath it, and that is
-    /// left to the lookup by dotnet type, as before.
+    /// Records that an expression - or, for a collection, its elements - is of a schema type. Only where
+    /// the schema type is of exactly the expression's dotnet type (or its elements'), which is where the
+    /// lookup by dotnet type can be wrong. Anything else is left to that lookup, as before: a paged
+    /// field's Page/Connection wrapper over its collection, or a field declared as Person whose
+    /// expression is an Employee - whose schema type the lookup finds, with its own fields.
     /// </summary>
     internal void RecordSchemaType(Expression expression, ISchemaType schemaType)
     {
@@ -49,9 +50,7 @@ public class EqlCompileContext : CompileContext
         if (schemaType.IsScalar || schemaType.IsEnum)
             return;
         var dotnetType = schemaType.TypeDotnet;
-        if (dotnetType == expression.Type || dotnetType.IsAssignableFrom(expression.Type))
-            SchemaTypes[expression] = schemaType;
-        else if ((expression.Type.IsGenericType || expression.Type.IsArray) && expression.Type.GetEnumerableOrArrayType() is { } elementType && dotnetType.IsAssignableFrom(elementType))
+        if (expression.Type == dotnetType || ((expression.Type.IsGenericType || expression.Type.IsArray) && expression.Type.GetEnumerableOrArrayType() == dotnetType))
             SchemaTypes[expression] = schemaType;
     }
 

@@ -68,12 +68,11 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         // schema - it cannot execute inside a filter (or translate to SQL). Within a filter the field means
         // the underlying collection, so use the pre-paging resolve expression and remember it so a following
         // items/edges/totalItems/totalCount access can be mapped (above). See GitHub issue #378.
-        var pagingExt = gqlField.Extensions.FirstOrDefault(e => e is OffsetPagingExtension or ConnectionPagingExtension);
+        var pagingExt = gqlField.Extensions.OfType<IPagingExtension>().FirstOrDefault();
         if (pagingExt != null && gqlField.FieldParam != null)
         {
-            var (original, itemsSchemaType) = pagingExt is OffsetPagingExtension offset
-                ? (offset.OriginalFieldExpression, offset.OriginalSchemaType)
-                : (((ConnectionPagingExtension)pagingExt).OriginalFieldExpression, ((ConnectionPagingExtension)pagingExt).OriginalSchemaType);
+            var original = pagingExt.OriginalFieldExpression;
+            var itemsSchemaType = pagingExt.OriginalSchemaType;
             if (original != null)
             {
                 var collection = new Util.ParameterReplacer().Replace(original, gqlField.FieldParam, context);

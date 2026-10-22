@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -55,5 +56,68 @@ public class ReturnsSchemaTypeTests
         schema.Query().AddField("anything", _ => new List<object> { 1, "a" }, "Anything").Returns("Any");
 
         Assert.True(schema.Query().GetField("anything", null).ReturnType.IsList);
+    }
+
+    private class Person
+    {
+        public string Name { get; set; } = "";
+        public Person? Boss { get; set; }
+    }
+
+    private class Employee : Person
+    {
+        public int Salary { get; set; }
+    }
+
+    private class Office
+    {
+        public List<Person> People { get; } =
+            [
+                new Person
+                {
+                    Name = "Jo",
+                    Boss = new Employee { Name = "Sam", Salary = 10 },
+                },
+                new Person
+                {
+                    Name = "Al",
+                    Boss = new Employee { Name = "Lee", Salary = 3 },
+                },
+            ];
+    }
+
+    [Fact]
+    public void A_filter_through_a_field_declared_as_a_base_type_still_finds_the_derived_types_fields()
+    {
+        // boss is declared Person, its expression an Employee: the filter finds Employee by dotnet type, as before.
+        var schema = new SchemaProvider<Office>();
+        var person = schema.AddType<Person>("Person", null);
+        person.AddField("name", p => p.Name, null);
+        schema.AddType<Employee>("Employee", null).AddField("salary", e => e.Salary, null);
+        person.AddField("boss", p => (Employee)p.Boss!, null).Returns("Person");
+        schema.Query().AddField("people", o => o.People, null).UseFilter();
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people(filter: \"boss.salary > 5\") { name } }" }, new Office(), null, null);
+        Assert.Null(result.Errors);
+        dynamic people = result.Data!["people"]!;
+        Assert.Equal("Jo", (string)Enumerable.First(people).name);
+    }
+
+    private class Tagged
+    {
+        public Dictionary<string, string> Tags { get; set; } = new() { ["a"] = "b" };
+    }
+
+    private class TaggedContext
+    {
+        public List<Tagged> Items { get; } = [new()];
+    }
+
+    [Fact]
+    public void A_dictionary_property_is_still_a_list_of_key_value_pairs()
+    {
+        // Why a dictionary is not excluded from being a list everywhere: this is a list on purpose.
+        var schema = SchemaBuilder.FromObject<TaggedContext>();
+        Assert.Contains("tags: [StringStringKeyValuePair", schema.ToGraphQLSchemaString());
     }
 }

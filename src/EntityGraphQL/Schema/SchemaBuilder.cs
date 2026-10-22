@@ -131,11 +131,21 @@ public static class SchemaBuilder
         }
     }
 
+    private static ISchemaType? KnownSchemaType(SchemaBuilderOptions options, Type memberType)
+    {
+        if (options.KnownSchemaTypes is not { } known)
+            return null;
+        if (known.TryGetValue(memberType, out var schemaType))
+            return schemaType;
+        return memberType.GetEnumerableOrArrayType() is { } elementType ? known.GetValueOrDefault(elementType) : null;
+    }
+
     private static Field? MakeFieldWithIdArgumentIfExists(ISchemaProvider schema, ISchemaType schemaType, Type contextType, Field fieldProp, SchemaBuilderOptions options)
     {
         if (fieldProp.ResolveExpression == null)
             throw new ArgumentException($"Field '{fieldProp.Name}' does not have a resolve function. This is required for AutoCreateIdArguments to work.");
-        if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray())
+        // A list, by its type info too: a property bag is enumerable, but one is not a list.
+        if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray() || !fieldProp.ReturnType.IsList)
             return null;
         var returnSchemaType = fieldProp.ReturnType.SchemaType;
         var idFieldDef = returnSchemaType.GetFields().FirstOrDefault(f => f.Name == "id");
@@ -144,6 +154,10 @@ public static class SchemaBuilder
 
         if (idFieldDef.ResolveExpression == null)
             throw new ArgumentException($"Field '{idFieldDef.Name}' does not have a resolve function. This is required for AutoCreateIdArguments to work.");
+        // An id typed object - a property bag's, read without a cast - gives the argument no type, and
+        // would compare boxed values by reference.
+        if (idFieldDef.ResolveExpression.Type == typeof(object))
+            return null;
 
         // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
         // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()
@@ -188,7 +202,11 @@ public static class SchemaBuilder
             selectionExpression,
             $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id",
             argTypesValue,
-            new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type),
+            new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type)
+            {
+                // one item, even of a type that is enumerable (a property bag)
+                IsList = GqlTypeInfo.IsListOf(selectionExpression.Body.Type, returnSchemaType.TypeDotnet),
+            },
             fieldProp.RequiredAuthorization
         );
         options.OnFieldCreated?.Invoke(f);
@@ -491,17 +509,24 @@ public static class SchemaBuilder
         };
         var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
 
-        var baseReturnType = GetBaseReturnType(schema, le.ReturnType, options);
+        // A known schema type for the member's type or its items' - matched before GetBaseReturnType, which
+        // would make a dictionary into its key/value pairs, and a property bag is a dictionary.
+        var knownSchemaType = KnownSchemaType(options, le.ReturnType);
+        var baseReturnType = knownSchemaType?.TypeDotnet ?? GetBaseReturnType(schema, le.ReturnType, options);
 
         if (options.IgnoreTypes.Contains(baseReturnType))
             yield break;
 
-        var schemaType = CacheType(baseReturnType, schema, options, isInputType);
+        var schemaType = knownSchemaType ?? CacheType(baseReturnType, schema, options, isInputType);
 
         var nullabilityInfo = prop.GetNullabilityInfo();
         // see if there is a direct type mapping from the expression return to to something.
         // otherwise build the type info
-        var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schemaType ?? schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
+        var customMapping = schema.GetCustomTypeMapping(le.ReturnType);
+        var returnTypeInfo = customMapping ?? new GqlTypeInfo(() => schemaType ?? schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
+        // A known schema type is a list only of its items - a property bag is enumerable itself.
+        if (knownSchemaType != null && customMapping == null)
+            returnTypeInfo.IsList = GqlTypeInfo.IsListOf(le.Body.Type, knownSchemaType.TypeDotnet);
         var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
         options.OnFieldCreated?.Invoke(field);
 

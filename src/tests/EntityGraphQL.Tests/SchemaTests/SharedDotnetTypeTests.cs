@@ -41,7 +41,7 @@ public class SharedDotnetTypeTests
         public List<Dictionary<string, object>> Priorities { get; } = [];
     }
 
-    private static (SchemaProvider<BagContext> Schema, BagContext Data) Build(bool paged = false)
+    private static (SchemaProvider<BagContext> Schema, BagContext Data) Build(bool paged = false, bool idlessTypeFirst = false)
     {
         var data = new BagContext();
         var ada = Author(1, "Ada");
@@ -50,6 +50,8 @@ public class SharedDotnetTypeTests
         data.Priorities.AddRange([Priority(1, "!12", 9, ada), Priority(2, "!13", 3, ben), Priority(3, "!14", 7, ada)]);
 
         var schema = new SchemaProvider<BagContext>();
+        if (idlessTypeFirst)
+            schema.AddType<Dictionary<string, object>>("Tag", null).AddField("label", t => (string)t["label"], null);
         // Authors first: the first schema type registered for the dotnet type is what a lookup by
         // dotnet type finds, so anything resolving Priority that way gets Author.
         var author = schema.AddType<Dictionary<string, object>>("Author", null);
@@ -177,6 +179,8 @@ public class SharedDotnetTypeTests
         Assert.Contains("items: [Priority]!", sdl);
         Assert.Contains("item(id: Int!): Priority", sdl);
         Assert.Contains("node: Author!", sdl);
+        // and no key/value pair scalar made of a property bag along the way
+        Assert.DoesNotContain("KeyValuePair", sdl);
 
         var result = schema.ExecuteRequestWithContext(
             new QueryRequest { Query = "{ authors(first: 1) { edges { node { name } } } priorities(take: 2) { items { mergeRequest } } }" },
@@ -189,6 +193,73 @@ public class SharedDotnetTypeTests
         dynamic priorities = ((IDictionary<string, object?>)result.Data!)["priorities"]!;
         Assert.Equal("Ada", (string)Enumerable.First(authors.edges).node.name);
         Assert.Equal(2, Enumerable.Count(priorities.items));
+    }
+
+    [Fact]
+    public void Each_shared_types_page_has_its_own_item_by_id()
+    {
+        // Built with the items' schema type, item(id) takes that type's id field, is one item, and says so.
+        var (schema, data) = Build();
+        schema.Query().ReplaceField("authors", c => c.Authors, null).Returns("Author").UseOffsetPaging();
+        schema.Query().ReplaceField("priorities", c => c.Priorities, null).Returns("Priority").UseOffsetPaging();
+
+        var sdl = schema.ToGraphQLSchemaString();
+        Assert.Contains("\"\"\"Return a Author by its Id\"\"\"\n\titem(id: Int!): Author\n", sdl);
+        Assert.Contains("\"\"\"Return a Priority by its Id\"\"\"\n\titem(id: Int!): Priority\n", sdl);
+
+        // The query compiles over Priority's id field. (What it returns is not asserted: item(id) on a
+        // page returns null for any type today, property bag or not.)
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ priorities { items { id } item(id: 3) { mergeRequest } } }" }, data, null, null);
+        Assert.Null(result.Errors);
+    }
+
+    [Fact]
+    public void A_shared_type_registered_after_one_without_an_id_still_gets_item_by_id()
+    {
+        // Tag is registered first, with no id field: a lookup by dotnet type finds it.
+        var (schema, _) = Build(idlessTypeFirst: true);
+        schema.Query().ReplaceField("priorities", c => c.Priorities, null).Returns("Priority").UseOffsetPaging();
+
+        Assert.Contains("item(id: Int!): Priority", schema.ToGraphQLSchemaString());
+    }
+
+    [Fact]
+    public void An_untyped_id_gets_no_item_by_id()
+    {
+        // a["id"] with no cast is an object: no argument type to give item(id), and Equal would compare references.
+        var schema = new SchemaProvider<BagContext>();
+        schema.AddScalarType<object>("Any", "Anything");
+        var priority = schema.AddType<Dictionary<string, object>>("Priority", null);
+        priority.AddField("id", p => p["id"], null);
+        schema.Query().AddField("priorities", c => c.Priorities, null).Returns("Priority").UseOffsetPaging();
+
+        Assert.DoesNotContain("item(id", schema.ToGraphQLSchemaString());
+    }
+
+    [Fact]
+    public void A_filter_before_Returns_still_uses_the_named_type()
+    {
+        var (schema, data) = Build();
+        var field = schema.Query().ReplaceField("priorities", c => c.Priorities, null);
+        field.UseFilter();
+        field.Returns("Priority");
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ priorities(filter: \"score > 5\") { mergeRequest } }" }, data, null, null);
+        Assert.Null(result.Errors);
+        Assert.Equal(2, ((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)["priorities"]!).Count());
+    }
+
+    [Fact]
+    public void A_schema_type_of_the_page_name_that_is_not_a_page_fails_when_built()
+    {
+        var (schema, _) = Build();
+        schema.AddType<Thing>("PriorityPage", "Not a page");
+        Assert.Throws<EntityGraphQLSchemaException>(() => schema.Query().ReplaceField("priorities", c => c.Priorities, null).Returns("Priority").UseOffsetPaging());
+    }
+
+    private class Thing
+    {
+        public string Name { get; set; } = "";
     }
 
     [Fact]

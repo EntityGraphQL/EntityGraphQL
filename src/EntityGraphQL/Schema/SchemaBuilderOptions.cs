@@ -32,6 +32,13 @@ public class SchemaBuilderOptions
     public bool AutoCreateFieldWithIdArguments { get; set; } = true;
 
     /// <summary>
+    /// Schema types to use for members of these dotnet types, rather than looking them up by dotnet type -
+    /// for where the dotnet type can not say which: several schema types sharing one, as property bags
+    /// (Dictionary&lt;string, object&gt;) do. Paging builds its page types with the items' schema type here.
+    /// </summary>
+    internal IReadOnlyDictionary<Type, ISchemaType>? KnownSchemaTypes { get; init; }
+
+    /// <summary>
     /// If true (default) and an enum type is encountered during reflection of the object graph it will be added to the schema
     /// as an Enum
     /// </summary>

@@ -12,12 +12,12 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// <summary>
 /// Sets up a few extensions to modify a collection expression (e.g. db.Movies.OrderBy()) into a paging graph
 /// </summary>
-public class OffsetPagingExtension : BaseFieldExtension
+public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
 {
     public Expression? OriginalFieldExpression { get; private set; }
 
     /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
-    internal ISchemaType? OriginalSchemaType { get; private set; }
+    public ISchemaType? OriginalSchemaType { get; private set; }
     public List<IFieldExtension> Extensions { get; private set; } = [];
     private bool isQueryable;
     private Type? listType;
@@ -63,21 +63,10 @@ public class OffsetPagingExtension : BaseFieldExtension
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
         var pageType = typeof(OffsetPage<>).MakeGenericType(listType);
-        // By name, not by dotnet type: schema types that share a dotnet type (property bags) share
-        // OffsetPage<T> too, but each needs a page of its own.
-        if (!schema.HasType(page))
-        {
-            returnSchemaType = schema.AddType(pageType, page, $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)").AddAllFields();
-            var itemsName = schema.SchemaFieldNamer("Items");
-            PointAt(returnSchemaType.GetField(itemsName, null), OriginalSchemaType);
-            // and item(id), which AddAllFields makes beside a list whose items have an id
-            if (returnSchemaType.HasField(itemsName.Singularize(), null))
-                PointAt(returnSchemaType.GetField(itemsName.Singularize(), null), OriginalSchemaType);
-        }
-        else
-        {
-            returnSchemaType = schema.Type(page);
-        }
+        // By name: schema types that share a dotnet type (property bags) share OffsetPage<T> too, but
+        // each needs a page of its own, built with the items' schema type (rather than looking it up by
+        // a dotnet type that can not say which).
+        returnSchemaType = PagingType(schema, page, pageType, $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)", new() { [listType] = OriginalSchemaType });
         returnType = returnSchemaType.TypeDotnet;
 
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));
@@ -277,12 +266,19 @@ public class OffsetPagingExtension : BaseFieldExtension
     }
 
     /// <summary>
-    /// Has a page member return the paged items' schema type. AddAllFields found it by dotnet type,
-    /// which for schema types sharing one (property bags) is whichever was registered first.
+    /// The paging type of this name - added, with its members built from the given schema types, or the
+    /// one already added for another field paging the same items. A type of that name that is not this
+    /// paging type (the schema's own PersonPage, say) is an error, not a wrapper to reuse.
     /// </summary>
-    internal static void PointAt(IField member, ISchemaType itemsSchemaType)
+    internal static ISchemaType PagingType(ISchemaProvider schema, string name, Type dotnetType, string description, Dictionary<Type, ISchemaType> knownSchemaTypes)
     {
-        if (member.ReturnType.SchemaType != itemsSchemaType)
-            member.Returns(member.ReturnType.WithSchemaType(itemsSchemaType));
+        if (!schema.HasType(name))
+            return schema.AddType(dotnetType, name, description).AddAllFields(new SchemaBuilderOptions { KnownSchemaTypes = knownSchemaTypes });
+        var existing = schema.Type(name);
+        if (existing.TypeDotnet != dotnetType)
+            throw new EntityGraphQLSchemaException(
+                $"Paging needs a type named '{name}' for {dotnetType.Name}, but the schema already has a '{name}' of {existing.TypeDotnet.Name}. Rename that type."
+            );
+        return existing;
     }
 }

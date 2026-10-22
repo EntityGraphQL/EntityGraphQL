@@ -15,9 +15,12 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// We generate a non-list object type (e.g. PersonAggregate) whose fields resolve aggregate calls over
 /// the collection, and expose it according to the configured <see cref="AggregatePlacement"/>.
 /// </summary>
-public class AggregateExtension : BaseFieldExtension
+public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
 {
     private readonly AggregatePlacement placement;
+
+    /// <summary>The aggregated items' schema type - the field's own, before a wrapper replaced it.</summary>
+    public ISchemaType? OriginalSchemaType { get; private set; }
     private readonly LambdaExpression? fieldSelection;
 
     // numeric types we expose aggregates for (Min/Max work for all of these; Sum/Average need an overload - see WidenForSumAverage)
@@ -63,7 +66,7 @@ public class AggregateExtension : BaseFieldExtension
             throw new EntityGraphQLSchemaException($"{nameof(AggregateExtension)} requires a Resolve function set on the field");
 
         // when chained after UseOffsetPaging/UseConnectionPaging the field returns a paging wrapper, not a collection
-        var paging = field.Extensions.OfType<OffsetPagingExtension>().Cast<IFieldExtension>().Concat(field.Extensions.OfType<ConnectionPagingExtension>()).FirstOrDefault();
+        var paging = field.Extensions.OfType<IPagingExtension>().FirstOrDefault();
         var isPaged = paging != null;
 
         // Auto uses the paging wrapper when paged, otherwise the OwnWrapper { items, aggregate } shape (which
@@ -84,7 +87,8 @@ public class AggregateExtension : BaseFieldExtension
                     $"{nameof(AggregatePlacement)}.{nameof(AggregatePlacement.PagingWrapper)} requires {nameof(UseAggregateExtension.UseAggregate)} to be chained after UseOffsetPaging()/UseConnectionPaging() on field {field.Name}."
                 );
 
-            ConfigurePagingWrapper(schema, field, paging!, GetAllowedFieldNames(schema));
+            OriginalSchemaType = paging!.OriginalSchemaType;
+            ConfigurePagingWrapper(schema, field, paging, GetAllowedFieldNames(schema));
             return;
         }
 
@@ -99,6 +103,7 @@ public class AggregateExtension : BaseFieldExtension
             ?? throw new EntityGraphQLSchemaException($"Could not determine element type for field {field.Name} to use {nameof(AggregateExtension)}");
 
         var elementSchemaType = field.ReturnType.SchemaType;
+        OriginalSchemaType = elementSchemaType;
         var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, GetAllowedFieldNames(schema));
 
         if (effectivePlacement == AggregatePlacement.OwnWrapper)
@@ -160,17 +165,16 @@ public class AggregateExtension : BaseFieldExtension
         field.Returns(new GqlTypeInfo(() => wrapperType, wrapperType.TypeDotnet) { IsList = false });
     }
 
-    private static void ConfigurePagingWrapper(ISchemaProvider schema, IField field, IFieldExtension paging, HashSet<string>? allowedFieldNames)
+    private static void ConfigurePagingWrapper(ISchemaProvider schema, IField field, IPagingExtension paging, HashSet<string>? allowedFieldNames)
     {
-        var original = paging is OffsetPagingExtension off ? off.OriginalFieldExpression : ((ConnectionPagingExtension)paging).OriginalFieldExpression;
+        var original = paging.OriginalFieldExpression;
         if (original == null)
             throw new EntityGraphQLSchemaException($"Could not resolve the source collection for aggregate on field {field.Name}");
 
         var elementType =
             original.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLSchemaException($"Could not determine element type for field {field.Name} to use {nameof(AggregateExtension)}");
         // The items' schema type as paging found it - by dotnet type it could be another sharing the type.
-        var elementSchemaType =
-            (paging is OffsetPagingExtension offset ? offset.OriginalSchemaType : ((ConnectionPagingExtension)paging).OriginalSchemaType) ?? schema.GetSchemaType(elementType, null);
+        var elementSchemaType = paging.OriginalSchemaType ?? schema.GetSchemaType(elementType, null);
 
         var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, allowedFieldNames);
 

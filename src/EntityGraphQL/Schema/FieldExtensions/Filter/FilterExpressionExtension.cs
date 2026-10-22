@@ -13,8 +13,6 @@ public class FilterExpressionExtension : BaseFieldExtension
     private bool isQueryable;
     private Type? listType;
 
-    /// <summary>The filtered items' schema type, taken before paging or an aggregate wraps the field's.</summary>
-    private ISchemaType? listSchemaType;
 
     /// <summary>
     /// Configure the field for a filter argument. Do as much as we can here as it is only executed once.
@@ -30,7 +28,6 @@ public class FilterExpressionExtension : BaseFieldExtension
             throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use FilterExpressionExtension. Found type {field.ReturnType.TypeDotnet}");
 
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
-        listSchemaType = field.ReturnType.SchemaType;
 
         // Update field arguments
         var args = Activator.CreateInstance<FilterArgs>()!;
@@ -62,7 +59,7 @@ public class FilterExpressionExtension : BaseFieldExtension
                 try
                 {
                     var eqlContext = new EqlCompileContext(compileContext);
-                    var compiled = ExpressionUtil.BuildEntityQueryExpression(field.Schema, listType!, filter.Text!, eqlContext, fieldNode.NextFieldContext as ParameterExpression, listSchemaType);
+                    var compiled = ExpressionUtil.BuildEntityQueryExpression(field.Schema, listType!, filter.Text!, eqlContext, fieldNode.NextFieldContext as ParameterExpression, ItemsSchemaType(field));
                     // Set back the compiled lambda to the arguments.Filter.Query property
                     filter.Query = (LambdaExpression)compiled;
                     filter.ServiceFieldDependencies = eqlContext.ServiceFieldDependencies;
@@ -117,4 +114,11 @@ public class FilterExpressionExtension : BaseFieldExtension
 
         return (expression, originalArgParam, argumentParam, arguments);
     }
+
+    /// <summary>
+    /// The filtered items' schema type, as the query runs - so it does not matter whether Returns("Type")
+    /// came before UseFilter() or after - and from paging or an aggregate where they wrap the field's.
+    /// </summary>
+    private static ISchemaType ItemsSchemaType(IField field) =>
+        field.Extensions.OfType<IWrapsItemsExtension>().Select(e => e.OriginalSchemaType).FirstOrDefault(t => t != null) ?? field.ReturnType.SchemaType;
 }
