@@ -115,6 +115,9 @@ public class GqlTypeInfo
     /// </summary>
     internal static bool IsListOf(Type dotnetType, Type schemaDotnetType)
     {
+        // the type itself first - a TreeNode : IEnumerable<TreeNode> named as TreeNode is one
+        if (dotnetType == schemaDotnetType)
+            return false;
         var elementType = dotnetType.GetCollectionElementType();
         if (elementType != null && CastCompatible(elementType, schemaDotnetType))
             return true;
@@ -122,6 +125,17 @@ public class GqlTypeInfo
             return false;
         return dotnetType.IsEnumerableOrArray();
     }
+
+    /// <summary>
+    /// Whether a value typed <paramref name="from"/> is cast to <paramref name="to"/> to read the fields of a schema
+    /// type over it: only where it is typed object or a dictionary interface - a property bag behind IDictionary,
+    /// or a value the expression could not type. Not a narrowing between real types (IAnimal to Dog), which
+    /// would throw on another implementation and may not translate.
+    /// </summary>
+    internal static bool NeedsCastTo(Type from, Type to) =>
+        from != to
+        && from.IsAssignableFrom(to)
+        && (from == typeof(object) || (from.IsInterface && from.IsGenericType && from.GetGenericTypeDefinition() is var d && (d == typeof(System.Collections.Generic.IDictionary<,>) || d == typeof(System.Collections.Generic.IReadOnlyDictionary<,>))));
 
     /// <summary>Whether a value of one type can be a value of the other: either is assignable from the other.</summary>
     internal static bool CastCompatible(Type a, Type b) => a.IsAssignableFrom(b) || b.IsAssignableFrom(a);

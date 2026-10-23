@@ -64,9 +64,9 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         }
         var gqlField = schemaType.GetField(name, requestContext);
 
-        // The schema type's fields are expressions over its dotnet type: a context less specific than that
-        // (object, IDictionary, behind a cast) is cast to it first.
-        if (context.Type != schemaType.TypeDotnet && context.Type.IsAssignableFrom(schemaType.TypeDotnet))
+        // The schema type's fields are expressions over its dotnet type: a context typed object or a dictionary
+        // interface is cast to it first (GqlTypeInfo.NeedsCastTo).
+        if (GqlTypeInfo.NeedsCastTo(context.Type, schemaType.TypeDotnet))
             context = Expression.Convert(context, schemaType.TypeDotnet);
 
         // A paged field's resolve is the Page/Connection wrapper object which only exists for the GraphQL

@@ -217,8 +217,10 @@ public class Field : BaseField
     public Field Returns(string schemaTypeName)
     {
         // Sorting, paging and aggregates build their argument and wrapper types from the schema type when they
-        // are added: a later Returns would leave those built from the type the field had before.
-        if (Extensions.FirstOrDefault(e => e is SortExtension or IWrapsItemsExtension) is { } builtFrom)
+        // are added: a later Returns that changes it would leave those built from the type the field had before.
+        // (Extensions first: reading ReturnType.SchemaType looks the type up by dotnet type, which for a field
+        // typed object or IDictionary - what Returns is for - finds none. Those extensions resolved it already.)
+        if (Extensions.FirstOrDefault(e => e is SortExtension or IWrapsItemsExtension) is { } builtFrom && Schema.Type(schemaTypeName) != ReturnType.SchemaType)
             throw new EntityGraphQLSchemaException(
                 $"Call Returns(\"{schemaTypeName}\") on field '{Name}' before {builtFrom.GetType().Name.Replace("Extension", "")}: it has already built its types from {ReturnType.SchemaType.Name}."
             );

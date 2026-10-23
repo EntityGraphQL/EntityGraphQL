@@ -396,33 +396,72 @@ public class SharedDotnetTypeTests
     }
 
     [Fact]
-    public void A_bag_over_an_interface_is_not_swapped_for_one_over_its_class()
+    public void A_recorded_bag_type_is_kept_over_another_bag_of_the_same_dotnet_type()
     {
-        // A over IDictionary, B over Dictionary: a Dictionary is an IDictionary, but B is no subtype of A.
-        var schema = new SchemaProvider<TwoBags>();
-        schema.AddType<IDictionary<string, object>>("A", null).AddField("a", x => (int)x["a"], null);
-        schema.AddType<Dictionary<string, object>>("B", null).AddField("b", x => (int)x["b"], null);
-        schema.Query().AddField("items", c => c.Items, null).Returns("A").UseFilter();
-
-        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ items(filter: \"a > 2\") { a } }" }, new TwoBags(), null, null);
-        Assert.Null(result.Errors);
-        Assert.Single((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)["items"]!);
-    }
-
-    [Fact]
-    public void A_recorded_bag_type_is_kept_over_one_found_for_a_class_implementing_its_interface()
-    {
-        // The override is for real subtypes (Employee : Person, a type implementing a schema interface) only.
-        var schema = new SchemaProvider<TwoBags>();
-        var a = schema.AddType<IDictionary<string, object>>("A", null);
-        schema.AddType<Dictionary<string, object>>("B", null);
+        // Bags share Dictionary<string, object>: only the declared type can say which a value is.
+        var (schema, _) = Build();
         var compile = new EntityGraphQL.Compiler.EntityQuery.EqlCompileContext(
             new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null)
         );
         var bag = System.Linq.Expressions.Expression.Parameter(typeof(Dictionary<string, object>), "bag");
-        compile.RecordSchemaType(bag, a, isList: false);
+        compile.RecordSchemaType(bag, schema.Type("Priority"), isList: false);
 
-        Assert.Same(a, compile.SchemaTypeOf(bag, schema, null));
+        Assert.Same(schema.Type("Priority"), compile.SchemaTypeOf(bag, schema, null));
+    }
+
+    [Theory]
+    [InlineData(typeof(object), typeof(Dictionary<string, object>), true)] // a value the expression could not type
+    [InlineData(typeof(IDictionary<string, object>), typeof(Dictionary<string, object>), true)] // a bag behind its interface
+    [InlineData(typeof(IReadOnlyDictionary<string, object>), typeof(Dictionary<string, object>), true)]
+    [InlineData(typeof(IEnumerable<int>), typeof(List<int>), false)] // a narrowing between real types
+    [InlineData(typeof(Dictionary<string, object>), typeof(Dictionary<string, object>), false)]
+    public void A_cast_to_read_a_types_fields_is_only_from_object_or_a_dictionary_interface(Type from, Type to, bool cast) => Assert.Equal(cast, GqlTypeInfo.NeedsCastTo(from, to));
+
+    private class TreeNode : IEnumerable<TreeNode>
+    {
+        public List<TreeNode> Children { get; } = [];
+
+        public IEnumerator<TreeNode> GetEnumerator() => Children.GetEnumerator();
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    [Fact]
+    public void A_type_that_enumerates_itself_named_as_itself_is_one() => Assert.False(GqlTypeInfo.IsListOf(typeof(TreeNode), typeof(TreeNode)));
+
+    private class LabelService
+    {
+        public string Label(Dictionary<string, object> author) => "by " + (string)author["name"];
+    }
+
+    [Fact]
+    public void A_filter_on_a_service_field_of_bags_runs_its_service_pass()
+    {
+        var (schema, data) = Build();
+        ((SchemaType<Dictionary<string, object>>)schema.Type("Author")).AddField("label", "Label").Resolve<LabelService>((a, labels) => labels.Label(a));
+        schema.Query().ReplaceField("authors", c => c.Authors, null).Returns("Author").UseFilter();
+
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<LabelService>(services);
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ authors(filter: \"label == \\\"by Ben\\\"\") { name label } }" },
+            data,
+            Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services),
+            null,
+            new ExecutionOptions { ExecuteServiceFieldsSeparately = true }
+        );
+        Assert.Null(result.Errors);
+        Assert.Equal(["Ben"], ((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)["authors"]!).Select(a => Get(a, "name")));
+    }
+
+    [Fact]
+    public void Returns_after_sorting_that_keeps_the_type_is_fine()
+    {
+        var (schema, _) = Build();
+        var sorted = schema.Query().ReplaceField("priorities", c => c.Priorities, null);
+        sorted.Returns("Priority");
+        sorted.UseSort(true);
+        sorted.Returns("Priority");
     }
 
     [Fact]

@@ -49,30 +49,29 @@ public class EqlCompileContext : CompileContext
     }
 
     /// <summary>
-    /// The schema type whose fields apply to an expression in the filter: as recorded - unless its dotnet type
-    /// finds one more derived (a field declared as Person whose expression is an Employee is an Employee, with
-    /// its fields) - else by its dotnet type, as before. Not a recorded list's: a field read straight off a list
-    /// is the same error it always was.
+    /// The schema type whose fields apply to an expression in the filter: as recorded, unless its dotnet type
+    /// finds another schema type whose dotnet type derives from or implements the recorded one's - a field
+    /// declared as Person whose expression is an Employee is an Employee, and one declared as Animal (IAnimal)
+    /// whose expression is a Dog is a Dog, with their own fields, as before. Not when the two share a dotnet
+    /// type: that is property bags, Dictionary&lt;string, object&gt; each, where only the declared type can say.
+    /// Else by its dotnet type, as before. Not a recorded list's: a field read straight off a list is the same
+    /// error it always was.
     /// </summary>
     internal ISchemaType SchemaTypeOf(Expression expression, ISchemaProvider schema, QueryRequestContext? requestContext)
     {
         if (SchemaTypes.TryGetValue(expression, out var recorded) && !recorded.IsList && GqlTypeInfo.CastCompatible(expression.Type, recorded.SchemaType.TypeDotnet))
         {
-            if (schema.TryGetSchemaType(expression.Type, false, out var byDotnetType, requestContext) && IsSubtype(byDotnetType!, recorded.SchemaType))
-                return byDotnetType!;
+            var recordedType = recorded.SchemaType.TypeDotnet;
+            if (
+                schema.TryGetSchemaType(expression.Type, false, out var byDotnetType, requestContext)
+                && byDotnetType!.TypeDotnet != recordedType
+                && recordedType.IsAssignableFrom(byDotnetType.TypeDotnet)
+            )
+                return byDotnetType;
             return recorded.SchemaType;
         }
         return schema.GetSchemaType(expression.Type, false, requestContext);
     }
-
-    /// <summary>
-    /// Whether a schema type is a subtype of another: one of its base types in the schema (a type implementing
-    /// an interface), or over a subclass of its class (Employee : Person). Not just a dotnet type assignable to
-    /// the other's - a Dictionary is an IDictionary, but a bag over one is no subtype of a bag over the other.
-    /// </summary>
-    private static bool IsSubtype(ISchemaType candidate, ISchemaType of) =>
-        candidate != of
-        && (candidate.BaseTypesReadOnly.Contains(of) || (of.TypeDotnet.IsClass && candidate.TypeDotnet.IsSubclassOf(of.TypeDotnet)));
 
     /// <summary>The schema type of a collection's elements, where it was recorded.</summary>
     internal ISchemaType? ElementSchemaTypeOf(Expression collection) =>

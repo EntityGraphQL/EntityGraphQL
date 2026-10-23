@@ -300,4 +300,69 @@ public class ReturnsSchemaTypeTests
         Assert.Equal("Line", orderSchemaType.GetField("items", null).ReturnType.SchemaType.Name);
         Assert.Equal("Order", schema.Type("OrderPage").GetField("items", null).ReturnType.SchemaType.Name);
     }
+
+    private interface IAnimal
+    {
+        string Name { get; }
+    }
+
+    private class Dog : IAnimal
+    {
+        public string Name { get; set; } = "";
+        public int BarkVolume { get; set; }
+    }
+
+    private class Owner
+    {
+        public string Name { get; set; } = "";
+        public IAnimal Pet { get; set; } = null!;
+    }
+
+    private class Kennel
+    {
+        public List<Owner> Owners { get; } =
+            [
+                new Owner
+                {
+                    Name = "Jo",
+                    Pet = new Dog { Name = "Rex", BarkVolume = 9 },
+                },
+                new Owner
+                {
+                    Name = "Al",
+                    Pet = new Dog { Name = "Pip", BarkVolume = 1 },
+                },
+            ];
+    }
+
+    [Fact]
+    public void A_filter_through_a_field_declared_as_an_interface_finds_the_implementations_fields()
+    {
+        // pet is declared Animal (IAnimal), its expression a Dog, with no Implements: Dog's fields, as on main.
+        var schema = new SchemaProvider<Kennel>();
+        schema.AddType<IAnimal>("Animal", null).AddField("name", a => a.Name, null);
+        schema.AddType<Dog>("Dog", null).AddField("barkVolume", d => d.BarkVolume, null);
+        var owner = schema.AddType<Owner>("Owner", null);
+        owner.AddField("name", o => o.Name, null);
+        owner.AddField("pet", o => (Dog)o.Pet, null).Returns("Animal");
+        schema.Query().AddField("owners", k => k.Owners, null).UseFilter();
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ owners(filter: \"pet.barkVolume > 3\") { name } }" }, new Kennel(), null, null);
+        Assert.Null(result.Errors);
+        dynamic owners = result.Data!["owners"]!;
+        Assert.Equal("Jo", (string)Enumerable.First(owners).name);
+    }
+
+    private class PersonAggregate
+    {
+        public int Total { get; set; }
+    }
+
+    [Fact]
+    public void An_aggregate_types_name_already_taken_by_another_type_fails_when_built()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.AddType<PersonAggregate>("PersonAggregate", "Not one the aggregate made");
+        Assert.Throws<EntityGraphQLSchemaException>(() => schema.Query().ReplaceField("people", ctx => ctx.People, null).UseAggregate());
+    }
 }

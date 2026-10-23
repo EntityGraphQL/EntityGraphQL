@@ -160,28 +160,26 @@ public static class SchemaBuilder
         var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
         Type arrayContextType = returnSchemaType.TypeDotnet;
         var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
-        // The id field's own expression, which the argument is typed from - so an id remapped (p => p.ExternalId)
-        // compares that, and a property bag (Dictionary<string, object>) reads its id from the bag.
+        // The type's Id member, where it has one of the argument's type - which EF translates whatever the id
+        // field does to it (p => Encode(p.Id)). Exactly Id first: there may be an ID or a redeclared Id too, and a
+        // case-insensitive lookup of one would throw. Else the id field's own expression - an id remapped to
+        // another type (p => p.ExternalId), or a property bag's, read from the bag - when nothing in it would be
+        // left unbound here: no services, no arguments.
+        var idMembers = arrayContextType.GetMember("Id", MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+        var idMember = idMembers.FirstOrDefault(m => m.Name == "Id" && m.DeclaringType == arrayContextType) ?? idMembers.FirstOrDefault(m => m.Name == "Id") ?? idMembers.FirstOrDefault();
+        var idMemberType = idMember switch
+        {
+            PropertyInfo property => property.PropertyType,
+            FieldInfo field => field.FieldType,
+            _ => null,
+        };
         Expression ctxId;
-        if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0 && idFieldDef.ArgumentsParameter == null)
+        if (idMember != null && idMemberType == idFieldDef.ResolveExpression.Type)
+            ctxId = Expression.MakeMemberAccess(arrayContextParam, idMember);
+        else if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0 && idFieldDef.ArgumentsParameter == null)
             ctxId = new ParameterReplacer().Replace(idFieldDef.ResolveExpression, idFieldDef.FieldParam, arrayContextParam);
         else
-        {
-            // An id field that needs services or takes arguments can not be read here - those parameters
-            // would be left unbound - so the type's Id member, where it has one of the argument's type. Exactly Id first: there
-            // may be an ID or a redeclared Id too, and a case-insensitive lookup of one would throw.
-            var idMembers = arrayContextType.GetMember("Id", MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-            var idMember = idMembers.FirstOrDefault(m => m.Name == "Id" && m.DeclaringType == arrayContextType) ?? idMembers.FirstOrDefault(m => m.Name == "Id") ?? idMembers.FirstOrDefault();
-            var idMemberType = idMember switch
-            {
-                PropertyInfo property => property.PropertyType,
-                FieldInfo field => field.FieldType,
-                _ => null,
-            };
-            if (idMember == null || idMemberType != idFieldDef.ResolveExpression.Type)
-                return null;
-            ctxId = Expression.MakeMemberAccess(arrayContextParam, idMember);
-        }
+            return null;
         Expression argId = Expression.PropertyOrField(argTypeParam, "id");
         argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
         var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);

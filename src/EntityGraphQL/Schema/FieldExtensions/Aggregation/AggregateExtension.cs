@@ -119,12 +119,10 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static void ConfigureOwnWrapper(ISchemaProvider schema, IField field, ISchemaType elementSchemaType, Type elementType, ISchemaType aggregateType)
     {
         var wrapperName = $"{elementSchemaType.Name}WithAggregate";
-        var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
-        // By name, whatever its dotnet type: an aggregate's members take IEnumerable<T>, so one built over
-        // Person serves a field over Employee as well (covariance), as before.
-        var wrapperType = schema.HasType(wrapperName) ? schema.Type(wrapperName) : null;
+        var wrapperType = ExistingGenerated(schema, wrapperName);
         if (wrapperType == null)
         {
+            var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
             wrapperType = schema.AddType(markerType, wrapperName, $"A collection of {elementSchemaType.Name} with aggregate data");
             // IEnumerable always - the wrapper type is cached per element type and must bind List and IQueryable sources alike
             var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
@@ -256,8 +254,8 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static ISchemaType GetOrCreateAggregateType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
     {
         var aggTypeName = $"{elementSchemaType.Name}Aggregate";
-        if (schema.HasType(aggTypeName))
-            return schema.Type(aggTypeName);
+        if (ExistingGenerated(schema, aggTypeName) is { } existingAggregate)
+            return existingAggregate;
         var markerType = typeof(Aggregation<>).MakeGenericType(elementType);
 
         var aggType = schema.AddType(markerType, aggTypeName, $"Aggregate data over a collection of {elementSchemaType.Name}");
@@ -328,8 +326,8 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static ISchemaType BuildFunctionType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, AggregateFunction func, List<IField> fields, Type collType, Type methodClass)
     {
         var typeName = $"{elementSchemaType.Name}{func.Name}Aggregate";
-        if (schema.HasType(typeName))
-            return schema.Type(typeName);
+        if (ExistingGenerated(schema, typeName) is { } existingFunction)
+            return existingFunction;
 
         // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
         var markerType = LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg");
@@ -428,5 +426,25 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
             // Min/Max also work for dates and strings
             return IsMinMax && (nonNull == typeof(DateTime) || nonNull == typeof(DateTimeOffset) || nonNull == typeof(string));
         }
+    }
+
+    /// <summary>
+    /// The aggregate type of this name, if the aggregate generated one: by name, whatever its element type - an
+    /// aggregate's members take IEnumerable&lt;T&gt;, so one built over Person serves a field over Employee as well
+    /// (covariance), as before. A type of that name the aggregate did not generate (the schema's own
+    /// PersonAggregate) is an error, as a clashing page type is.
+    /// </summary>
+    private static ISchemaType? ExistingGenerated(ISchemaProvider schema, string name)
+    {
+        if (!schema.HasType(name))
+            return null;
+        var existing = schema.Type(name);
+        var dotnetType = existing.TypeDotnet;
+        var generated =
+            dotnetType.Assembly.IsDynamic
+            || (dotnetType.IsGenericType && (dotnetType.GetGenericTypeDefinition() == typeof(Aggregation<>) || dotnetType.GetGenericTypeDefinition() == typeof(AggregateWithItems<>)));
+        if (!generated)
+            throw new EntityGraphQLSchemaException($"An aggregate type named '{name}' is needed, but the schema already has a '{name}' of {dotnetType.Name}. Rename that type.");
+        return existing;
     }
 }
