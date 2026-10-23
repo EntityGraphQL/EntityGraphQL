@@ -69,7 +69,7 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
             page,
             pageType,
             $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)",
-            t => t.AddAllFields(new SchemaBuilderOptions { KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { ["Items"] = OriginalSchemaType! } })
+            t => t.AddAllFields(GeneratedTypes.WithItems(pageType, "Items", OriginalSchemaType!))
         );
         returnType = returnSchemaType.TypeDotnet;
 

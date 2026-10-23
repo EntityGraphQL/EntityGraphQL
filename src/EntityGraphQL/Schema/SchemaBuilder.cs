@@ -163,12 +163,12 @@ public static class SchemaBuilder
         // The id field's own expression, which the argument is typed from - so an id remapped (p => p.ExternalId)
         // compares that, and a property bag (Dictionary<string, object>) reads its id from the bag.
         Expression ctxId;
-        if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0)
+        if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0 && idFieldDef.ArgumentsParameter == null)
             ctxId = new ParameterReplacer().Replace(idFieldDef.ResolveExpression, idFieldDef.FieldParam, arrayContextParam);
         else
         {
-            // An id field that needs services can not be read here - its service parameters would be left
-            // unbound - so the type's Id member, where it has one of the argument's type. Exactly Id first: there
+            // An id field that needs services or takes arguments can not be read here - those parameters
+            // would be left unbound - so the type's Id member, where it has one of the argument's type. Exactly Id first: there
             // may be an ID or a redeclared Id too, and a case-insensitive lookup of one would throw.
             var idMembers = arrayContextType.GetMember("Id", MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
             var idMember = idMembers.FirstOrDefault(m => m.Name == "Id" && m.DeclaringType == arrayContextType) ?? idMembers.FirstOrDefault(m => m.Name == "Id") ?? idMembers.FirstOrDefault();
@@ -515,7 +515,7 @@ public static class SchemaBuilder
 
         // A known schema type for the member - taken before GetBaseReturnType, which would make a dictionary
         // into its key/value pairs, and a property bag is a dictionary.
-        var knownSchemaType = options.KnownMemberSchemaTypes?.GetValueOrDefault(prop.Name);
+        var knownSchemaType = prop.ReflectedType == options.KnownMembersOf ? options.KnownMemberSchemaTypes?.GetValueOrDefault(prop.Name) : null;
         var baseReturnType = knownSchemaType?.TypeDotnet ?? GetBaseReturnType(schema, le.ReturnType, options);
 
         if (options.IgnoreTypes.Contains(baseReturnType))

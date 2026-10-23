@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
@@ -24,13 +25,6 @@ internal static class GeneratedTypes
         return added;
     }
 
-    /// <summary>
-    /// The type of this name if it has been added already, whatever its dotnet type - for aggregate types, whose
-    /// members take IEnumerable&lt;T&gt;, so one over Person serves a field over Employee as well (covariance), as
-    /// before. A page's members are typed by its own T, so pages use <see cref="Existing(ISchemaProvider, string, Type)"/>.
-    /// </summary>
-    public static ISchemaType? ExistingByName(ISchemaProvider schema, string name) => schema.HasType(name) ? schema.Type(name) : null;
-
     /// <summary>The type of this name if it has been added already - and is of this dotnet type, else an error.</summary>
     public static ISchemaType? Existing(ISchemaProvider schema, string name, Type dotnetType)
     {
@@ -41,6 +35,14 @@ internal static class GeneratedTypes
             throw new EntityGraphQLSchemaException($"A type named '{name}' is needed for {dotnetType.Name}, but the schema already has a '{name}' of {existing.TypeDotnet.Name}. Rename that type.");
         return existing;
     }
+
+    /// <summary>Options that build a generated type's member with the items' schema type - its own member only.</summary>
+    public static SchemaBuilderOptions WithItems(Type generatedType, string member, ISchemaType itemsSchemaType) =>
+        new()
+        {
+            KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { [member] = itemsSchemaType },
+            KnownMembersOf = generatedType,
+        };
 
     /// <summary>
     /// The items' schema type of a collection field: from paging or an aggregate where they wrap the field's,

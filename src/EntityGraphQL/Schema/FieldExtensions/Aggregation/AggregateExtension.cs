@@ -120,7 +120,9 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     {
         var wrapperName = $"{elementSchemaType.Name}WithAggregate";
         var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
-        var wrapperType = GeneratedTypes.ExistingByName(schema, wrapperName);
+        // By name, whatever its dotnet type: an aggregate's members take IEnumerable<T>, so one built over
+        // Person serves a field over Employee as well (covariance), as before.
+        var wrapperType = schema.HasType(wrapperName) ? schema.Type(wrapperName) : null;
         if (wrapperType == null)
         {
             wrapperType = schema.AddType(markerType, wrapperName, $"A collection of {elementSchemaType.Name} with aggregate data");
@@ -254,9 +256,9 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static ISchemaType GetOrCreateAggregateType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
     {
         var aggTypeName = $"{elementSchemaType.Name}Aggregate";
+        if (schema.HasType(aggTypeName))
+            return schema.Type(aggTypeName);
         var markerType = typeof(Aggregation<>).MakeGenericType(elementType);
-        if (GeneratedTypes.ExistingByName(schema, aggTypeName) is { } existingAggregate)
-            return existingAggregate;
 
         var aggType = schema.AddType(markerType, aggTypeName, $"Aggregate data over a collection of {elementSchemaType.Name}");
         // Always IEnumerable/Enumerable: the aggregate type is cached per element type but may be attached to
@@ -326,10 +328,11 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static ISchemaType BuildFunctionType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, AggregateFunction func, List<IField> fields, Type collType, Type methodClass)
     {
         var typeName = $"{elementSchemaType.Name}{func.Name}Aggregate";
+        if (schema.HasType(typeName))
+            return schema.Type(typeName);
+
         // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
         var markerType = LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg");
-        if (GeneratedTypes.ExistingByName(schema, typeName) is { } existingFunction)
-            return existingFunction;
 
         var funcType = schema.AddType(markerType, typeName, $"{func.Name} of each field over a collection of {elementSchemaType.Name}");
 

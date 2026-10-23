@@ -228,7 +228,7 @@ public class Field : BaseField
         // gives, for an async field. But the named type's, where the field's own is only less specific -
         // a resolve typed object named as Person is a Person, and is converted to one.
         var resolveType = ResolveExpression?.Type;
-        if (resolveType != null && resolveType.IsAsyncGenericType())
+        if (resolveType != null && resolveType.IsAwaitableGenericType())
             resolveType = resolveType.GetGenericArguments()[0];
         var dotnetType = resolveType ?? schemaDotnetType;
         if (dotnetType != schemaDotnetType && dotnetType.IsAssignableFrom(schemaDotnetType) && !GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType))

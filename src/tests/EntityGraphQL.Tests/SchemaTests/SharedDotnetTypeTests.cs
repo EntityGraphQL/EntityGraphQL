@@ -390,6 +390,57 @@ public class SharedDotnetTypeTests
         return ((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)[field]!).ToList();
     }
 
+    private class TwoBags
+    {
+        public List<Dictionary<string, object>> Items { get; } = [new() { ["a"] = 1, ["b"] = 2 }, new() { ["a"] = 5, ["b"] = 6 }];
+    }
+
+    [Fact]
+    public void A_bag_over_an_interface_is_not_swapped_for_one_over_its_class()
+    {
+        // A over IDictionary, B over Dictionary: a Dictionary is an IDictionary, but B is no subtype of A.
+        var schema = new SchemaProvider<TwoBags>();
+        schema.AddType<IDictionary<string, object>>("A", null).AddField("a", x => (int)x["a"], null);
+        schema.AddType<Dictionary<string, object>>("B", null).AddField("b", x => (int)x["b"], null);
+        schema.Query().AddField("items", c => c.Items, null).Returns("A").UseFilter();
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ items(filter: \"a > 2\") { a } }" }, new TwoBags(), null, null);
+        Assert.Null(result.Errors);
+        Assert.Single((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)["items"]!);
+    }
+
+    [Fact]
+    public void A_recorded_bag_type_is_kept_over_one_found_for_a_class_implementing_its_interface()
+    {
+        // The override is for real subtypes (Employee : Person, a type implementing a schema interface) only.
+        var schema = new SchemaProvider<TwoBags>();
+        var a = schema.AddType<IDictionary<string, object>>("A", null);
+        schema.AddType<Dictionary<string, object>>("B", null);
+        var compile = new EntityGraphQL.Compiler.EntityQuery.EqlCompileContext(
+            new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null)
+        );
+        var bag = System.Linq.Expressions.Expression.Parameter(typeof(Dictionary<string, object>), "bag");
+        compile.RecordSchemaType(bag, a, isList: false);
+
+        Assert.Same(a, compile.SchemaTypeOf(bag, schema, null));
+    }
+
+    [Fact]
+    public void Only_a_collection_or_an_element_is_recorded_for_a_call()
+    {
+        // any() and count() over items whose schema type is backed by object are a bool and an int, not items.
+        var schema = new SchemaProvider<BagContext>();
+        schema.AddType<object>("Child", null);
+        var compile = new EntityGraphQL.Compiler.EntityQuery.EqlCompileContext(
+            new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null)
+        );
+        var items = System.Linq.Expressions.Expression.Parameter(typeof(IEnumerable<object>), "items");
+        compile.RecordSchemaType(items, schema.Type("Child"), isList: true);
+        var count = EntityGraphQL.Compiler.EntityQuery.EntityQueryCompiler.CompileWith("count()", items, schema, new QueryRequestContext(null, null), compile).ExpressionResult;
+
+        Assert.False(compile.SchemaTypes.ContainsKey(count));
+    }
+
     [Fact]
     public void Returns_keeps_the_fields_own_dotnet_type()
     {

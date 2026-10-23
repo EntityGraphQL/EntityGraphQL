@@ -224,4 +224,80 @@ public class ReturnsSchemaTypeTests
         dynamic thing = result.Data!["thing"]!;
         Assert.Equal("ext-1", (string)thing.id);
     }
+
+    private class Argued
+    {
+        public int Id { get; set; }
+    }
+
+    private class ArguedContext
+    {
+        public List<Argued> Things { get; } = [new Argued { Id = 1 }, new Argued { Id = 2 }];
+    }
+
+    [Fact]
+    public void Item_by_id_beside_an_id_field_with_arguments_still_works()
+    {
+        // Its expression has an arguments parameter item(id) would leave unbound: the Id member instead, as on main.
+        var schema = new SchemaProvider<ArguedContext>();
+        schema.AddType<Argued>("Thing", null).AddField("id", new { offset = 0 }, (t, args) => t.Id + args.offset, null);
+        schema.Query().AddAllFields();
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ thing(id: 2) { id } }" }, new ArguedContext(), null, null);
+        Assert.Null(result.Errors);
+        dynamic thing = result.Data!["thing"]!;
+        Assert.Equal(2, (int)thing.id);
+    }
+
+    private class Streamed
+    {
+        public async IAsyncEnumerable<EntityGraphQL.Tests.Person> PeopleAsync()
+        {
+            await System.Threading.Tasks.Task.Yield();
+            yield return new EntityGraphQL.Tests.Person { Name = "Jo" };
+        }
+    }
+
+    [Fact]
+    public void Returns_over_an_async_stream_is_still_a_list()
+    {
+        // IAsyncEnumerable<T> is not awaited to one T, as a Task<T> is.
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("stream", "Stream").ResolveAsync<Streamed, EntityGraphQL.Tests.Person>((_, s) => s.PeopleAsync()).Returns("Person");
+        Assert.True(schema.Query().GetField("stream", null).ReturnType.IsList);
+    }
+
+    private class Line
+    {
+        public string Sku { get; set; } = "";
+    }
+
+    private class Order
+    {
+        public List<Line> Items { get; set; } = [];
+    }
+
+    private class OrderPage
+    {
+        public List<Order> Items { get; set; } = [];
+    }
+
+    private class Shop
+    {
+        public List<OrderPage> Pages { get; } = [];
+    }
+
+    [Fact]
+    public void A_known_member_schema_type_is_only_for_the_generated_types_own_member()
+    {
+        // An Order's own Items, built along the way, are its Lines - not the page's items' type.
+        var schema = new SchemaProvider<Shop>();
+        var orderSchemaType = schema.AddType<Order>("Order", null);
+        schema.AddType<OrderPage>("OrderPage", null).AddAllFields(EntityGraphQL.Schema.FieldExtensions.GeneratedTypes.WithItems(typeof(OrderPage), "Items", orderSchemaType));
+        // Order was added without fields: AddAllFields on it builds its own Items, from Line.
+        orderSchemaType.AddAllFields(EntityGraphQL.Schema.FieldExtensions.GeneratedTypes.WithItems(typeof(OrderPage), "Items", orderSchemaType));
+
+        Assert.Equal("Line", orderSchemaType.GetField("items", null).ReturnType.SchemaType.Name);
+        Assert.Equal("Order", schema.Type("OrderPage").GetField("items", null).ReturnType.SchemaType.Name);
+    }
 }

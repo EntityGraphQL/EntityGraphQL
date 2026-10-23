@@ -120,7 +120,9 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         {
             if (GqlTypeInfo.IsListOf(call.Type, collectionSchemaType.TypeDotnet))
                 compileContext.RecordSchemaType(call, collectionSchemaType, isList: true);
-            else if (GqlTypeInfo.CastCompatible(call.Type, collectionSchemaType.TypeDotnet))
+            // one of the elements - exactly their type - not a bool or a count, which an element type of
+            // object would otherwise pass for
+            else if (call.Type == methodArgContext.Type)
                 compileContext.RecordSchemaType(call, collectionSchemaType, isList: false);
         }
         currentContext = call;

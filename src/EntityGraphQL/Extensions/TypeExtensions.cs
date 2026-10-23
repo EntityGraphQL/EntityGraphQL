@@ -161,7 +161,7 @@ public static class TypeExtensions
     }
 
     /// <summary>
-    /// What a collection is of, by the IEnumerable&lt;T&gt; it implements: a class Bags : List&lt;Bag&gt; is a
+    /// What a collection is of, by the IEnumerable&lt;T&gt; (or IAsyncEnumerable&lt;T&gt;) it implements: a class Bags : List&lt;Bag&gt; is a
     /// collection of Bag, a dictionary one of its key/value pairs, and a Task&lt;T&gt;, Nullable&lt;T&gt; or
     /// OffsetPage&lt;T&gt; no collection at all. Unlike GetEnumerableOrArrayType, which reads the first generic
     /// argument of any single-argument generic type.
@@ -172,9 +172,11 @@ public static class TypeExtensions
             return null;
         if (type.IsArray)
             return type.GetElementType();
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+        // IEnumerable<T>, or IAsyncEnumerable<T> - a stream of T is a collection of T too
+        static bool IsCollection(Type t) => t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(IEnumerable<>) || t.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+        if (IsCollection(type))
             return type.GetGenericArguments()[0];
-        var enumerable = type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+        var enumerable = type.GetInterfaces().FirstOrDefault(IsCollection);
         return enumerable?.GetGenericArguments()[0];
     }
 

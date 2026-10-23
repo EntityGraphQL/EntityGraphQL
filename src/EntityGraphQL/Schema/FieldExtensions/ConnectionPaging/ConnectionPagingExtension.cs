@@ -76,7 +76,7 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
             $"{field.ReturnType.SchemaType.Name}Edge",
             edgeType,
             "Metadata about an edge of page result",
-            t => t.AddAllFields(new SchemaBuilderOptions { KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { ["Node"] = OriginalSchemaType! } })
+            t => t.AddAllFields(GeneratedTypes.WithItems(edgeType, "Node", OriginalSchemaType!))
         );
 
         var connectionType = typeof(Connection<>).MakeGenericType(listType);
@@ -86,7 +86,7 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
             connectionName,
             connectionType,
             $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)",
-            t => t.AddAllFields(new SchemaBuilderOptions { KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { ["Edges"] = edgeSchemaType } })
+            t => t.AddAllFields(GeneratedTypes.WithItems(connectionType, "Edges", edgeSchemaType))
         );
         returnType = returnSchemaType.TypeDotnet;
 
