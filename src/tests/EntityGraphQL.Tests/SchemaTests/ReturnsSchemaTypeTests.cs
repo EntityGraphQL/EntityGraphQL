@@ -293,9 +293,9 @@ public class ReturnsSchemaTypeTests
         // An Order's own Items, built along the way, are its Lines - not the page's items' type.
         var schema = new SchemaProvider<Shop>();
         var orderSchemaType = schema.AddType<Order>("Order", null);
-        schema.AddType<OrderPage>("OrderPage", null).AddAllFields(EntityGraphQL.Schema.FieldExtensions.GeneratedTypes.WithItems(typeof(OrderPage), "Items", orderSchemaType));
+        EntityGraphQL.Schema.FieldExtensions.GeneratedTypes.AddAllFieldsWithItems(schema.AddType<OrderPage>("OrderPage", null), "Items", orderSchemaType);
         // Order was added without fields: AddAllFields on it builds its own Items, from Line.
-        orderSchemaType.AddAllFields(EntityGraphQL.Schema.FieldExtensions.GeneratedTypes.WithItems(typeof(OrderPage), "Items", orderSchemaType));
+        orderSchemaType.AddAllFields();
 
         Assert.Equal("Line", orderSchemaType.GetField("items", null).ReturnType.SchemaType.Name);
         Assert.Equal("Order", schema.Type("OrderPage").GetField("items", null).ReturnType.SchemaType.Name);

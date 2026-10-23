@@ -215,7 +215,20 @@ public static class SchemaBuilder
         return f;
     }
 
-    public static List<BaseField> GetFieldsFromObject(Type type, ISchemaType fromType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
+    public static List<BaseField> GetFieldsFromObject(Type type, ISchemaType fromType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType) =>
+        GetFieldsFromObject(type, fromType, schema, options, isInputType, null);
+
+    /// <param name="knownMember">A member of this type whose schema type is known, rather than looked up by its
+    /// dotnet type - which can not say which for schema types sharing one, as property bags do. This type's
+    /// own member only, not those of types built along the way.</param>
+    internal static List<BaseField> GetFieldsFromObject(
+        Type type,
+        ISchemaType fromType,
+        ISchemaProvider schema,
+        SchemaBuilderOptions options,
+        bool isInputType,
+        (string Name, ISchemaType SchemaType)? knownMember
+    )
     {
         var fields = new List<BaseField>();
         // cache fields/properties
@@ -225,13 +238,13 @@ public static class SchemaBuilder
 
         foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType)?.ToList();
+            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType, knownMember)?.ToList();
             if (f != null)
                 fields.AddRange(f);
         }
         foreach (var prop in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
         {
-            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType)?.ToList();
+            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType, knownMember)?.ToList();
             if (f != null)
                 fields.AddRange(f);
         }
@@ -494,7 +507,8 @@ public static class SchemaBuilder
         ParameterExpression param,
         ISchemaProvider schema,
         SchemaBuilderOptions options,
-        bool isInputType
+        bool isInputType,
+        (string Name, ISchemaType SchemaType)? knownMember
     )
     {
         if (!ShouldIncludeMember(prop, options, isInputType))
@@ -513,7 +527,7 @@ public static class SchemaBuilder
 
         // A known schema type for the member - taken before GetBaseReturnType, which would make a dictionary
         // into its key/value pairs, and a property bag is a dictionary.
-        var knownSchemaType = prop.ReflectedType == options.KnownMembersOf ? options.KnownMemberSchemaTypes?.GetValueOrDefault(prop.Name) : null;
+        var knownSchemaType = knownMember?.Name == prop.Name ? knownMember.Value.SchemaType : null;
         var baseReturnType = knownSchemaType?.TypeDotnet ?? GetBaseReturnType(schema, le.ReturnType, options);
 
         if (options.IgnoreTypes.Contains(baseReturnType))

@@ -42,13 +42,12 @@ internal static class GeneratedTypes
         return existing;
     }
 
-    /// <summary>Options that build a generated type's member with the items' schema type - its own member only.</summary>
-    public static SchemaBuilderOptions WithItems(Type generatedType, string member, ISchemaType itemsSchemaType) =>
-        new()
-        {
-            KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { [member] = itemsSchemaType },
-            KnownMembersOf = generatedType,
-        };
+    /// <summary>
+    /// All the fields of a generated type, its one member of the items built with the items' schema type rather
+    /// than by its dotnet type - which can not say which for property bags.
+    /// </summary>
+    public static void AddAllFieldsWithItems(ISchemaType type, string member, ISchemaType itemsSchemaType) =>
+        type.AddFields(SchemaBuilder.GetFieldsFromObject(type.TypeDotnet, type, type.Schema, new SchemaBuilderOptions(), false, (member, itemsSchemaType)));
 
     /// <summary>
     /// The items' schema type of a collection field: from paging or an aggregate where they wrap the field's,
