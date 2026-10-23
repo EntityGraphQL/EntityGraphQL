@@ -118,7 +118,7 @@ public class GqlTypeInfo
         // the type itself first - a TreeNode : IEnumerable<TreeNode> named as TreeNode is one
         if (dotnetType == schemaDotnetType)
             return false;
-        var elementType = dotnetType.GetCollectionElementType();
+        var elementType = dotnetType.GetEnumerableOrArrayType();
         if (elementType != null && CastCompatible(elementType, schemaDotnetType))
             return true;
         if (CastCompatible(dotnetType, schemaDotnetType))

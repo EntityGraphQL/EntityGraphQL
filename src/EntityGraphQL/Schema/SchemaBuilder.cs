@@ -574,10 +574,10 @@ public static class SchemaBuilder
             returnType = returnType.IsEnumerableOrArray() ? returnType.GetEnumerableOrArrayType()! : returnType.GetNonNullableType()!;
 
         Type baseReturnType = returnType;
-        // A list of lists. Not a list of dictionaries: a dictionary is enumerable but has no one element
-        // type, so a property bag (Dictionary<string, object>) is the base type itself.
-        if (baseReturnType.IsEnumerableOrArray())
-            baseReturnType = baseReturnType.GetEnumerableOrArrayType() ?? baseReturnType;
+        // A list of lists. Not a list of dictionaries: a property bag (Dictionary<string, object>) is the base
+        // type itself, not its key/value pairs.
+        if (baseReturnType.IsEnumerableOrArray() && !baseReturnType.IsDictionary())
+            baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
         return baseReturnType;
     }
 

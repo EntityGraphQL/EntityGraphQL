@@ -301,7 +301,7 @@ public class SharedDotnetTypeTests
     [InlineData(typeof(System.Threading.Tasks.Task<Dictionary<string, object>>), null)] // not a collection
     [InlineData(typeof(OffsetPage<Dictionary<string, object>>), null)] // nor is a page
     [InlineData(typeof(string), null)]
-    public void What_a_collection_is_of(Type type, Type? elementType) => Assert.Equal(elementType, type.GetCollectionElementType());
+    public void What_a_collection_is_of(Type type, Type? elementType) => Assert.Equal(elementType, type.GetEnumerableOrArrayType());
 
     [Theory]
     [InlineData(typeof(Dictionary<string, object>), typeof(Dictionary<string, object>), false)] // a bag named as itself
@@ -489,4 +489,13 @@ public class SharedDotnetTypeTests
         Assert.Equal("Priority", field.ReturnType.SchemaType.Name);
         Assert.True(field.ReturnType.IsList);
     }
+
+    private class ListOfBags
+    {
+        public List<Dictionary<string, object>> Items { get; } = [];
+    }
+
+    [Fact]
+    public void A_list_of_bags_is_a_list_of_the_bag_not_its_key_value_pairs() =>
+        Assert.Contains("items: [DictionaryStringObject!]!", SchemaBuilder.FromObject<ListOfBags>().ToGraphQLSchemaString());
 }
