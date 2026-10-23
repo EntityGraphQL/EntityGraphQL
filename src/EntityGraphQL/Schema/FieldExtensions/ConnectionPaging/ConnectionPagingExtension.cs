@@ -68,25 +68,25 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
         isQueryable = field.ReturnType.TypeDotnet.IsGenericTypeQueryable();
         OriginalSchemaType = field.ReturnType.SchemaType;
 
-        // Edge and connection types by name: schema types that share a dotnet type (property bags) share
-        // ConnectionEdge<T> and Connection<T> too, but each needs its own, built with the items' schema type.
+        // Its edges' nodes built with the items' schema type, which their dotnet type can not say for
+        // property bags - see GeneratedTypes.
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
-        var edgeSchemaType = OffsetPagingExtension.PagingType(
+        var edgeSchemaType = GeneratedTypes.GetOrAdd(
             schema,
             $"{field.ReturnType.SchemaType.Name}Edge",
             edgeType,
             "Metadata about an edge of page result",
-            new() { [listType] = OriginalSchemaType }
+            t => t.AddAllFields(new SchemaBuilderOptions { KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { ["Node"] = OriginalSchemaType! } })
         );
 
         var connectionType = typeof(Connection<>).MakeGenericType(listType);
         var connectionName = $"{field.ReturnType.SchemaType.Name}Connection";
-        var returnSchemaType = OffsetPagingExtension.PagingType(
+        var returnSchemaType = GeneratedTypes.GetOrAdd(
             schema,
             connectionName,
             connectionType,
             $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)",
-            new() { [edgeType] = edgeSchemaType }
+            t => t.AddAllFields(new SchemaBuilderOptions { KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { ["Edges"] = edgeSchemaType } })
         );
         returnType = returnSchemaType.TypeDotnet;
 

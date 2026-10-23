@@ -120,4 +120,63 @@ public class ReturnsSchemaTypeTests
         var schema = SchemaBuilder.FromObject<TaggedContext>();
         Assert.Contains("tags: [StringStringKeyValuePair", schema.ToGraphQLSchemaString());
     }
+
+    private class IdAndID
+    {
+        public int Id { get; set; }
+        public int ID { get; set; }
+    }
+
+    private class Holder
+    {
+        public List<IdAndID> Both { get; } = [];
+    }
+
+    [Fact]
+    public void The_item_by_id_beside_a_list_of_a_type_with_two_matching_Id_members_still_builds()
+    {
+        // The item type is added by hand, so only item(id) reads its Id - and must pick one, not throw
+        // (Expression.PropertyOrField matches case-insensitively, so it threw on Id and ID before).
+        var schema = new SchemaProvider<Holder>();
+        schema.AddType<IdAndID>("Both", null).AddField("id", b => b.Id, null);
+        schema.Query().AddAllFields();
+
+        Assert.Contains("bothById(id: Int!): Both", schema.ToGraphQLSchemaString());
+    }
+
+    [Fact]
+    public void Returns_on_a_field_typed_object_takes_the_named_types_dotnet_type()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Query().AddField("someone", ctx => (object)ctx.People.First(), "Someone").Returns("Person");
+
+        Assert.Equal(typeof(EntityGraphQL.Tests.Person), schema.Query().GetField("someone", null).ReturnType.TypeDotnet);
+        var data = new TestDataContext();
+        data.People.Add(new EntityGraphQL.Tests.Person { Id = 1, Name = "Jo" });
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ someone { name } }" }, data, null, null);
+        Assert.Null(result.Errors);
+    }
+
+    private class Numbers
+    {
+        public List<int> Values { get; } = [1, 2, 3];
+        public List<string> Emails { get; } = ["a@b.c"];
+    }
+
+    [Fact]
+    public void Paging_a_scalar_named_type_changes_only_the_items()
+    {
+        // The items' schema type is for the items: totalItems is still an Int, a cursor still a String.
+        var schema = SchemaBuilder.FromObject<Numbers>();
+        schema.AddScalarType<int>("PositiveInt", "More than 0");
+        schema.AddScalarType<string>("Email", "An email address");
+        schema.Query().ReplaceField("values", n => n.Values, null).Returns("PositiveInt").UseOffsetPaging();
+        schema.Query().ReplaceField("emails", n => n.Emails, null).Returns("Email").UseConnectionPaging();
+
+        var sdl = schema.ToGraphQLSchemaString();
+        Assert.Contains("items: [PositiveInt", sdl);
+        Assert.Contains("totalItems: Int!", sdl);
+        Assert.Contains("node: Email", sdl);
+        Assert.Contains("cursor: String!", sdl);
+    }
 }

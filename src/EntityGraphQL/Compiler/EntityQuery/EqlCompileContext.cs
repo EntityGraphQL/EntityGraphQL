@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
@@ -50,8 +52,24 @@ public class EqlCompileContext : CompileContext
         if (schemaType.IsScalar || schemaType.IsEnum)
             return;
         var dotnetType = schemaType.TypeDotnet;
-        if (expression.Type == dotnetType || ((expression.Type.IsGenericType || expression.Type.IsArray) && expression.Type.GetEnumerableOrArrayType() == dotnetType))
+        if (expression.Type == dotnetType || CollectionElementType(expression.Type) == dotnetType)
             SchemaTypes[expression] = schemaType;
+    }
+
+    /// <summary>
+    /// What a collection is of, by the IEnumerable&lt;T&gt; it implements - so a class Bags : List&lt;Bag&gt; is a
+    /// collection of Bag, and a Task&lt;T&gt;, Nullable&lt;T&gt; or OffsetPage&lt;T&gt; is no collection of T.
+    /// </summary>
+    private static Type? CollectionElementType(Type type)
+    {
+        if (type == typeof(string))
+            return null;
+        if (type.IsArray)
+            return type.GetElementType();
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            return type.GetGenericArguments()[0];
+        var enumerable = type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+        return enumerable?.GetGenericArguments()[0];
     }
 
     /// <summary>The schema type of an expression in the filter: as recorded, else by its dotnet type.</summary>

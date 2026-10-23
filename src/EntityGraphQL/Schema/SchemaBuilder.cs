@@ -131,15 +131,6 @@ public static class SchemaBuilder
         }
     }
 
-    private static ISchemaType? KnownSchemaType(SchemaBuilderOptions options, Type memberType)
-    {
-        if (options.KnownSchemaTypes is not { } known)
-            return null;
-        if (known.TryGetValue(memberType, out var schemaType))
-            return schemaType;
-        return memberType.GetEnumerableOrArrayType() is { } elementType ? known.GetValueOrDefault(elementType) : null;
-    }
-
     private static Field? MakeFieldWithIdArgumentIfExists(ISchemaProvider schema, ISchemaType schemaType, Type contextType, Field fieldProp, SchemaBuilderOptions options)
     {
         if (fieldProp.ResolveExpression == null)
@@ -169,15 +160,18 @@ public static class SchemaBuilder
         var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
         Type arrayContextType = returnSchemaType.TypeDotnet;
         var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
-        // The member, where the type has one; else the id field's own expression - a property bag
-        // (Dictionary<string, object>) has its id in the bag, not as a member.
-        var hasIdMember =
-            arrayContextType.GetProperty("Id", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase) != null
-            || arrayContextType.GetField("Id", BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase) != null;
-        var ctxId =
-            hasIdMember || idFieldDef.FieldParam == null
-                ? Expression.PropertyOrField(arrayContextParam, "Id")
-                : new ParameterReplacer().Replace(idFieldDef.ResolveExpression, idFieldDef.FieldParam, arrayContextParam);
+        // The member, where the type has one - exactly Id first, as there may be an ID or a redeclared Id
+        // too - else the id field's own expression: a property bag (Dictionary<string, object>) has its id in
+        // the bag. Not an id field that needs services: their parameters would be left unbound here.
+        var idMembers = arrayContextType.GetMember("Id", MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+        var idMember = idMembers.FirstOrDefault(m => m.Name == "Id" && m.DeclaringType == arrayContextType) ?? idMembers.FirstOrDefault(m => m.Name == "Id") ?? idMembers.FirstOrDefault();
+        Expression ctxId;
+        if (idMember != null)
+            ctxId = Expression.MakeMemberAccess(arrayContextParam, idMember);
+        else if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0)
+            ctxId = new ParameterReplacer().Replace(idFieldDef.ResolveExpression, idFieldDef.FieldParam, arrayContextParam);
+        else
+            return null;
         Expression argId = Expression.PropertyOrField(argTypeParam, "id");
         argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
         var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
@@ -509,9 +503,9 @@ public static class SchemaBuilder
         };
         var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
 
-        // A known schema type for the member's type or its items' - matched before GetBaseReturnType, which
-        // would make a dictionary into its key/value pairs, and a property bag is a dictionary.
-        var knownSchemaType = KnownSchemaType(options, le.ReturnType);
+        // A known schema type for the member - taken before GetBaseReturnType, which would make a dictionary
+        // into its key/value pairs, and a property bag is a dictionary.
+        var knownSchemaType = options.KnownMemberSchemaTypes?.GetValueOrDefault(prop.Name);
         var baseReturnType = knownSchemaType?.TypeDotnet ?? GetBaseReturnType(schema, le.ReturnType, options);
 
         if (options.IgnoreTypes.Contains(baseReturnType))

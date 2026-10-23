@@ -119,14 +119,10 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static void ConfigureOwnWrapper(ISchemaProvider schema, IField field, ISchemaType elementSchemaType, Type elementType, ISchemaType aggregateType)
     {
         var wrapperName = $"{elementSchemaType.Name}WithAggregate";
-        ISchemaType wrapperType;
-        if (schema.HasType(wrapperName))
+        var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
+        var wrapperType = GeneratedTypes.Existing(schema, wrapperName, markerType);
+        if (wrapperType == null)
         {
-            wrapperType = schema.Type(wrapperName);
-        }
-        else
-        {
-            var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
             wrapperType = schema.AddType(markerType, wrapperName, $"A collection of {elementSchemaType.Name} with aggregate data");
             // IEnumerable always - the wrapper type is cached per element type and must bind List and IQueryable sources alike
             var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
@@ -258,10 +254,10 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static ISchemaType GetOrCreateAggregateType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
     {
         var aggTypeName = $"{elementSchemaType.Name}Aggregate";
-        if (schema.HasType(aggTypeName))
-            return schema.Type(aggTypeName);
-
         var markerType = typeof(Aggregation<>).MakeGenericType(elementType);
+        if (GeneratedTypes.Existing(schema, aggTypeName, markerType) is { } existingAggregate)
+            return existingAggregate;
+
         var aggType = schema.AddType(markerType, aggTypeName, $"Aggregate data over a collection of {elementSchemaType.Name}");
         // Always IEnumerable/Enumerable: the aggregate type is cached per element type but may be attached to
         // several fields whose collections differ (List vs IQueryable). IEnumerable params bind both (IQueryable
@@ -330,11 +326,11 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private static ISchemaType BuildFunctionType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, AggregateFunction func, List<IField> fields, Type collType, Type methodClass)
     {
         var typeName = $"{elementSchemaType.Name}{func.Name}Aggregate";
-        if (schema.HasType(typeName))
-            return schema.Type(typeName);
-
         // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
         var markerType = LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg");
+        if (GeneratedTypes.Existing(schema, typeName, markerType) is { } existingFunction)
+            return existingFunction;
+
         var funcType = schema.AddType(markerType, typeName, $"{func.Name} of each field over a collection of {elementSchemaType.Name}");
 
         foreach (var elementField in fields)

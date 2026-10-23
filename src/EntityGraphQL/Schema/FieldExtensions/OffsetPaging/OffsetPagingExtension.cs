@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
-using Humanizer;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
 
@@ -63,10 +62,15 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
         var pageType = typeof(OffsetPage<>).MakeGenericType(listType);
-        // By name: schema types that share a dotnet type (property bags) share OffsetPage<T> too, but
-        // each needs a page of its own, built with the items' schema type (rather than looking it up by
-        // a dotnet type that can not say which).
-        returnSchemaType = PagingType(schema, page, pageType, $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)", new() { [listType] = OriginalSchemaType });
+        // Its items (and item(id) beside them) built with the items' schema type, which their dotnet type
+        // can not say for property bags - see GeneratedTypes.
+        returnSchemaType = GeneratedTypes.GetOrAdd(
+            schema,
+            page,
+            pageType,
+            $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)",
+            t => t.AddAllFields(new SchemaBuilderOptions { KnownMemberSchemaTypes = new Dictionary<string, ISchemaType> { ["Items"] = OriginalSchemaType! } })
+        );
         returnType = returnSchemaType.TypeDotnet;
 
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));
@@ -263,22 +267,5 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         // Build our field expression and hold it for use in the next step
         Expression fieldExpression = BuildTotalCountExpression(fieldNode, returnType!, newItemsExp, argumentParam);
         return (fieldExpression, originalArgParam, argumentParam, arguments);
-    }
-
-    /// <summary>
-    /// The paging type of this name - added, with its members built from the given schema types, or the
-    /// one already added for another field paging the same items. A type of that name that is not this
-    /// paging type (the schema's own PersonPage, say) is an error, not a wrapper to reuse.
-    /// </summary>
-    internal static ISchemaType PagingType(ISchemaProvider schema, string name, Type dotnetType, string description, Dictionary<Type, ISchemaType> knownSchemaTypes)
-    {
-        if (!schema.HasType(name))
-            return schema.AddType(dotnetType, name, description).AddAllFields(new SchemaBuilderOptions { KnownSchemaTypes = knownSchemaTypes });
-        var existing = schema.Type(name);
-        if (existing.TypeDotnet != dotnetType)
-            throw new EntityGraphQLSchemaException(
-                $"Paging needs a type named '{name}' for {dotnetType.Name}, but the schema already has a '{name}' of {existing.TypeDotnet.Name}. Rename that type."
-            );
-        return existing;
     }
 }

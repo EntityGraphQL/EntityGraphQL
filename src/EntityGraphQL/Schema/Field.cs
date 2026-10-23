@@ -218,9 +218,15 @@ public class Field : BaseField
     {
         var schemaDotnetType = Schema.Type(schemaTypeName).TypeDotnet;
         // The field's own dotnet type (e.g. the List<T>), as GqlTypeInfo holds everywhere else - the
-        // schema type's would leave a list field with no element type for UseSort to find. ReturnType's
-        // first: an async field's resolve is the Task, its ReturnType what the Task gives.
-        var dotnetType = ReturnType?.TypeDotnet ?? ResolveExpression?.Type ?? schemaDotnetType;
+        // schema type's would leave a list field with no element type for UseSort to find. What a Task
+        // gives, for an async field. But the named type's, where the field's own is only less specific -
+        // a resolve typed object named as Person is a Person, and is converted to one.
+        var resolveType = ResolveExpression?.Type;
+        if (resolveType != null && resolveType.IsAsyncGenericType())
+            resolveType = resolveType.GetGenericArguments()[0];
+        var dotnetType = resolveType ?? schemaDotnetType;
+        if (dotnetType != schemaDotnetType && dotnetType.IsAssignableFrom(schemaDotnetType) && !GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType))
+            dotnetType = schemaDotnetType;
         var gqlTypeInfo = new GqlTypeInfo(() => Schema.Type(schemaTypeName), dotnetType)
         {
             IsList = GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType),

@@ -135,8 +135,9 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         }
 
         // What the field returns is of the field's schema type, whatever its dotnet type says.
+        // (the items', for a collection an aggregate or paging wraps)
         if (exp != null)
-            compileContext.RecordSchemaType(exp, gqlField.ReturnType.SchemaType);
+            compileContext.RecordSchemaType(exp, GeneratedTypes.ItemsSchemaType(gqlField));
 
         return exp!;
     }

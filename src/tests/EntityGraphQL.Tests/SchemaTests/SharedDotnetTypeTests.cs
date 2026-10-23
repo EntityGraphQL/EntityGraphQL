@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using EntityGraphQL.Schema;
@@ -260,6 +261,53 @@ public class SharedDotnetTypeTests
     private class Thing
     {
         public string Name { get; set; } = "";
+    }
+
+    private class IdService
+    {
+        public int IdOf(Dictionary<string, object> bag) => (int)bag["id"];
+    }
+
+    [Fact]
+    public void An_id_from_a_service_gets_no_item_by_id()
+    {
+        // Its expression has the service's parameter too, which item(id) would leave unbound.
+        var schema = new SchemaProvider<BagContext>();
+        var priority = schema.AddType<Dictionary<string, object>>("Priority", null);
+        priority.AddField("id", "Id").Resolve<IdService>((p, service) => service.IdOf(p));
+        schema.Query().AddField("priorities", c => c.Priorities, null).Returns("Priority").UseOffsetPaging();
+
+        Assert.DoesNotContain("item(id", schema.ToGraphQLSchemaString());
+    }
+
+    [Fact]
+    public void A_filter_through_an_aggregated_field_uses_its_items_schema_type()
+    {
+        var (schema, data) = Build();
+        ((SchemaType<Dictionary<string, object>>)schema.Type("Author")).ReplaceField("priorities", a => (List<Dictionary<string, object>>)a["priorities"], null).Returns("Priority").UseAggregate();
+        // In a filter the aggregated field is its collection, as the wrapper is only the schema's.
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ authors(filter: \"priorities.any(score > 8)\") { name } }" }, data, null, null);
+        Assert.Null(result.Errors);
+        Assert.Single((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)["authors"]!);
+    }
+
+    private class Bags : List<Dictionary<string, object>>;
+
+    [Theory]
+    [InlineData(typeof(Dictionary<string, object>), true)] // the bag itself
+    [InlineData(typeof(List<Dictionary<string, object>>), true)] // a list of them
+    [InlineData(typeof(Bags), true)] // a collection that is not generic itself
+    [InlineData(typeof(System.Threading.Tasks.Task<Dictionary<string, object>>), false)] // not a collection
+    [InlineData(typeof(OffsetPage<Dictionary<string, object>>), false)] // nor is a page
+    public void A_schema_type_is_recorded_for_the_bag_or_a_collection_of_them(Type expressionType, bool recorded)
+    {
+        var (schema, _) = Build();
+        var context = new EntityGraphQL.Compiler.EntityQuery.EqlCompileContext(
+            new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null)
+        );
+        var expression = System.Linq.Expressions.Expression.Parameter(expressionType);
+        context.RecordSchemaType(expression, schema.Type("Priority"));
+        Assert.Equal(recorded, context.SchemaTypes.ContainsKey(expression));
     }
 
     [Fact]
