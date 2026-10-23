@@ -18,15 +18,12 @@ internal static class GeneratedTypes
     /// </summary>
     public static ISchemaType GetOrAdd(ISchemaProvider schema, string name, Type dotnetType, string description, Action<ISchemaType> build)
     {
-        if (Existing(schema, name, dotnetType) is { } existing)
+        if (Existing(schema, name, t => t == dotnetType, dotnetType.Name) is { } existing)
             return existing;
         var added = schema.AddType(dotnetType, name, description);
         build(added);
         return added;
     }
-
-    /// <summary>The type of this name if it has been added already - and is of this dotnet type, else an error.</summary>
-    public static ISchemaType? Existing(ISchemaProvider schema, string name, Type dotnetType) => Existing(schema, name, t => t == dotnetType, dotnetType.Name);
 
     /// <summary>
     /// The type of this name if it has been added already and its dotnet type is one to reuse; a type of that

@@ -20,7 +20,8 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
     public Expression? OriginalFieldExpression { get; private set; }
 
     /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
-    public ISchemaType? OriginalSchemaType { get; private set; }
+    internal ISchemaType? OriginalSchemaType { get; private set; }
+    ISchemaType? IWrapsItemsExtension.OriginalSchemaType => OriginalSchemaType;
     public int? DefaultPageSize { get; }
     public int? MaxPageSize { get; }
     public List<IFieldExtension> ExtensionsBeforePaging { get; private set; } = [];

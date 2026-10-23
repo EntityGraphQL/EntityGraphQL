@@ -20,7 +20,8 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     private readonly AggregatePlacement placement;
 
     /// <summary>The aggregated items' schema type - the field's own, before a wrapper replaced it.</summary>
-    public ISchemaType? OriginalSchemaType { get; private set; }
+    internal ISchemaType? OriginalSchemaType { get; private set; }
+    ISchemaType? IWrapsItemsExtension.OriginalSchemaType => OriginalSchemaType;
     private readonly LambdaExpression? fieldSelection;
 
     // numeric types we expose aggregates for (Min/Max work for all of these; Sum/Average need an overload - see WidenForSumAverage)

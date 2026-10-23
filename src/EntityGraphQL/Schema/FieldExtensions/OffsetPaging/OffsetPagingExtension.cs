@@ -16,7 +16,8 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
     public Expression? OriginalFieldExpression { get; private set; }
 
     /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
-    public ISchemaType? OriginalSchemaType { get; private set; }
+    internal ISchemaType? OriginalSchemaType { get; private set; }
+    ISchemaType? IWrapsItemsExtension.OriginalSchemaType => OriginalSchemaType;
     public List<IFieldExtension> Extensions { get; private set; } = [];
     private bool isQueryable;
     private Type? listType;

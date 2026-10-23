@@ -734,7 +734,7 @@ public static partial class ExpressionUtil
         BuildEntityQueryExpression(schemaProvider, queryType, query, compileContext, contextParam, null);
 
     /// <param name="querySchemaType">The schema type the query is over, where queryType can not say which - several schema types sharing one dotnet type.</param>
-    public static Expression BuildEntityQueryExpression(
+    internal static Expression BuildEntityQueryExpression(
         ISchemaProvider schemaProvider,
         Type queryType,
         string query,
