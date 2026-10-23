@@ -179,4 +179,49 @@ public class ReturnsSchemaTypeTests
         Assert.Contains("node: Email", sdl);
         Assert.Contains("cursor: String!", sdl);
     }
+
+    private class Staffed
+    {
+        public List<Person> People { get; } = [new Person { Name = "Jo" }];
+        public IEnumerable<Employee> Staff { get; } = [new Employee { Name = "Sam", Salary = 10 }];
+    }
+
+    [Fact]
+    public void An_aggregate_type_is_shared_by_a_field_over_a_derived_type()
+    {
+        // As on main: the aggregate's members take IEnumerable<Person>, which an IEnumerable<Employee> is.
+        var schema = new SchemaProvider<Staffed>();
+        schema.AddType<Person>("Person", null).AddField("name", p => p.Name, null);
+        schema.Query().AddField("people", s => s.People, null).UseAggregate();
+        schema.Query().AddField("staff", s => s.Staff, null).Returns("Person").UseAggregate();
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ staff { aggregate { count } } }" }, new Staffed(), null, null);
+        Assert.Null(result.Errors);
+    }
+
+    private class Remapped
+    {
+        public int Id { get; set; }
+        public string ExternalId { get; set; } = "";
+    }
+
+    private class RemappedContext
+    {
+        public List<Remapped> Things { get; } = [new Remapped { Id = 1, ExternalId = "ext-1" }];
+    }
+
+    [Fact]
+    public void Item_by_id_compares_the_id_field_not_the_Id_member()
+    {
+        // id is ExternalId, a string: item(id) compares that, not the int Id member.
+        var schema = new SchemaProvider<RemappedContext>();
+        schema.AddType<Remapped>("Thing", null).AddField("id", t => t.ExternalId, null);
+        schema.Query().AddAllFields();
+
+        Assert.Contains("thing(id: String!): Thing", schema.ToGraphQLSchemaString());
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ thing(id: \"ext-1\") { id } }" }, new RemappedContext(), null, null);
+        Assert.Null(result.Errors);
+        dynamic thing = result.Data!["thing"]!;
+        Assert.Equal("ext-1", (string)thing.id);
+    }
 }

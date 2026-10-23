@@ -72,9 +72,9 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
         // A method on a collection (any, where...) has its element as the context of its arguments: of
         // the collection's schema type, where the collection's dotnet type could not say which.
-        compileContext.SchemaTypes.TryGetValue(outerContext, out var collectionSchemaType);
+        var collectionSchemaType = compileContext.ElementSchemaTypeOf(outerContext);
         if (collectionSchemaType != null && methodArgContext != outerContext)
-            compileContext.RecordSchemaType(methodArgContext, collectionSchemaType);
+            compileContext.RecordSchemaType(methodArgContext, collectionSchemaType, isList: false);
         currentContext = methodArgContext;
         // build our method call
         var localContext = currentContext; // Create a local variable to store the value of currentContext
@@ -117,7 +117,12 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         // And so is what it returns, when that is the elements again - where(), first() - so a call
         // chained on it (where(...).any(...), first().score) still knows; any() and count() are not.
         if (collectionSchemaType != null)
-            compileContext.RecordSchemaType(call, collectionSchemaType);
+        {
+            if (GqlTypeInfo.IsListOf(call.Type, collectionSchemaType.TypeDotnet))
+                compileContext.RecordSchemaType(call, collectionSchemaType, isList: true);
+            else if (GqlTypeInfo.CastCompatible(call.Type, collectionSchemaType.TypeDotnet))
+                compileContext.RecordSchemaType(call, collectionSchemaType, isList: false);
+        }
         currentContext = call;
         return call;
     }

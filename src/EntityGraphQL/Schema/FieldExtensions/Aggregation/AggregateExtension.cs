@@ -120,7 +120,7 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     {
         var wrapperName = $"{elementSchemaType.Name}WithAggregate";
         var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
-        var wrapperType = GeneratedTypes.Existing(schema, wrapperName, markerType);
+        var wrapperType = GeneratedTypes.ExistingByName(schema, wrapperName);
         if (wrapperType == null)
         {
             wrapperType = schema.AddType(markerType, wrapperName, $"A collection of {elementSchemaType.Name} with aggregate data");
@@ -255,7 +255,7 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     {
         var aggTypeName = $"{elementSchemaType.Name}Aggregate";
         var markerType = typeof(Aggregation<>).MakeGenericType(elementType);
-        if (GeneratedTypes.Existing(schema, aggTypeName, markerType) is { } existingAggregate)
+        if (GeneratedTypes.ExistingByName(schema, aggTypeName) is { } existingAggregate)
             return existingAggregate;
 
         var aggType = schema.AddType(markerType, aggTypeName, $"Aggregate data over a collection of {elementSchemaType.Name}");
@@ -328,7 +328,7 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
         var typeName = $"{elementSchemaType.Name}{func.Name}Aggregate";
         // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
         var markerType = LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg");
-        if (GeneratedTypes.Existing(schema, typeName, markerType) is { } existingFunction)
+        if (GeneratedTypes.ExistingByName(schema, typeName) is { } existingFunction)
             return existingFunction;
 
         var funcType = schema.AddType(markerType, typeName, $"{func.Name} of each field over a collection of {elementSchemaType.Name}");

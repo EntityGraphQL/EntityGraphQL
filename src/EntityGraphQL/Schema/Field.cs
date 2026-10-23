@@ -216,6 +216,12 @@ public class Field : BaseField
     /// <returns></returns>
     public Field Returns(string schemaTypeName)
     {
+        // Sorting, paging and aggregates build their argument and wrapper types from the schema type when they
+        // are added: a later Returns would leave those built from the type the field had before.
+        if (Extensions.FirstOrDefault(e => e is SortExtension or IWrapsItemsExtension) is { } builtFrom)
+            throw new EntityGraphQLSchemaException(
+                $"Call Returns(\"{schemaTypeName}\") on field '{Name}' before {builtFrom.GetType().Name.Replace("Extension", "")}: it has already built its types from {ReturnType.SchemaType.Name}."
+            );
         var schemaDotnetType = Schema.Type(schemaTypeName).TypeDotnet;
         // The field's own dotnet type (e.g. the List<T>), as GqlTypeInfo holds everywhere else - the
         // schema type's would leave a list field with no element type for UseSort to find. What a Task

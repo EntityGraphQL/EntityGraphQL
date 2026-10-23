@@ -745,7 +745,7 @@ public static partial class ExpressionUtil
     {
         contextParam ??= Expression.Parameter(queryType, $"q_{queryType.Name}");
         if (querySchemaType != null)
-            compileContext.RecordSchemaType(contextParam, querySchemaType);
+            compileContext.RecordSchemaType(contextParam, querySchemaType, isList: false);
         Expression expression = EntityQueryCompiler
             .CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(null, null), compileContext, schemaProvider.MethodProvider)
             .ExpressionResult;

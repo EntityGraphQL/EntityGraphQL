@@ -160,6 +160,24 @@ public static class TypeExtensions
         return null;
     }
 
+    /// <summary>
+    /// What a collection is of, by the IEnumerable&lt;T&gt; it implements: a class Bags : List&lt;Bag&gt; is a
+    /// collection of Bag, a dictionary one of its key/value pairs, and a Task&lt;T&gt;, Nullable&lt;T&gt; or
+    /// OffsetPage&lt;T&gt; no collection at all. Unlike GetEnumerableOrArrayType, which reads the first generic
+    /// argument of any single-argument generic type.
+    /// </summary>
+    public static Type? GetCollectionElementType(this Type type)
+    {
+        if (type == typeof(string) || type == typeof(byte[]))
+            return null;
+        if (type.IsArray)
+            return type.GetElementType();
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+            return type.GetGenericArguments()[0];
+        var enumerable = type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+        return enumerable?.GetGenericArguments()[0];
+    }
+
     public static bool IsNullableType(this Type t)
     {
         return Nullable.GetUnderlyingType(t) != null;

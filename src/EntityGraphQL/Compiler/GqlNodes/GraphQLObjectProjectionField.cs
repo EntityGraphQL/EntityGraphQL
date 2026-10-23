@@ -142,6 +142,16 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         if (nextFieldContext == null)
             return null;
 
+        // An expression less specific than the type the field returns - Returns("Type") over an object, an
+        // interface, a cast: the type's fields are expressions over its own dotnet type, so cast to it, as the
+        // bulk resolver path does.
+        if (
+            Field?.ReturnType is { IsList: false, TypeDotnet: var returnsType }
+            && nextFieldContext.Type != returnsType
+            && nextFieldContext.Type.IsAssignableFrom(returnsType)
+        )
+            nextFieldContext = Expression.Convert(nextFieldContext, returnsType);
+
         HandleBeforeRootFieldExpressionBuild(compileContext, GetOperationName(this), Name, contextChanged, IsRootField, ref nextFieldContext);
 
         (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);

@@ -24,6 +24,13 @@ internal static class GeneratedTypes
         return added;
     }
 
+    /// <summary>
+    /// The type of this name if it has been added already, whatever its dotnet type - for aggregate types, whose
+    /// members take IEnumerable&lt;T&gt;, so one over Person serves a field over Employee as well (covariance), as
+    /// before. A page's members are typed by its own T, so pages use <see cref="Existing(ISchemaProvider, string, Type)"/>.
+    /// </summary>
+    public static ISchemaType? ExistingByName(ISchemaProvider schema, string name) => schema.HasType(name) ? schema.Type(name) : null;
+
     /// <summary>The type of this name if it has been added already - and is of this dotnet type, else an error.</summary>
     public static ISchemaType? Existing(ISchemaProvider schema, string name, Type dotnetType)
     {

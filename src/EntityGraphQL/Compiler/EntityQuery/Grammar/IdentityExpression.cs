@@ -64,6 +64,11 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         }
         var gqlField = schemaType.GetField(name, requestContext);
 
+        // The schema type's fields are expressions over its dotnet type: a context less specific than that
+        // (object, IDictionary, behind a cast) is cast to it first.
+        if (context.Type != schemaType.TypeDotnet && context.Type.IsAssignableFrom(schemaType.TypeDotnet))
+            context = Expression.Convert(context, schemaType.TypeDotnet);
+
         // A paged field's resolve is the Page/Connection wrapper object which only exists for the GraphQL
         // schema - it cannot execute inside a filter (or translate to SQL). Within a filter the field means
         // the underlying collection, so use the pre-paging resolve expression and remember it so a following
@@ -78,7 +83,7 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
                 var collection = new Util.ParameterReplacer().Replace(original, gqlField.FieldParam, context);
                 compileContext.PagedFieldExpressions.Add(collection);
                 if (itemsSchemaType != null)
-                    compileContext.RecordSchemaType(collection, itemsSchemaType);
+                    compileContext.RecordSchemaType(collection, itemsSchemaType, isList: true);
                 return collection;
             }
         }
@@ -137,7 +142,11 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         // What the field returns is of the field's schema type, whatever its dotnet type says.
         // (the items', for a collection an aggregate or paging wraps)
         if (exp != null)
-            compileContext.RecordSchemaType(exp, GeneratedTypes.ItemsSchemaType(gqlField));
+        {
+            var returnsSchemaType = GeneratedTypes.ItemsSchemaType(gqlField);
+            var wrapped = !ReferenceEquals(returnsSchemaType, gqlField.ReturnType.SchemaType);
+            compileContext.RecordSchemaType(exp, returnsSchemaType, isList: wrapped || gqlField.ReturnType.IsList);
+        }
 
         return exp!;
     }

@@ -160,18 +160,28 @@ public static class SchemaBuilder
         var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
         Type arrayContextType = returnSchemaType.TypeDotnet;
         var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
-        // The member, where the type has one - exactly Id first, as there may be an ID or a redeclared Id
-        // too - else the id field's own expression: a property bag (Dictionary<string, object>) has its id in
-        // the bag. Not an id field that needs services: their parameters would be left unbound here.
-        var idMembers = arrayContextType.GetMember("Id", MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-        var idMember = idMembers.FirstOrDefault(m => m.Name == "Id" && m.DeclaringType == arrayContextType) ?? idMembers.FirstOrDefault(m => m.Name == "Id") ?? idMembers.FirstOrDefault();
+        // The id field's own expression, which the argument is typed from - so an id remapped (p => p.ExternalId)
+        // compares that, and a property bag (Dictionary<string, object>) reads its id from the bag.
         Expression ctxId;
-        if (idMember != null)
-            ctxId = Expression.MakeMemberAccess(arrayContextParam, idMember);
-        else if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0)
+        if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0)
             ctxId = new ParameterReplacer().Replace(idFieldDef.ResolveExpression, idFieldDef.FieldParam, arrayContextParam);
         else
-            return null;
+        {
+            // An id field that needs services can not be read here - its service parameters would be left
+            // unbound - so the type's Id member, where it has one of the argument's type. Exactly Id first: there
+            // may be an ID or a redeclared Id too, and a case-insensitive lookup of one would throw.
+            var idMembers = arrayContextType.GetMember("Id", MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+            var idMember = idMembers.FirstOrDefault(m => m.Name == "Id" && m.DeclaringType == arrayContextType) ?? idMembers.FirstOrDefault(m => m.Name == "Id") ?? idMembers.FirstOrDefault();
+            var idMemberType = idMember switch
+            {
+                PropertyInfo property => property.PropertyType,
+                FieldInfo field => field.FieldType,
+                _ => null,
+            };
+            if (idMember == null || idMemberType != idFieldDef.ResolveExpression.Type)
+                return null;
+            ctxId = Expression.MakeMemberAccess(arrayContextParam, idMember);
+        }
         Expression argId = Expression.PropertyOrField(argTypeParam, "id");
         argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
         var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);

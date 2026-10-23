@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.EntityQuery;
@@ -31,48 +30,47 @@ public class EqlCompileContext : CompileContext
     public HashSet<Expression> PagedFieldExpressions { get; } = new();
 
     /// <summary>
-    /// The schema type of expressions in the filter whose dotnet type can not say which it is - several
-    /// schema types sharing one dotnet type, e.g. property bags (Dictionary&lt;string, object&gt;), where each
-    /// field names its type with Returns("Type"). Set for the filter's context from the field being
-    /// filtered, then for each field and collection method the filter goes through.
+    /// The schema type of each expression the filter goes through - the context it starts from, each field
+    /// it reads (the schema type the field returns) and each collection method - and whether that is the
+    /// expression's own type or its elements'. Kept because the dotnet type can not always say: several
+    /// schema types share one (property bags, Dictionary&lt;string, object&gt;), and a field's expression may be
+    /// less specific than what it returns (object, IDictionary, a cast).
     /// </summary>
-    internal Dictionary<Expression, ISchemaType> SchemaTypes { get; } = new();
+    internal Dictionary<Expression, (ISchemaType SchemaType, bool IsList)> SchemaTypes { get; } = new();
 
-    /// <summary>
-    /// Records that an expression - or, for a collection, its elements - is of a schema type. Only where
-    /// the schema type is of exactly the expression's dotnet type (or its elements'), which is where the
-    /// lookup by dotnet type can be wrong. Anything else is left to that lookup, as before: a paged
-    /// field's Page/Connection wrapper over its collection, or a field declared as Person whose
-    /// expression is an Employee - whose schema type the lookup finds, with its own fields.
-    /// </summary>
-    internal void RecordSchemaType(Expression expression, ISchemaType schemaType)
+    /// <summary>Records the schema type of an expression - or, for a list, of its elements.</summary>
+    internal void RecordSchemaType(Expression expression, ISchemaType schemaType, bool isList)
     {
         // Only a type with fields can have one looked up on it - most field accesses in a filter are
         // scalars, and stop here.
         if (schemaType.IsScalar || schemaType.IsEnum)
             return;
-        var dotnetType = schemaType.TypeDotnet;
-        if (expression.Type == dotnetType || CollectionElementType(expression.Type) == dotnetType)
-            SchemaTypes[expression] = schemaType;
+        SchemaTypes[expression] = (schemaType, isList);
     }
 
     /// <summary>
-    /// What a collection is of, by the IEnumerable&lt;T&gt; it implements - so a class Bags : List&lt;Bag&gt; is a
-    /// collection of Bag, and a Task&lt;T&gt;, Nullable&lt;T&gt; or OffsetPage&lt;T&gt; is no collection of T.
+    /// The schema type whose fields apply to an expression in the filter: as recorded - unless its dotnet type
+    /// finds one more derived (a field declared as Person whose expression is an Employee is an Employee, with
+    /// its fields) - else by its dotnet type, as before. Not a recorded list's: a field read straight off a list
+    /// is the same error it always was.
     /// </summary>
-    private static Type? CollectionElementType(Type type)
+    internal ISchemaType SchemaTypeOf(Expression expression, ISchemaProvider schema, QueryRequestContext? requestContext)
     {
-        if (type == typeof(string))
-            return null;
-        if (type.IsArray)
-            return type.GetElementType();
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-            return type.GetGenericArguments()[0];
-        var enumerable = type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-        return enumerable?.GetGenericArguments()[0];
+        if (SchemaTypes.TryGetValue(expression, out var recorded) && !recorded.IsList && GqlTypeInfo.CastCompatible(expression.Type, recorded.SchemaType.TypeDotnet))
+        {
+            var recordedType = recorded.SchemaType.TypeDotnet;
+            if (
+                schema.TryGetSchemaType(expression.Type, false, out var byDotnetType, requestContext)
+                && byDotnetType!.TypeDotnet != recordedType
+                && recordedType.IsAssignableFrom(byDotnetType.TypeDotnet)
+            )
+                return byDotnetType;
+            return recorded.SchemaType;
+        }
+        return schema.GetSchemaType(expression.Type, false, requestContext);
     }
 
-    /// <summary>The schema type of an expression in the filter: as recorded, else by its dotnet type.</summary>
-    internal ISchemaType SchemaTypeOf(Expression expression, ISchemaProvider schema, QueryRequestContext? requestContext) =>
-        SchemaTypes.TryGetValue(expression, out var schemaType) ? schemaType : schema.GetSchemaType(expression.Type, false, requestContext);
+    /// <summary>The schema type of a collection's elements, where it was recorded.</summary>
+    internal ISchemaType? ElementSchemaTypeOf(Expression collection) =>
+        SchemaTypes.TryGetValue(collection, out var recorded) && recorded.IsList ? recorded.SchemaType : null;
 }

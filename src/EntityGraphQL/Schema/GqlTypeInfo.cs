@@ -107,17 +107,24 @@ public class GqlTypeInfo
         };
 
     /// <summary>
-    /// Whether a value of dotnetType is a list of schemaDotnetType: an enumerable, unless it is itself the
-    /// schema type and its items are not - a property bag (Dictionary&lt;string, object&gt;) is a collection
-    /// of its key/value pairs, but a List&lt;object&gt; named as an object type is still a list of them.
+    /// Whether a value of dotnetType is a list of schemaDotnetType. A list when its items are of the schema
+    /// type, or its type of them, either way round (List&lt;Employee&gt; as Person, IEnumerable&lt;object&gt; as
+    /// Child, List&lt;object&gt; as an object scalar). Not when the value is the schema type itself, or castable
+    /// to it, though it is enumerable - a property bag (Dictionary&lt;string, object&gt;, or IDictionary) is a
+    /// collection of its key/value pairs. Any other enumerable is a list, as it always was.
     /// </summary>
     internal static bool IsListOf(Type dotnetType, Type schemaDotnetType)
     {
-        if (!dotnetType.IsEnumerableOrArray())
+        var elementType = dotnetType.GetCollectionElementType();
+        if (elementType != null && CastCompatible(elementType, schemaDotnetType))
+            return true;
+        if (CastCompatible(dotnetType, schemaDotnetType))
             return false;
-        var elementType = dotnetType.GetEnumerableOrArrayType();
-        return !schemaDotnetType.IsAssignableFrom(dotnetType) || (elementType != null && schemaDotnetType.IsAssignableFrom(elementType));
+        return dotnetType.IsEnumerableOrArray();
     }
+
+    /// <summary>Whether a value of one type can be a value of the other: either is assignable from the other.</summary>
+    internal static bool CastCompatible(Type a, Type b) => a.IsAssignableFrom(b) || b.IsAssignableFrom(a);
 
     public static GqlTypeInfo FromGqlType(ISchemaProvider schema, Type dotnetType, string gqlType)
     {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
 using Xunit;
@@ -294,20 +295,99 @@ public class SharedDotnetTypeTests
     private class Bags : List<Dictionary<string, object>>;
 
     [Theory]
-    [InlineData(typeof(Dictionary<string, object>), true)] // the bag itself
-    [InlineData(typeof(List<Dictionary<string, object>>), true)] // a list of them
-    [InlineData(typeof(Bags), true)] // a collection that is not generic itself
-    [InlineData(typeof(System.Threading.Tasks.Task<Dictionary<string, object>>), false)] // not a collection
-    [InlineData(typeof(OffsetPage<Dictionary<string, object>>), false)] // nor is a page
-    public void A_schema_type_is_recorded_for_the_bag_or_a_collection_of_them(Type expressionType, bool recorded)
+    [InlineData(typeof(List<Dictionary<string, object>>), typeof(Dictionary<string, object>))]
+    [InlineData(typeof(Bags), typeof(Dictionary<string, object>))] // a collection that is not generic itself
+    [InlineData(typeof(Dictionary<string, object>), typeof(KeyValuePair<string, object>))] // a dictionary is of its pairs
+    [InlineData(typeof(System.Threading.Tasks.Task<Dictionary<string, object>>), null)] // not a collection
+    [InlineData(typeof(OffsetPage<Dictionary<string, object>>), null)] // nor is a page
+    [InlineData(typeof(string), null)]
+    public void What_a_collection_is_of(Type type, Type? elementType) => Assert.Equal(elementType, type.GetCollectionElementType());
+
+    [Theory]
+    [InlineData(typeof(Dictionary<string, object>), typeof(Dictionary<string, object>), false)] // a bag named as itself
+    [InlineData(typeof(IDictionary<string, object>), typeof(Dictionary<string, object>), false)] // behind its interface
+    [InlineData(typeof(List<Dictionary<string, object>>), typeof(Dictionary<string, object>), true)]
+    [InlineData(typeof(IEnumerable<object>), typeof(Dictionary<string, object>), true)] // items less specific
+    [InlineData(typeof(List<object>), typeof(object), true)] // a list named as a supertype of its items
+    [InlineData(typeof(object), typeof(Dictionary<string, object>), false)]
+    [InlineData(typeof(List<int>), typeof(string), true)] // unrelated items: a list, as it always was
+    public void Whether_a_value_is_a_list_of_a_schema_type(Type dotnetType, Type schemaDotnetType, bool isList) => Assert.Equal(isList, GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType));
+
+    [Fact]
+    public void A_filter_reading_a_field_off_a_list_is_a_clean_error()
     {
+        // priorities is a list of Priority, not a Priority: a field read straight off it is a query
+        // error, not an ArgumentException from rebuilding Priority's field over a list.
+        var (schema, data) = Build();
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ authors(filter: \"priorities.score > 5\") { name } }" }, data, null, null);
+        Assert.NotNull(result.Errors);
+        // said as a query error, not the "Error occurred" an unexpected exception becomes
+        Assert.DoesNotContain(result.Errors, e => e.Message.EndsWith("Error occurred"));
+    }
+
+    [Fact]
+    public void A_bag_typed_as_its_interface_is_one_object_and_can_be_filtered_through()
+    {
+        var (schema, data) = Build();
+        schema.Type("Priority").RemoveField("author");
+        ((SchemaType<Dictionary<string, object>>)schema.Type("Priority")).AddField("author", p => (IDictionary<string, object>)p["author"], null).Returns("Author");
+
+        Assert.False(schema.Type("Priority").GetField("author", null).ReturnType.IsList);
+        var priorities = Run(schema, data, "{ priorities(filter: \"author.name == \\\"Ben\\\"\") { mergeRequest author { name } } }", "priorities");
+        Assert.Equal(["!13"], priorities.Select(p => Get(p, "mergeRequest")));
+    }
+
+    [Fact]
+    public void A_list_of_objects_named_as_a_bag_type_can_be_filtered_through()
+    {
+        var (schema, data) = Build();
+        schema.Type("Author").RemoveField("priorities");
+        ((SchemaType<Dictionary<string, object>>)schema.Type("Author")).AddField("priorities", a => ((List<Dictionary<string, object>>)a["priorities"]).Cast<object>(), null).Returns("Priority");
+
+        var authors = Run(schema, data, "{ authors(filter: \"priorities.any(score > 8)\") { name } }", "authors");
+        Assert.Equal(["Ada"], authors.Select(a => Get(a, "name")));
+    }
+
+    [Fact]
+    public void A_bag_read_through_a_cast_can_be_filtered_through()
+    {
+        var (schema, data) = Build();
+        schema.Type("Priority").RemoveField("author");
+        ((SchemaType<Dictionary<string, object>>)schema.Type("Priority")).AddField("author", p => p["author"], null).Returns("Author");
+
+        var priorities = Run(schema, data, "{ priorities(filter: \"author.name == \\\"Ben\\\"\") { mergeRequest } }", "priorities");
+        Assert.Equal(["!13"], priorities.Select(p => Get(p, "mergeRequest")));
+    }
+
+    [Fact]
+    public void Returns_after_paging_is_an_error()
+    {
+        // Paging has built its page types by then, from the type the field had before.
         var (schema, _) = Build();
-        var context = new EntityGraphQL.Compiler.EntityQuery.EqlCompileContext(
-            new EntityGraphQL.Compiler.CompileContext(new ExecutionOptions(), null, new QueryRequestContext(null, null), null, null)
-        );
-        var expression = System.Linq.Expressions.Expression.Parameter(expressionType);
-        context.RecordSchemaType(expression, schema.Type("Priority"));
-        Assert.Equal(recorded, context.SchemaTypes.ContainsKey(expression));
+        var field = schema.Query().ReplaceField("priorities", c => c.Priorities, null);
+        field.UseOffsetPaging();
+        Assert.Throws<EntityGraphQLSchemaException>(() => field.Returns("Priority"));
+    }
+
+    [Fact]
+    public void Returns_after_sorting_is_an_error_and_after_filtering_is_not()
+    {
+        // UseSort builds its input type when added; UseFilter reads the schema type as the query runs.
+        var (schema, _) = Build();
+        var sorted = schema.Query().ReplaceField("priorities", c => c.Priorities, null);
+        sorted.UseSort(true);
+        Assert.Throws<EntityGraphQLSchemaException>(() => sorted.Returns("Priority"));
+
+        var filtered = schema.Query().ReplaceField("authors", c => c.Authors, null);
+        filtered.UseFilter();
+        filtered.Returns("Author");
+    }
+
+    private static List<object?> Run(SchemaProvider<BagContext> schema, BagContext data, string query, string field)
+    {
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = query }, data, null, null);
+        Assert.Null(result.Errors);
+        return ((IEnumerable<object?>)((IDictionary<string, object?>)result.Data!)[field]!).ToList();
     }
 
     [Fact]
