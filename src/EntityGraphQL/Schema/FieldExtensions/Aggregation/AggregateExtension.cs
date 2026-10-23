@@ -434,17 +434,11 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     /// (covariance), as before. A type of that name the aggregate did not generate (the schema's own
     /// PersonAggregate) is an error, as a clashing page type is.
     /// </summary>
-    private static ISchemaType? ExistingGenerated(ISchemaProvider schema, string name)
-    {
-        if (!schema.HasType(name))
-            return null;
-        var existing = schema.Type(name);
-        var dotnetType = existing.TypeDotnet;
-        var generated =
-            dotnetType.Assembly.IsDynamic
-            || (dotnetType.IsGenericType && (dotnetType.GetGenericTypeDefinition() == typeof(Aggregation<>) || dotnetType.GetGenericTypeDefinition() == typeof(AggregateWithItems<>)));
-        if (!generated)
-            throw new EntityGraphQLSchemaException($"An aggregate type named '{name}' is needed, but the schema already has a '{name}' of {dotnetType.Name}. Rename that type.");
-        return existing;
-    }
+    private static ISchemaType? ExistingGenerated(ISchemaProvider schema, string name) =>
+        GeneratedTypes.Existing(
+            schema,
+            name,
+            t => t.Assembly.IsDynamic || (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(Aggregation<>) || t.GetGenericTypeDefinition() == typeof(AggregateWithItems<>))),
+            "an aggregate"
+        );
 }

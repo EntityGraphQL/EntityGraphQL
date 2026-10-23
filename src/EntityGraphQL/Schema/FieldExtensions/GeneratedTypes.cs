@@ -26,13 +26,19 @@ internal static class GeneratedTypes
     }
 
     /// <summary>The type of this name if it has been added already - and is of this dotnet type, else an error.</summary>
-    public static ISchemaType? Existing(ISchemaProvider schema, string name, Type dotnetType)
+    public static ISchemaType? Existing(ISchemaProvider schema, string name, Type dotnetType) => Existing(schema, name, t => t == dotnetType, dotnetType.Name);
+
+    /// <summary>
+    /// The type of this name if it has been added already and its dotnet type is one to reuse; a type of that
+    /// name that is not (the schema's own PersonPage or PersonAggregate, say) is an error.
+    /// </summary>
+    public static ISchemaType? Existing(ISchemaProvider schema, string name, Func<Type, bool> reusable, string neededFor)
     {
         if (!schema.HasType(name))
             return null;
         var existing = schema.Type(name);
-        if (existing.TypeDotnet != dotnetType)
-            throw new EntityGraphQLSchemaException($"A type named '{name}' is needed for {dotnetType.Name}, but the schema already has a '{name}' of {existing.TypeDotnet.Name}. Rename that type.");
+        if (!reusable(existing.TypeDotnet))
+            throw new EntityGraphQLSchemaException($"A type named '{name}' is needed for {neededFor}, but the schema already has a '{name}' of {existing.TypeDotnet.Name}. Rename that type.");
         return existing;
     }
 
