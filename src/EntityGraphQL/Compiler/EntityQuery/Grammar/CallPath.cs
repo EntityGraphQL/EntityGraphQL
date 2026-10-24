@@ -118,8 +118,12 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         // chained on it (where(...).any(...), first().score) still knows; any() and count() are not.
         if (collectionSchemaType != null)
         {
-            if (GqlTypeInfo.IsListOf(call.Type, collectionSchemaType.TypeDotnet))
-                compileContext.RecordSchemaType(call, collectionSchemaType, isList: true);
+            // Unless an argument is the collection it returns the elements of - selectMany(priorities) is of
+            // the selector's schema type, not the source's, though property bags share one dotnet type.
+            var selector = args?.FirstOrDefault(a => a.Type.IsEnumerableOrArray() && !a.Type.IsDictionary());
+            var resultSchemaType = selector != null ? compileContext.ElementSchemaTypeOf(selector) : collectionSchemaType;
+            if (resultSchemaType != null && GqlTypeInfo.IsListOf(call.Type, resultSchemaType.TypeDotnet))
+                compileContext.RecordSchemaType(call, resultSchemaType, isList: true);
             // one of the elements - exactly their type - not a bool or a count, which an element type of
             // object would otherwise pass for
             else if (call.Type == methodArgContext.Type)

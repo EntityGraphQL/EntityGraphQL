@@ -498,4 +498,19 @@ public class SharedDotnetTypeTests
     [Fact]
     public void A_list_of_bags_is_a_list_of_the_bag_not_its_key_value_pairs() =>
         Assert.Contains("items: [DictionaryStringObject!]!", SchemaBuilder.FromObject<ListOfBags>().ToGraphQLSchemaString());
+
+    [Fact]
+    public void SelectMany_is_of_its_selectors_schema_type_not_its_sources()
+    {
+        // peers are Authors, their priorities Priorities - one dotnet type, so only the selector can say.
+        var (schema, data) = Build();
+        var (ada, ben) = (data.Authors[0], data.Authors[1]);
+        ada["peers"] = new List<Dictionary<string, object>> { ben };
+        ben["peers"] = new List<Dictionary<string, object>> { ada };
+        ((SchemaType<Dictionary<string, object>>)schema.Type("Author")).AddField("peers", a => (List<Dictionary<string, object>>)a["peers"], null).Returns("Author");
+
+        var authors = Run(schema, data, "{ authors(filter: \"peers.selectMany(priorities).any(score > 8)\") { name } }", "authors");
+
+        Assert.Equal("Ben", Get(Assert.Single(authors), "name"));
+    }
 }
