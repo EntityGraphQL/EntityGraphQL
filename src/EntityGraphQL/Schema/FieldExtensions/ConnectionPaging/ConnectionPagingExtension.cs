@@ -75,7 +75,9 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
         var edgeSchemaType = GeneratedTypes.GetOrAdd(
             schema,
             $"{field.ReturnType.SchemaType.Name}Edge",
-            edgeType,
+            t => t == edgeType,
+            edgeType.Name,
+            () => edgeType,
             "Metadata about an edge of page result",
             t => GeneratedTypes.AddAllFieldsWithItems(t, "Node", OriginalSchemaType!)
         );
@@ -85,7 +87,9 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
         var returnSchemaType = GeneratedTypes.GetOrAdd(
             schema,
             connectionName,
-            connectionType,
+            t => t == connectionType,
+            connectionType.Name,
+            () => connectionType,
             $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)",
             t => GeneratedTypes.AddAllFieldsWithItems(t, "Edges", edgeSchemaType)
         );

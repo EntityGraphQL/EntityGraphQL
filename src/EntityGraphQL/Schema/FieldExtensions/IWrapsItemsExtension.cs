@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Linq.Expressions;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
@@ -17,4 +18,14 @@ internal interface IWrapsItemsExtension
 internal interface IPagingExtension : IWrapsItemsExtension
 {
     Expression? OriginalFieldExpression { get; }
+}
+
+internal static class WrapsItemsFieldExtensions
+{
+    /// <summary>
+    /// The items' schema type of a collection field: from paging or an aggregate where they wrap the field's,
+    /// else the field's own.
+    /// </summary>
+    public static ISchemaType ItemsSchemaType(this IField field) =>
+        field.Extensions.OfType<IWrapsItemsExtension>().Select(e => e.OriginalSchemaType).FirstOrDefault(t => t != null) ?? field.ReturnType.SchemaType;
 }

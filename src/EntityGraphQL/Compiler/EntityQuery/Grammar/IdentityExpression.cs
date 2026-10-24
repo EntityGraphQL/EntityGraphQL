@@ -143,7 +143,7 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         // (the items', for a collection an aggregate or paging wraps)
         if (exp != null)
         {
-            var returnsSchemaType = GeneratedTypes.ItemsSchemaType(gqlField);
+            var returnsSchemaType = gqlField.ItemsSchemaType();
             var wrapped = !ReferenceEquals(returnsSchemaType, gqlField.ReturnType.SchemaType);
             compileContext.RecordSchemaType(exp, returnsSchemaType, isList: wrapped || gqlField.ReturnType.IsList);
         }

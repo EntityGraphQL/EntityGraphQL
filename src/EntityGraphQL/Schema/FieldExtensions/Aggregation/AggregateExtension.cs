@@ -119,45 +119,47 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     /// </summary>
     private static void ConfigureOwnWrapper(ISchemaProvider schema, IField field, ISchemaType elementSchemaType, Type elementType, ISchemaType aggregateType)
     {
-        var wrapperName = $"{elementSchemaType.Name}WithAggregate";
-        var wrapperType = ExistingGenerated(schema, wrapperName);
-        if (wrapperType == null)
-        {
-            var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
-            wrapperType = schema.AddType(markerType, wrapperName, $"A collection of {elementSchemaType.Name} with aggregate data");
-            // IEnumerable always - the wrapper type is cached per element type and must bind List and IQueryable sources alike
-            var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
+        var wrapperType = GetOrAddGenerated(
+            schema,
+            $"{elementSchemaType.Name}WithAggregate",
+            () => typeof(AggregateWithItems<>).MakeGenericType(elementType),
+            $"A collection of {elementSchemaType.Name} with aggregate data",
+            added =>
+            {
+                // IEnumerable always - the wrapper type is cached per element type and must bind List and IQueryable sources alike
+                var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
 
-            var itemsParam = Expression.Parameter(collType, "c");
-            var itemsReturn = new GqlTypeInfo(() => elementSchemaType, collType) { IsList = true };
-            wrapperType.AddField(
-                new Field(
-                    schema,
-                    wrapperType,
-                    schema.SchemaFieldNamer("Items"),
-                    Expression.Lambda(itemsParam, itemsParam),
-                    "The items in the collection",
-                    (Dictionary<string, ArgType>?)null,
-                    itemsReturn,
-                    null
-                )
-            );
+                var itemsParam = Expression.Parameter(collType, "c");
+                var itemsReturn = new GqlTypeInfo(() => elementSchemaType, collType) { IsList = true };
+                added.AddField(
+                    new Field(
+                        schema,
+                        added,
+                        schema.SchemaFieldNamer("Items"),
+                        Expression.Lambda(itemsParam, itemsParam),
+                        "The items in the collection",
+                        (Dictionary<string, ArgType>?)null,
+                        itemsReturn,
+                        null
+                    )
+                );
 
-            var aggParam = Expression.Parameter(collType, "c");
-            var aggReturn = new GqlTypeInfo(() => aggregateType, aggregateType.TypeDotnet) { IsList = false };
-            wrapperType.AddField(
-                new Field(
-                    schema,
-                    wrapperType,
-                    schema.SchemaFieldNamer("Aggregate"),
-                    Expression.Lambda(aggParam, aggParam),
-                    "Aggregate data over the collection",
-                    (Dictionary<string, ArgType>?)null,
-                    aggReturn,
-                    null
-                )
-            );
-        }
+                var aggParam = Expression.Parameter(collType, "c");
+                var aggReturn = new GqlTypeInfo(() => aggregateType, aggregateType.TypeDotnet) { IsList = false };
+                added.AddField(
+                    new Field(
+                        schema,
+                        added,
+                        schema.SchemaFieldNamer("Aggregate"),
+                        Expression.Lambda(aggParam, aggParam),
+                        "Aggregate data over the collection",
+                        (Dictionary<string, ArgType>?)null,
+                        aggReturn,
+                        null
+                    )
+                );
+            }
+        );
 
         field.Returns(new GqlTypeInfo(() => wrapperType, wrapperType.TypeDotnet) { IsList = false });
     }
@@ -254,12 +256,17 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     /// </summary>
     private static ISchemaType GetOrCreateAggregateType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
     {
-        var aggTypeName = $"{elementSchemaType.Name}Aggregate";
-        if (ExistingGenerated(schema, aggTypeName) is { } existingAggregate)
-            return existingAggregate;
-        var markerType = typeof(Aggregation<>).MakeGenericType(elementType);
+        return GetOrAddGenerated(
+            schema,
+            $"{elementSchemaType.Name}Aggregate",
+            () => typeof(Aggregation<>).MakeGenericType(elementType),
+            $"Aggregate data over a collection of {elementSchemaType.Name}",
+            aggType => BuildAggregateType(schema, aggType, elementSchemaType, elementType, allowedFieldNames)
+        );
+    }
 
-        var aggType = schema.AddType(markerType, aggTypeName, $"Aggregate data over a collection of {elementSchemaType.Name}");
+    private static void BuildAggregateType(ISchemaProvider schema, ISchemaType aggType, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
+    {
         // Always IEnumerable/Enumerable: the aggregate type is cached per element type but may be attached to
         // several fields whose collections differ (List vs IQueryable). IEnumerable params bind both (IQueryable
         // is IEnumerable), and EF translates the Enumerable calls in the projection.
@@ -320,20 +327,31 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
                 )
             );
         }
-
-        return aggType;
     }
 
     private static ISchemaType BuildFunctionType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, AggregateFunction func, List<IField> fields, Type collType, Type methodClass)
     {
-        var typeName = $"{elementSchemaType.Name}{func.Name}Aggregate";
-        if (ExistingGenerated(schema, typeName) is { } existingFunction)
-            return existingFunction;
+        return GetOrAddGenerated(
+            schema,
+            $"{elementSchemaType.Name}{func.Name}Aggregate",
+            // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
+            () => LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg"),
+            $"{func.Name} of each field over a collection of {elementSchemaType.Name}",
+            funcType => BuildFunctionFields(schema, funcType, elementSchemaType, elementType, func, fields, collType, methodClass)
+        );
+    }
 
-        // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
-        var markerType = LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg");
-
-        var funcType = schema.AddType(markerType, typeName, $"{func.Name} of each field over a collection of {elementSchemaType.Name}");
+    private static void BuildFunctionFields(
+        ISchemaProvider schema,
+        ISchemaType funcType,
+        ISchemaType elementSchemaType,
+        Type elementType,
+        AggregateFunction func,
+        List<IField> fields,
+        Type collType,
+        Type methodClass
+    )
+    {
 
         foreach (var elementField in fields)
         {
@@ -408,8 +426,6 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
                 funcType.AddField(new Field(schema, funcType, elementField.Name, leafResolve, $"{func.Name} of {elementField.Name}", (Dictionary<string, ArgType>?)null, leafReturnType, null));
             }
         }
-
-        return funcType;
     }
 
     private sealed class AggregateFunction(string name, bool isMinMax)
@@ -430,16 +446,19 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
     }
 
     /// <summary>
-    /// The aggregate type of this name, if the aggregate generated one: by name, whatever its element type - an
+    /// The aggregate type of this name, added and built, or the one the aggregate generated already: by name, whatever its element type - an
     /// aggregate's members take IEnumerable&lt;T&gt;, so one built over Person serves a field over Employee as well
     /// (covariance), as before. A type of that name the aggregate did not generate (the schema's own
     /// PersonAggregate) is an error, as a clashing page type is.
     /// </summary>
-    private static ISchemaType? ExistingGenerated(ISchemaProvider schema, string name) =>
-        GeneratedTypes.Existing(
+    private static ISchemaType GetOrAddGenerated(ISchemaProvider schema, string name, Func<Type> markerType, string description, Action<ISchemaType> build) =>
+        GeneratedTypes.GetOrAdd(
             schema,
             name,
             t => t.Assembly.IsDynamic || (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(Aggregation<>) || t.GetGenericTypeDefinition() == typeof(AggregateWithItems<>))),
-            "an aggregate"
+            "an aggregate",
+            markerType,
+            description,
+            build
         );
 }

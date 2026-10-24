@@ -68,7 +68,9 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         returnSchemaType = GeneratedTypes.GetOrAdd(
             schema,
             page,
-            pageType,
+            t => t == pageType,
+            pageType.Name,
+            () => pageType,
             $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)",
             t => GeneratedTypes.AddAllFieldsWithItems(t, "Items", OriginalSchemaType!)
         );
