@@ -11,13 +11,17 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// <summary>
 /// Sets up a few extensions to modify a simple collection expression - db.Movies.OrderBy() into a connection paging graph
 /// </summary>
-public class ConnectionPagingExtension : BaseFieldExtension
+public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
 {
     private Type? listType;
     private bool isQueryable;
     private Type? returnType;
 
     public Expression? OriginalFieldExpression { get; private set; }
+
+    /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
+    internal ISchemaType? OriginalSchemaType { get; private set; }
+    ISchemaType? IWrapsItemsExtension.OriginalSchemaType => OriginalSchemaType;
     public int? DefaultPageSize { get; }
     public int? MaxPageSize { get; }
     public List<IFieldExtension> ExtensionsBeforePaging { get; private set; } = [];
@@ -63,25 +67,32 @@ public class ConnectionPagingExtension : BaseFieldExtension
             schema.AddType<ConnectionPageInfo>("PageInfo", "Metadata about a page of data").AddAllFields();
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
         isQueryable = field.ReturnType.TypeDotnet.IsGenericTypeQueryable();
+        OriginalSchemaType = field.ReturnType.SchemaType;
 
+        // Its edges' nodes built with the items' schema type, which their dotnet type can not say for
+        // property bags - see GeneratedTypes.
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
-        if (!schema.HasType(edgeType))
-        {
-            var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
-            schema.AddType(edgeType, edgeName, "Metadata about an edge of page result").AddAllFields();
-        }
+        var edgeSchemaType = GeneratedTypes.GetOrAdd(
+            schema,
+            $"{field.ReturnType.SchemaType.Name}Edge",
+            t => t == edgeType,
+            edgeType.Name,
+            () => edgeType,
+            "Metadata about an edge of page result",
+            t => GeneratedTypes.AddAllFieldsWithItems(t, "Node", OriginalSchemaType!)
+        );
 
-        ISchemaType returnSchemaType;
         var connectionType = typeof(Connection<>).MakeGenericType(listType);
         var connectionName = $"{field.ReturnType.SchemaType.Name}Connection";
-        if (!schema.HasType(connectionType))
-        {
-            returnSchemaType = schema.AddType(connectionType, connectionName, $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)").AddAllFields();
-        }
-        else
-        {
-            returnSchemaType = schema.Type(connectionName);
-        }
+        var returnSchemaType = GeneratedTypes.GetOrAdd(
+            schema,
+            connectionName,
+            t => t == connectionType,
+            connectionType.Name,
+            () => connectionType,
+            $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)",
+            t => GeneratedTypes.AddAllFieldsWithItems(t, "Edges", edgeSchemaType)
+        );
         returnType = returnSchemaType.TypeDotnet;
 
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));

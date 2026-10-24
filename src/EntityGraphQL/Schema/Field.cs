@@ -216,8 +216,29 @@ public class Field : BaseField
     /// <returns></returns>
     public Field Returns(string schemaTypeName)
     {
-        var gqlTypeInfo = new GqlTypeInfo(() => Schema.Type(schemaTypeName), Schema.Type(schemaTypeName).TypeDotnet);
-        gqlTypeInfo.IsList = ResolveExpression?.Type.IsEnumerableOrArray() ?? gqlTypeInfo.IsList;
+        // Sorting, paging and aggregates build their argument and wrapper types from the schema type when they
+        // are added: a later Returns that changes it would leave those built from the type the field had before.
+        // (Extensions first: reading ReturnType.SchemaType looks the type up by dotnet type, which for a field
+        // typed object or IDictionary - what Returns is for - finds none. Those extensions resolved it already.)
+        if (Extensions.FirstOrDefault(e => e is SortExtension or IWrapsItemsExtension) is { } builtFrom && Schema.Type(schemaTypeName) != ReturnType.SchemaType)
+            throw new EntityGraphQLSchemaException(
+                $"Call Returns(\"{schemaTypeName}\") on field '{Name}' before {builtFrom.GetType().Name.Replace("Extension", "")}: it has already built its types from {ReturnType.SchemaType.Name}."
+            );
+        var schemaType = Schema.Type(schemaTypeName);
+        var schemaDotnetType = schemaType.TypeDotnet;
+        // The field's own dotnet type (e.g. the List<T>), as GqlTypeInfo holds everywhere else - the
+        // schema type's would leave a list field with no element type for UseSort to find. What a Task
+        // gives, for an async field. But the named type's, where the field's own is only less specific -
+        // a resolve typed object named as Person is a Person, and is converted to one.
+        var resolveType = ResolveExpression?.Type;
+        if (resolveType != null && resolveType.IsAwaitableGenericType())
+            resolveType = resolveType.GetGenericArguments()[0];
+        var dotnetType = resolveType ?? schemaDotnetType;
+        if (dotnetType != schemaDotnetType && dotnetType.IsAssignableFrom(schemaDotnetType) && !GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType))
+            dotnetType = schemaDotnetType;
+        var gqlTypeInfo = GqlTypeInfo.ForSchemaType(schemaType, dotnetType);
+        // Nullability from the named type, as it always was - a List<int> named as Int stays [Int!]!.
+        gqlTypeInfo.TypeNotNullable = schemaDotnetType.IsValueType && !schemaDotnetType.IsNullableType();
         Returns(gqlTypeInfo);
         return this;
     }

@@ -11,9 +11,13 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// <summary>
 /// Sets up a few extensions to modify a collection expression (e.g. db.Movies.OrderBy()) into a paging graph
 /// </summary>
-public class OffsetPagingExtension : BaseFieldExtension
+public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
 {
     public Expression? OriginalFieldExpression { get; private set; }
+
+    /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
+    internal ISchemaType? OriginalSchemaType { get; private set; }
+    ISchemaType? IWrapsItemsExtension.OriginalSchemaType => OriginalSchemaType;
     public List<IFieldExtension> Extensions { get; private set; } = [];
     private bool isQueryable;
     private Type? listType;
@@ -55,17 +59,21 @@ public class OffsetPagingExtension : BaseFieldExtension
             field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()
             ?? throw new EntityGraphQLSchemaException($"Expression for field {field.Name} must be a collection to use {nameof(OffsetPagingExtension)}. Found type {field.ReturnType.TypeDotnet}");
 
+        OriginalSchemaType = field.ReturnType.SchemaType;
         ISchemaType returnSchemaType;
         var page = $"{field.ReturnType.SchemaType.Name}Page";
         var pageType = typeof(OffsetPage<>).MakeGenericType(listType);
-        if (!schema.HasType(pageType))
-        {
-            returnSchemaType = schema.AddType(pageType, page, $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)").AddAllFields();
-        }
-        else
-        {
-            returnSchemaType = schema.Type(page);
-        }
+        // Its items (and item(id) beside them) built with the items' schema type, which their dotnet type
+        // can not say for property bags - see GeneratedTypes.
+        returnSchemaType = GeneratedTypes.GetOrAdd(
+            schema,
+            page,
+            t => t == pageType,
+            pageType.Name,
+            () => pageType,
+            $"Metadata about a {field.ReturnType.SchemaType.Name} page (paging over people)",
+            t => GeneratedTypes.AddAllFieldsWithItems(t, "Items", OriginalSchemaType!)
+        );
         returnType = returnSchemaType.TypeDotnet;
 
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));

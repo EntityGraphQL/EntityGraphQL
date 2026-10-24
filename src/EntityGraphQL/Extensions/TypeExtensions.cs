@@ -35,9 +35,14 @@ public static class TypeExtensions
             return type;
     }
 
+    /// <summary>
+    /// The element type of a list, or the type itself without Nullable&lt;&gt;. A dictionary is the type itself, not its
+    /// key/value pairs - it is looked up as a scalar or a property bag.
+    /// </summary>
     public static Type GetNonNullableOrEnumerableType(this Type source)
     {
-        return source.GetNonNullableType().GetEnumerableOrArrayType() ?? source.GetNonNullableType();
+        var type = source.GetNonNullableType();
+        return type.IsDictionary() ? type : type.GetEnumerableOrArrayType() ?? type;
     }
 
     public static bool IsDictionary(this Type source)
@@ -142,22 +147,23 @@ public static class TypeExtensions
     }
 
     /// <summary>
-    /// Return the array element type or the generic type for a IEnumerable<T>
-    /// Specifically does not treat string as IEnumerable<char> and will not return byte for byte[]
+    /// The element type of a collection, by the IEnumerable&lt;T&gt; (or IAsyncEnumerable&lt;T&gt;) it implements: a class
+    /// Bags : List&lt;Bag&gt; is a collection of Bag, a dictionary one of its key/value pairs, and a Task&lt;T&gt;,
+    /// Nullable&lt;T&gt; or OffsetPage&lt;T&gt; no collection at all. Does not treat string as IEnumerable&lt;char&gt;
+    /// and will not return byte for byte[]
     /// </summary>
-    /// <param name="type"></param>
-    /// <returns></returns>
     public static Type? GetEnumerableOrArrayType(this Type type)
     {
-        if (type == typeof(string) || type == typeof(byte[]) || type == typeof(byte))
-        {
+        if (type == typeof(string) || type == typeof(byte[]))
             return null;
-        }
         if (type.IsArray)
             return type.GetElementType();
-        if (type.GenericTypeArguments.Length == 1)
+        // IEnumerable<T>, or IAsyncEnumerable<T> - a stream of T is a collection of T too
+        static bool IsCollection(Type t) => t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(IEnumerable<>) || t.GetGenericTypeDefinition() == typeof(IAsyncEnumerable<>));
+        if (IsCollection(type))
             return type.GetGenericArguments()[0];
-        return null;
+        var enumerable = type.GetInterfaces().FirstOrDefault(IsCollection);
+        return enumerable?.GetGenericArguments()[0];
     }
 
     public static bool IsNullableType(this Type t)

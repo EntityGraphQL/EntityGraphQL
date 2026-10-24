@@ -106,6 +106,48 @@ public class GqlTypeInfo
             ElementTypeNullable = ElementTypeNullable,
         };
 
+    /// <summary>
+    /// Type info for a value of a known schema type - named by the field, not looked up by its dotnet type. A
+    /// list only when the value is a collection of the schema type (see <see cref="IsListOf"/>): a property bag
+    /// is enumerable, but one.
+    /// </summary>
+    internal static GqlTypeInfo ForSchemaType(ISchemaType schemaType, Type typeDotnet, NullabilityInfo? nullability = null) =>
+        new(() => schemaType, typeDotnet, nullability) { IsList = IsListOf(typeDotnet, schemaType.TypeDotnet) };
+
+    /// <summary>
+    /// Whether a value of dotnetType is a list of schemaDotnetType. A list when its items are of the schema
+    /// type, or its type of them, either way round (List&lt;Employee&gt; as Person, IEnumerable&lt;object&gt; as
+    /// Child, List&lt;object&gt; as an object scalar). Not when the value is the schema type itself, or castable
+    /// to it, though it is enumerable - a property bag (Dictionary&lt;string, object&gt;, or IDictionary) is a
+    /// collection of its key/value pairs. Any other enumerable is a list, as it always was.
+    /// </summary>
+    internal static bool IsListOf(Type dotnetType, Type schemaDotnetType)
+    {
+        // the type itself first - a TreeNode : IEnumerable<TreeNode> named as TreeNode is one
+        if (dotnetType == schemaDotnetType)
+            return false;
+        var elementType = dotnetType.GetEnumerableOrArrayType();
+        if (elementType != null && CastCompatible(elementType, schemaDotnetType))
+            return true;
+        if (CastCompatible(dotnetType, schemaDotnetType))
+            return false;
+        return dotnetType.IsEnumerableOrArray();
+    }
+
+    /// <summary>
+    /// Whether a value typed <paramref name="from"/> is cast to <paramref name="to"/> to read the fields of a schema
+    /// type over it: only where it is typed object or a dictionary interface - a property bag behind IDictionary,
+    /// or a value the expression could not type. Not a narrowing between real types (IAnimal to Dog), which
+    /// would throw on another implementation and may not translate.
+    /// </summary>
+    internal static bool NeedsCastTo(Type from, Type to) =>
+        from != to
+        && from.IsAssignableFrom(to)
+        && (from == typeof(object) || (from.IsInterface && from.IsGenericType && from.GetGenericTypeDefinition() is var d && (d == typeof(System.Collections.Generic.IDictionary<,>) || d == typeof(System.Collections.Generic.IReadOnlyDictionary<,>))));
+
+    /// <summary>Whether a value of one type can be a value of the other: either is assignable from the other.</summary>
+    internal static bool CastCompatible(Type a, Type b) => a.IsAssignableFrom(b) || b.IsAssignableFrom(a);
+
     public static GqlTypeInfo FromGqlType(ISchemaProvider schema, Type dotnetType, string gqlType)
     {
         var strippedType = gqlType.Trim('!').Trim('[').Trim(']').Trim('!');
