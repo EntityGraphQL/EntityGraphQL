@@ -539,10 +539,13 @@ public static class SchemaBuilder
         // see if there is a direct type mapping from the expression return to to something.
         // otherwise build the type info
         var customMapping = schema.GetCustomTypeMapping(le.ReturnType);
-        var returnTypeInfo = customMapping ?? new GqlTypeInfo(() => schemaType ?? schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
-        // A known schema type is a list only of its items - a property bag is enumerable itself.
-        if (knownSchemaType != null && customMapping == null)
-            returnTypeInfo.IsList = GqlTypeInfo.IsListOf(le.Body.Type, knownSchemaType.TypeDotnet);
+        var returnTypeInfo =
+            customMapping
+            ?? (
+                knownSchemaType != null
+                    ? GqlTypeInfo.ForSchemaType(knownSchemaType, le.Body.Type, nullabilityInfo)
+                    : new GqlTypeInfo(() => schemaType ?? schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo)
+            );
         var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
         options.OnFieldCreated?.Invoke(field);
 
@@ -705,20 +708,23 @@ public static class SchemaBuilder
         if (customMapping != null)
             return customMapping;
 
-        Func<ISchemaType> typeGetter =
-            returnSchemaType != null
-                ? () => returnSchemaType // We can look the type up by it's unique schema name
-                // we need to look it up by the dotnet type
-                : () =>
-                {
-                    var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
-                    if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
-                        return schemaType!;
-                    throw new EntityGraphQLSchemaException(
-                        $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
-                    );
-                };
-        return new GqlTypeInfo(typeGetter, returnType, nullabilityInfo);
+        if (returnSchemaType != null)
+            return GqlTypeInfo.ForSchemaType(returnSchemaType, returnType, nullabilityInfo);
+
+        // we need to look it up by the dotnet type
+        return new GqlTypeInfo(
+            () =>
+            {
+                var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
+                if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
+                    return schemaType!;
+                throw new EntityGraphQLSchemaException(
+                    $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
+                );
+            },
+            returnType,
+            nullabilityInfo
+        );
     }
 
     public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(

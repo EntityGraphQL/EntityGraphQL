@@ -107,6 +107,14 @@ public class GqlTypeInfo
         };
 
     /// <summary>
+    /// Type info for a value of a known schema type - named by the field, not looked up by its dotnet type. A
+    /// list only when the value is a collection of the schema type (see <see cref="IsListOf"/>): a property bag
+    /// is enumerable, but one.
+    /// </summary>
+    internal static GqlTypeInfo ForSchemaType(ISchemaType schemaType, Type typeDotnet, NullabilityInfo? nullability = null) =>
+        new(() => schemaType, typeDotnet, nullability) { IsList = IsListOf(typeDotnet, schemaType.TypeDotnet) };
+
+    /// <summary>
     /// Whether a value of dotnetType is a list of schemaDotnetType. A list when its items are of the schema
     /// type, or its type of them, either way round (List&lt;Employee&gt; as Person, IEnumerable&lt;object&gt; as
     /// Child, List&lt;object&gt; as an object scalar). Not when the value is the schema type itself, or castable

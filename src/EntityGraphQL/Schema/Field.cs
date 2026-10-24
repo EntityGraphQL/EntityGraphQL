@@ -224,7 +224,8 @@ public class Field : BaseField
             throw new EntityGraphQLSchemaException(
                 $"Call Returns(\"{schemaTypeName}\") on field '{Name}' before {builtFrom.GetType().Name.Replace("Extension", "")}: it has already built its types from {ReturnType.SchemaType.Name}."
             );
-        var schemaDotnetType = Schema.Type(schemaTypeName).TypeDotnet;
+        var schemaType = Schema.Type(schemaTypeName);
+        var schemaDotnetType = schemaType.TypeDotnet;
         // The field's own dotnet type (e.g. the List<T>), as GqlTypeInfo holds everywhere else - the
         // schema type's would leave a list field with no element type for UseSort to find. What a Task
         // gives, for an async field. But the named type's, where the field's own is only less specific -
@@ -235,12 +236,9 @@ public class Field : BaseField
         var dotnetType = resolveType ?? schemaDotnetType;
         if (dotnetType != schemaDotnetType && dotnetType.IsAssignableFrom(schemaDotnetType) && !GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType))
             dotnetType = schemaDotnetType;
-        var gqlTypeInfo = new GqlTypeInfo(() => Schema.Type(schemaTypeName), dotnetType)
-        {
-            IsList = GqlTypeInfo.IsListOf(dotnetType, schemaDotnetType),
-            // From the named type, as it always was - a List<int> named as Int stays [Int!]!.
-            TypeNotNullable = schemaDotnetType.IsValueType && !schemaDotnetType.IsNullableType(),
-        };
+        var gqlTypeInfo = GqlTypeInfo.ForSchemaType(schemaType, dotnetType);
+        // Nullability from the named type, as it always was - a List<int> named as Int stays [Int!]!.
+        gqlTypeInfo.TypeNotNullable = schemaDotnetType.IsValueType && !schemaDotnetType.IsNullableType();
         Returns(gqlTypeInfo);
         return this;
     }
