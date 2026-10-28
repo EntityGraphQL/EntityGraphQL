@@ -101,19 +101,13 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
             listContext = UseFirstPassResult(compileContext, replacementNextFieldContext)
                 ? replacementNextFieldContext
                 : ReplaceContext(replacementNextFieldContext!, replacer, listContext!, possibleNextContextTypes);
-            // For async fields (e.g. Task<IEnumerable<T>>), GetEnumerableOrArrayType returns
-            // IEnumerable<T> (the Task's single type argument) instead of T (the list element type).
-            // Unwrap Task<>/ValueTask<> first so the element parameter has the correct type.
-            // IAsyncEnumerable<T> must NOT be unwrapped here — its single generic argument IS already
-            // the element type, so GetEnumerableOrArrayType() on IAsyncEnumerable<T> returns T directly.
-            // Use IsAwaitableGenericType() rather than IsAsyncGenericType() for this reason.
+            // For async fields (e.g. Task<IEnumerable<T>>) unwrap Task<>/ValueTask<> first - a Task is not a
+            // collection. IAsyncEnumerable<T> is, so use IsAwaitableGenericType() rather than IsAsyncGenericType().
             var listContextType = listContext.Type;
             if (listContextType.IsAwaitableGenericType())
                 listContextType = listContextType.GetGenericArguments()[0];
-            // GetEnumerableOrArrayType() returns null for a type that is enumerable but not itself generic/array
-            // (e.g. a CLR type mapped to a list GraphQL type via AddTypeMapping, like NpgsqlPolygon -> [Point!]!).
-            // In that case the element type has not changed from parse time, so fall back to the original
-            // element parameter type rather than passing null to Expression.Parameter.
+            // A CLR type mapped to a list GraphQL type via AddTypeMapping (e.g. NpgsqlPolygon -> [Point!]!) may not
+            // implement IEnumerable<T>; its element type has not changed from parse time, so keep the original.
             var elementType = listContextType.GetEnumerableOrArrayType() ?? nextFieldContext.Type;
             nextFieldContext = Expression.Parameter(elementType, $"{nextFieldContext.Name}2");
             // Store replacement so child paging extensions (e.g. ConnectionEdgeExtension) can get
@@ -187,8 +181,6 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         if (nextContextTypes != null)
             compileContext.SetPossibleNextContextTypes(this, nextContextTypes);
 
-        var resultElementType = resultExpression.Type.GetEnumerableOrArrayType()!;
-
         // Lists must be evaluated in-tree, not deferred. Nested lists have no other point where evaluation
         // can be forced: a deferred iterator stored in the projected object breaks the second (services) pass,
         // which re-projects over the pass-1 result in memory (re-enumeration at the wrong time loses/duplicates
@@ -200,6 +192,8 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
         // not block a thread and honours the request's CancellationToken
         var deferMaterializationToExecution = IsRootField && !contextChanged && !useNullCheckMethods;
         if (AllowToList && !deferMaterializationToExecution && Field?.IsAsync == false && resultExpression.Type.IsEnumerableOrArray() && !resultExpression.Type.IsDictionary())
+        {
+            var resultElementType = resultExpression.Type.GetEnumerableOrArrayType()!;
             resultExpression = useNullCheckMethods
                 ? Expression.Call(
                     typeof(EnumerableExtensions),
@@ -209,6 +203,7 @@ public class GraphQLListSelectionField : BaseGraphQLQueryField
                     Expression.Constant(Field!.ReturnType.TypeNotNullable)
                 )
                 : Expression.Call(typeof(Enumerable), nameof(Enumerable.ToList), [resultElementType], resultExpression);
+        }
 
         resultExpression = ProcessExtensionsPostSelection(resultExpression, selectionFields, argumentParams, contextChanged);
 
