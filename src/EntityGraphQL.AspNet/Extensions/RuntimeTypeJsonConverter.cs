@@ -18,9 +18,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
     // default read implementation, the focus of this converter is the Write operation
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => JsonSerializer.Deserialize(ref reader, typeToConvert, options);
 
-    public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options) => WriteRuntimeType(writer, value, options);
-
-    private static void WriteRuntimeType(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
     {
         if (value == null)
         {
@@ -52,17 +50,12 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
     }
 
     /// <summary>
-    /// Serializes a value. Not by JsonSerializer if it is of a collectible type - a schema's result types are
-    /// (List&lt;T&gt; of them too), and JsonSerializer caches what it learns of each type on the options, which live
-    /// as long as the app: that would keep every schema's types loaded forever. Those are written by reflection here.
+    /// A schema's result types are collectible (List&lt;T&gt; of them too), and JsonSerializer caches each type it is
+    /// given on the options, which live as long as the app - keeping those types loaded forever. They are serialized
+    /// as object instead, which this converter handles.
     /// </summary>
-    private static void Serialize(Utf8JsonWriter writer, object? value, Type declaredType, JsonSerializerOptions options)
-    {
-        if (value?.GetType().IsCollectible == true || (value == null && declaredType.IsCollectible))
-            WriteRuntimeType(writer, value, options);
-        else
-            JsonSerializer.Serialize(writer, value, declaredType, options);
-    }
+    private static void Serialize(Utf8JsonWriter writer, object? value, Type type, JsonSerializerOptions options) =>
+        JsonSerializer.Serialize(writer, value, type.IsCollectible ? typeof(object) : type, options);
 
     /// <summary>
     /// Writes the values for an dictionary into the Utf8JsonWriter
