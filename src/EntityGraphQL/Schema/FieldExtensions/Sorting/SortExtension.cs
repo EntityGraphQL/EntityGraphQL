@@ -116,7 +116,7 @@ public class SortExtension : BaseFieldExtension
             }
         }
         // build SortInput - need a unique name if they use sort on another field with the same name
-        var argSortType = LinqRuntimeTypeBuilder.GetDynamicType(fields, field.Name);
+        var argSortType = LinqRuntimeTypeBuilder.For(field.Schema).GetDynamicType(fields, field.Name);
         return argSortType;
     }
 

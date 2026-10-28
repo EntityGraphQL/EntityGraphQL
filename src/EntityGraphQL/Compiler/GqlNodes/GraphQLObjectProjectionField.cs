@@ -190,7 +190,7 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
 
         // build a new {...} - returning a single object {}
         (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
-        var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType)!;
+        var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Schema, Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType)!;
 
         if (needsServiceWrap || Field?.IsAsync == true)
         {

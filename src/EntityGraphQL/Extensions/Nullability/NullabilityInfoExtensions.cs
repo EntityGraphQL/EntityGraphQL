@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Nullability;
 
@@ -10,10 +11,10 @@ namespace Nullability;
 /// </summary>
 public static class NullabilityInfoExtensions
 {
-    private static readonly ConcurrentDictionary<ParameterInfo, NullabilityInfo> parameterCache = new();
-    private static readonly ConcurrentDictionary<PropertyInfo, NullabilityInfo> propertyCache = new();
-    private static readonly ConcurrentDictionary<EventInfo, NullabilityInfo> eventCache = new();
-    private static readonly ConcurrentDictionary<FieldInfo, NullabilityInfo> fieldCache = new();
+    private static readonly ConditionalWeakTable<ParameterInfo, NullabilityInfo> parameterCache = new();
+    private static readonly ConditionalWeakTable<PropertyInfo, NullabilityInfo> propertyCache = new();
+    private static readonly ConditionalWeakTable<EventInfo, NullabilityInfo> eventCache = new();
+    private static readonly ConditionalWeakTable<FieldInfo, NullabilityInfo> fieldCache = new();
 
     public static NullabilityInfo GetNullabilityInfo(this MemberInfo info)
     {
@@ -67,7 +68,7 @@ public static class NullabilityInfoExtensions
 
     public static NullabilityInfo GetNullabilityInfo(this FieldInfo info)
     {
-        return fieldCache.GetOrAdd(
+        return fieldCache.GetValue(
             info,
             inner =>
             {
@@ -79,7 +80,7 @@ public static class NullabilityInfoExtensions
 
     public static NullabilityInfo GetNullabilityInfo(this EventInfo info)
     {
-        return eventCache.GetOrAdd(
+        return eventCache.GetValue(
             info,
             inner =>
             {
@@ -91,7 +92,7 @@ public static class NullabilityInfoExtensions
 
     public static NullabilityInfo GetNullabilityInfo(this PropertyInfo info)
     {
-        return propertyCache.GetOrAdd(
+        return propertyCache.GetValue(
             info,
             inner =>
             {
@@ -103,7 +104,7 @@ public static class NullabilityInfoExtensions
 
     public static NullabilityInfo GetNullabilityInfo(this ParameterInfo info)
     {
-        return parameterCache.GetOrAdd(
+        return parameterCache.GetValue(
             info,
             inner =>
             {

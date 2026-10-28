@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Extensions;
+using EntityGraphQL.Schema;
 
 namespace EntityGraphQL.Compiler.Util;
 
@@ -46,7 +47,18 @@ public sealed class AggregateReductionSplit
     /// True if <paramref name="body"/> is a reduction over a collection whose selector references one of
     /// <paramref name="serviceParams"/>, and the source collection itself does not use a service.
     /// </summary>
-    public static bool TryCreate(Expression body, IReadOnlyList<ParameterExpression> serviceParams, out AggregateReductionSplit? split)
+    [Obsolete("Pass the schema, whose types the split's are built with: TryCreate(schema, body, serviceParams, out split)")]
+    public static bool TryCreate(Expression body, IReadOnlyList<ParameterExpression> serviceParams, out AggregateReductionSplit? split) =>
+        TryCreate(LinqRuntimeTypeBuilder.Shared, body, serviceParams, out split);
+
+    /// <summary>
+    /// True if <paramref name="body"/> is a reduction over a collection whose selector references one of
+    /// <paramref name="serviceParams"/>, and the source collection itself does not use a service.
+    /// </summary>
+    public static bool TryCreate(ISchemaProvider schema, Expression body, IReadOnlyList<ParameterExpression> serviceParams, out AggregateReductionSplit? split) =>
+        TryCreate(LinqRuntimeTypeBuilder.For(schema), body, serviceParams, out split);
+
+    private static bool TryCreate(LinqRuntimeTypeBuilder types, Expression body, IReadOnlyList<ParameterExpression> serviceParams, out AggregateReductionSplit? split)
     {
         split = null;
         if (serviceParams.Count == 0 || body is not MethodCallExpression call)
@@ -85,7 +97,7 @@ public sealed class AggregateReductionSplit
             depFieldTypes[name] = member.Type;
         }
 
-        var depsType = LinqRuntimeTypeBuilder.GetDynamicType(depFieldTypes, "aggDeps");
+        var depsType = types.GetDynamicType(depFieldTypes, "aggDeps");
         var isQueryable = source.Type.IsGenericTypeQueryable();
         split = new AggregateReductionSplit(source, call.Method.Name, selector, isQueryable, elementType, depsType, deps);
         return true;

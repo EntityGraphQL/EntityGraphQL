@@ -18,7 +18,9 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
     // default read implementation, the focus of this converter is the Write operation
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => JsonSerializer.Deserialize(ref reader, typeToConvert, options);
 
-    public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options) => WriteRuntimeType(writer, value, options);
+
+    private static void WriteRuntimeType(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
     {
         if (value == null)
         {
@@ -50,6 +52,19 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
     }
 
     /// <summary>
+    /// Serializes a value. Not by JsonSerializer if it is of a collectible type - a schema's result types are
+    /// (List&lt;T&gt; of them too), and JsonSerializer caches what it learns of each type on the options, which live
+    /// as long as the app: that would keep every schema's types loaded forever. Those are written by reflection here.
+    /// </summary>
+    private static void Serialize(Utf8JsonWriter writer, object? value, Type declaredType, JsonSerializerOptions options)
+    {
+        if (value?.GetType().IsCollectible == true || (value == null && declaredType.IsCollectible))
+            WriteRuntimeType(writer, value, options);
+        else
+            JsonSerializer.Serialize(writer, value, declaredType, options);
+    }
+
+    /// <summary>
     /// Writes the values for an dictionary into the Utf8JsonWriter
     /// </summary>
     /// <param name="writer">The writer to write to.</param>
@@ -73,7 +88,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                 writer.WriteNullValue();
                 continue;
             }
-            JsonSerializer.Serialize(writer, propVal, propVal.GetType(), options);
+            Serialize(writer, propVal, propVal.GetType(), options);
         }
 
         writer.WriteEndObject();
@@ -100,7 +115,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                 name = options.PropertyNamingPolicy.ConvertName(name);
             }
             writer.WritePropertyName(name);
-            JsonSerializer.Serialize(writer, propVal, member.PropertyType, options);
+            Serialize(writer, propVal, member.PropertyType, options);
         }
 
         if (options.IncludeFields)
@@ -114,7 +129,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                     name = options.PropertyNamingPolicy.ConvertName(name);
                 }
                 writer.WritePropertyName(name);
-                JsonSerializer.Serialize(writer, propVal, member.FieldType, options);
+                Serialize(writer, propVal, member.FieldType, options);
             }
         }
 
@@ -139,7 +154,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                 continue;
             }
 
-            JsonSerializer.Serialize(writer, item, item.GetType(), options);
+            Serialize(writer, item, item.GetType(), options);
         }
 
         writer.WriteEndArray();

@@ -51,7 +51,7 @@ public class GraphQLScalarField : BaseGraphQLField
             && Field.FieldParam != null
             && Field.ArgumentsParameter == null
             && (IsRootField || isAggregateReductionLeaf)
-            && AggregateReductionSplit.TryCreate(Field.ResolveExpression, Field.Services, out var split)
+            && AggregateReductionSplit.TryCreate(Schema, Field.ResolveExpression, Field.Services, out var split)
         )
         {
             if (withoutServiceFields)

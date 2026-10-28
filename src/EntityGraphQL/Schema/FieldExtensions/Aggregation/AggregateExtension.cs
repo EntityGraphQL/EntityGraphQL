@@ -335,7 +335,7 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
             schema,
             $"{elementSchemaType.Name}{func.Name}Aggregate",
             // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
-            () => LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg"),
+            () => LinqRuntimeTypeBuilder.For(schema).GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg"),
             $"{func.Name} of each field over a collection of {elementSchemaType.Name}",
             funcType => BuildFunctionFields(schema, funcType, elementSchemaType, elementType, func, fields, collType, methodClass)
         );
@@ -389,7 +389,7 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
 
             var depsName = $"egql__agg_{elementSchemaType.Name}_{elementField.Name}";
 
-            if (elementField.BulkResolver is { IsAsync: false, BulkArgParam: null } bulk && AggregateReductionSplit.TryCreate(aggCall, elementField.Services, out _))
+            if (elementField.BulkResolver is { IsAsync: false, BulkArgParam: null } bulk && AggregateReductionSplit.TryCreate(schema, aggCall, elementField.Services, out _))
             {
                 // Bulk-resolved element field. Materialize just the bulk keys (dataSelector) in pass 1; pass 2
                 // fetches all values in a single bulk call and reduces the dictionary (see BulkAggregateReducer),
@@ -407,7 +407,7 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
                 bulkLeaf.SetServiceResolve(leafResolve, services, [extracted], bulk);
                 funcType.AddField(bulkLeaf);
             }
-            else if (elementField.Services.Count > 0 && AggregateReductionSplit.TryCreate(aggCall, elementField.Services, out var split))
+            else if (elementField.Services.Count > 0 && AggregateReductionSplit.TryCreate(schema, aggCall, elementField.Services, out var split))
             {
                 // Service-backed element field (e.g. svc.Score(p.Id)). Build a service field whose dependency is
                 // the DB-translatable deps projection (materialized): the two-pass model projects/materializes

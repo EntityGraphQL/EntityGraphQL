@@ -10,7 +10,9 @@ public class DataAnnotationsValidator : IArgumentValidator
 {
     public Task ValidateAsync(ArgumentValidatorContext context)
     {
-        ValidateObjectRecursive(context, context.Arguments);
+        // as object: a dynamic call would have the runtime binder cache the arguments' type - a schema's generated
+        // type - in static tables, keeping the schema's types loaded forever
+        ValidateObjectRecursive(context, (object?)context.Arguments);
         ValidateMethodArguments(context);
 
         return Task.CompletedTask;
@@ -76,7 +78,10 @@ public class DataAnnotationsValidator : IArgumentValidator
         {
             var results = new List<ValidationResult>();
 
-            if (!Validator.TryValidateObject(obj, new ValidationContext(obj), results, true))
+            // A schema's generated argument types (collectible) have no validation attributes, properties or
+            // IValidatableObject, so nothing to validate on the object itself - and Validator caches every type it
+            // sees in static stores, which would keep the schema's types loaded forever
+            if (!obj.GetType().IsCollectible && !Validator.TryValidateObject(obj, new ValidationContext(obj), results, true))
             {
                 results.ForEach(result =>
                 {

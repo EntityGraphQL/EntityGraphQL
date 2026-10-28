@@ -155,7 +155,7 @@ public static class SchemaBuilder
         // This allows us to "insert" .Select() (and .Include()) before the .First()
         var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.ResolveExpression.Type);
         var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
-        var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType, fieldProp.Name);
+        var argTypes = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(fieldNameAndType, fieldProp.Name);
         var argTypesValue = Activator.CreateInstance(argTypes);
         var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
         Type arrayContextType = returnSchemaType.TypeDotnet;
@@ -328,7 +328,7 @@ public static class SchemaBuilder
             // engine-supplied like CancellationToken, so it must not become a DI service (which would also push
             // an otherwise service-free field onto the services pass)
             var wantsArgumentsTracker = argumentsFromMethod.Any(a => a.IsService && a.ServiceType == typeof(IArgumentsTracker));
-            fieldArgType = LinqRuntimeTypeBuilder.GetDynamicType(fieldDotnetArgtypes, method.Name, wantsArgumentsTracker ? typeof(ArgumentsTracker) : null)!;
+            fieldArgType = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(fieldDotnetArgtypes, method.Name, wantsArgumentsTracker ? typeof(ArgumentsTracker) : null)!;
             var argTypeParam = Expression.Parameter(fieldArgType, $"args_{fieldArgType.Name}");
             // build argument expressions for the call
             foreach (var item in argumentsFromMethod)
