@@ -10,8 +10,10 @@ public class DataAnnotationsValidator : IArgumentValidator
 {
     public Task ValidateAsync(ArgumentValidatorContext context)
     {
-        // as object: a dynamic call would have the runtime binder cache the arguments' type - a schema's generated
-        // type - in static tables, keeping the schema's types loaded forever
+        // as object: a method call with a dynamic argument has the runtime binder import the argument's type - a
+        // schema's generated type - into its static symbol table for overload resolution, keeping the schema's types
+        // loaded forever. Reading members of a dynamic (as the field extensions do with their arguments) has not
+        // been seen to hold them - the unload tests cover filter and paging - so those are left as they are.
         ValidateObjectRecursive(context, (object?)context.Arguments);
         ValidateMethodArguments(context);
 

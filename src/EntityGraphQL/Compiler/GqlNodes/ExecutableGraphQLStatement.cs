@@ -786,15 +786,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.IsAsyncGenericType())
         {
             var invoked = compiledDelegate.DynamicInvoke(argsArray);
-            // A Task not awaited as dynamic: the runtime binder caches every type it binds in static tables,
-            // which would keep the schema's result types loaded forever
-            if (invoked is Task task)
-            {
-                await task;
-                res = taskResultAccessors.GetValue(task.GetType(), TaskResultAccessorFactory)?.Invoke(task);
-            }
-            else
-                res = await (dynamic?)invoked;
+            res = AsTask(invoked) is { } task ? await ResultOfAsync(task) : invoked;
         }
         else
             res = compiledDelegate.DynamicInvoke(argsArray);
@@ -845,44 +837,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         var type = obj.GetType();
 
-        // Handle Task<T> and internal async state machines - await it and recursively resolve the result
-        if (obj is Task task)
+        // Task, ValueTask (and their <T>, including internal async state machines) - await it and recursively
+        // resolve the result
+        if (AsTask(obj) is { } task)
         {
-            await task;
-
-            var resultAccessor = taskResultAccessors.GetValue(task.GetType(), TaskResultAccessorFactory);
-            if (resultAccessor != null)
-            {
-                var taskResult = resultAccessor(task);
-                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
-            }
-
-            return null; // Task (not Task<T>)
-        }
-
-        // non-generic ValueTask - just await it, there is no result
-        if (obj is ValueTask plainValueTask)
-        {
-            await plainValueTask;
-            return null;
-        }
-
-        // ValueTask<T>
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
-        {
-            var asTaskMethod = type.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
-            if (asTaskMethod != null)
-            {
-                var valueTaskAsTask = (Task?)asTaskMethod.Invoke(obj, null);
-                if (valueTaskAsTask != null)
-                {
-                    await valueTaskAsTask;
-                    var resultProperty = valueTaskAsTask.GetType().GetProperty(nameof(Task<object>.Result));
-                    var taskResult = resultProperty?.GetValue(valueTaskAsTask);
-                    return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
-                }
-            }
-            return null;
+            var taskResult = await ResultOfAsync(task);
+            return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
         }
 
         // IAsyncEnumerable<T> - buffer to a list
@@ -1184,6 +1144,28 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     /// and reflection GetProperty/GetValue per task is measurable. Null for non-generic Task.
     /// </summary>
     private static readonly ConditionalWeakTable<Type, Func<Task, object?>?> taskResultAccessors = new();
+
+    /// <summary>
+    /// A Task, ValueTask, Task&lt;T&gt; or ValueTask&lt;T&gt; as a Task, else null. Awaited this way rather than as dynamic:
+    /// the runtime binder keeps the types it binds a call on in static tables, which would keep a schema's result
+    /// types loaded forever.
+    /// </summary>
+    private static Task? AsTask(object? value) =>
+        value switch
+        {
+            Task task => task,
+            ValueTask valueTask => valueTask.AsTask(),
+            not null when value.GetType() is { IsGenericType: true } t && t.GetGenericTypeDefinition() == typeof(ValueTask<>) => (Task?)
+                t.GetMethod(nameof(ValueTask<object>.AsTask))!.Invoke(value, null),
+            _ => null,
+        };
+
+    /// <summary>Awaits a task and returns its result - null for a Task with none</summary>
+    private static async Task<object?> ResultOfAsync(Task task)
+    {
+        await task;
+        return taskResultAccessors.GetValue(task.GetType(), TaskResultAccessorFactory)?.Invoke(task);
+    }
 
     private static readonly ConditionalWeakTable<Type, Func<Task, object?>?>.CreateValueCallback TaskResultAccessorFactory = static t =>
     {
