@@ -61,7 +61,7 @@ public abstract class MethodField : BaseField
             else
                 Arguments.Add(item.ArgName, item.ArgType!);
         }
-        ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
+        ExpressionArgumentType = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(flattenedTypes, method.Name)!;
     }
 
     public virtual async Task<(object? data, IGraphQLValidator? methodValidator)> CallAsync(

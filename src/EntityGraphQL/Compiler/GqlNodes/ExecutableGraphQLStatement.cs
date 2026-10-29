@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -77,7 +78,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         {
             // this type if all the variables defined in the GraphQL document
             // use PropertySetTracking to track is they are set or not (either by a default value or by the user in variables passed in)
-            var variableType = LinqRuntimeTypeBuilder.GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars", typeof(ArgumentsTracker));
+            var variableType = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(OpDefinedVariables.ToDictionary(f => f.Key, f => f.Value.RawType), "docVars", typeof(ArgumentsTracker));
             OpVariableParameter = Expression.Parameter(variableType, "docVars");
         }
     }
@@ -783,7 +784,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         object? res = null;
         if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.IsAsyncGenericType())
-            res = await (dynamic?)compiledDelegate.DynamicInvoke(argsArray);
+        {
+            var invoked = compiledDelegate.DynamicInvoke(argsArray);
+            res = AsTask(invoked) is { } task ? await ResultOfAsync(task) : invoked;
+        }
         else
             res = compiledDelegate.DynamicInvoke(argsArray);
 
@@ -833,44 +837,12 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         var type = obj.GetType();
 
-        // Handle Task<T> and internal async state machines - await it and recursively resolve the result
-        if (obj is Task task)
+        // Task, ValueTask (and their <T>, including internal async state machines) - await it and recursively
+        // resolve the result
+        if (AsTask(obj) is { } task)
         {
-            await task;
-
-            var resultAccessor = taskResultAccessors.GetOrAdd(task.GetType(), TaskResultAccessorFactory);
-            if (resultAccessor != null)
-            {
-                var taskResult = resultAccessor(task);
-                return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
-            }
-
-            return null; // Task (not Task<T>)
-        }
-
-        // non-generic ValueTask - just await it, there is no result
-        if (obj is ValueTask plainValueTask)
-        {
-            await plainValueTask;
-            return null;
-        }
-
-        // ValueTask<T>
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
-        {
-            var asTaskMethod = type.GetMethod("AsTask", BindingFlags.Public | BindingFlags.Instance);
-            if (asTaskMethod != null)
-            {
-                var valueTaskAsTask = (Task?)asTaskMethod.Invoke(obj, null);
-                if (valueTaskAsTask != null)
-                {
-                    await valueTaskAsTask;
-                    var resultProperty = valueTaskAsTask.GetType().GetProperty(nameof(Task<object>.Result));
-                    var taskResult = resultProperty?.GetValue(valueTaskAsTask);
-                    return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
-                }
-            }
-            return null;
+            var taskResult = await ResultOfAsync(task);
+            return taskResult != null ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : null;
         }
 
         // IAsyncEnumerable<T> - buffer to a list
@@ -980,7 +952,9 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return elementType.IsInstanceOfType(item);
     }
 
-    private static readonly ConcurrentDictionary<Type, bool> typeCouldContainAsyncCache = new();
+    // The caches keyed by type are weak: most of their types are a schema's dynamic types, which must be free to
+    // unload with the schema (see LinqRuntimeTypeBuilder).
+    private static readonly ConditionalWeakTable<Type, StrongBox<bool>> typeCouldContainAsyncCache = new();
 
     /// <summary>
     /// True if a value of the declared type could be - or could transitively hold - an async value
@@ -991,16 +965,16 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     private static bool TypeCouldContainAsyncValue(Type type)
     {
         if (typeCouldContainAsyncCache.TryGetValue(type, out var cached))
-            return cached;
+            return cached.Value;
         var result = TypeCouldContainAsyncValue(type, new HashSet<Type>());
-        typeCouldContainAsyncCache[type] = result;
+        typeCouldContainAsyncCache.AddOrUpdate(type, new StrongBox<bool>(result));
         return result;
     }
 
     private static bool TypeCouldContainAsyncValue(Type type, HashSet<Type> visiting)
     {
         if (typeCouldContainAsyncCache.TryGetValue(type, out var cached))
-            return cached;
+            return cached.Value;
         // a cycle back to a type already being computed can not introduce an async value not found elsewhere
         if (!visiting.Add(type))
             return false;
@@ -1064,10 +1038,10 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
     }
 
-    private static readonly ConcurrentDictionary<Type, (PropertyInfo[] Properties, FieldInfo[] Fields)> reflectionMemberCache = new();
+    private static readonly ConditionalWeakTable<Type, Tuple<PropertyInfo[], FieldInfo[]>> reflectionMemberCache = new();
 
     private static (PropertyInfo[] Properties, FieldInfo[] Fields) GetCachedMembers(Type type) =>
-        reflectionMemberCache.GetOrAdd(type, t => (t.GetProperties(BindingFlags.Public | BindingFlags.Instance), t.GetFields(BindingFlags.Public | BindingFlags.Instance)));
+        reflectionMemberCache.GetValue(type, static t => Tuple.Create(t.GetProperties(BindingFlags.Public | BindingFlags.Instance), t.GetFields(BindingFlags.Public | BindingFlags.Instance))).ToValueTuple();
 
     /// <summary>
     /// Handles complex objects including anonymous types, dynamic types, and regular classes
@@ -1163,15 +1137,37 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         public Func<object?[], object> Construct { get; } = construct;
     }
 
-    private static readonly ConcurrentDictionary<Type, DynamicTypeResolutionPlan> resolutionPlans = new();
+    private static readonly ConditionalWeakTable<Type, DynamicTypeResolutionPlan> resolutionPlans = new();
 
     /// <summary>
     /// Compiled Task&lt;T&gt;.Result accessors keyed by task type - the walker unwraps many tasks per request
     /// and reflection GetProperty/GetValue per task is measurable. Null for non-generic Task.
     /// </summary>
-    private static readonly ConcurrentDictionary<Type, Func<Task, object?>?> taskResultAccessors = new();
+    private static readonly ConditionalWeakTable<Type, Func<Task, object?>?> taskResultAccessors = new();
 
-    private static readonly Func<Type, Func<Task, object?>?> TaskResultAccessorFactory = static t =>
+    /// <summary>
+    /// A Task, ValueTask, Task&lt;T&gt; or ValueTask&lt;T&gt; as a Task, else null. Awaited this way rather than as dynamic:
+    /// the runtime binder keeps the types it binds a call on in static tables, which would keep a schema's result
+    /// types loaded forever.
+    /// </summary>
+    private static Task? AsTask(object? value) =>
+        value switch
+        {
+            Task task => task,
+            ValueTask valueTask => valueTask.AsTask(),
+            not null when value.GetType() is { IsGenericType: true } t && t.GetGenericTypeDefinition() == typeof(ValueTask<>) => (Task?)
+                t.GetMethod(nameof(ValueTask<object>.AsTask))!.Invoke(value, null),
+            _ => null,
+        };
+
+    /// <summary>Awaits a task and returns its result - null for a Task with none</summary>
+    private static async Task<object?> ResultOfAsync(Task task)
+    {
+        await task;
+        return taskResultAccessors.GetValue(task.GetType(), TaskResultAccessorFactory)?.Invoke(task);
+    }
+
+    private static readonly ConditionalWeakTable<Type, Func<Task, object?>?>.CreateValueCallback TaskResultAccessorFactory = static t =>
     {
         var resultProp = t.GetProperty(nameof(Task<object>.Result));
         if (resultProp == null)
@@ -1199,7 +1195,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     resolved = value;
                 }
                 // fast path - an already-completed task unwraps synchronously without the async recursion
-                else if (value is Task { IsCompletedSuccessfully: true } completedTask && taskResultAccessors.GetOrAdd(completedTask.GetType(), TaskResultAccessorFactory) is { } accessor)
+                else if (value is Task { IsCompletedSuccessfully: true } completedTask && taskResultAccessors.GetValue(completedTask.GetType(), TaskResultAccessorFactory) is { } accessor)
                 {
                     var taskResult = accessor(completedTask);
                     resolved = taskResult != null && TypeCouldContainAsyncValue(taskResult.GetType()) ? await ResolveAsyncResultsRecursive(taskResult, cancellationToken) : taskResult;
@@ -1250,7 +1246,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         }
 
         // Create new dynamic type with resolved field types
-        var newType = LinqRuntimeTypeBuilder.GetDynamicType(fieldTypeMap, originalType.Name);
+        var newType = LinqRuntimeTypeBuilder.For(originalType).GetDynamicType(fieldTypeMap, originalType.Name);
         var newInstance = Activator.CreateInstance(newType);
 
         if (newInstance != null)
@@ -1306,7 +1302,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         var construct = Expression.Lambda<Func<object?[], object>>(Expression.Convert(Expression.MemberInit(Expression.New(newType), bindings), typeof(object)), valuesParam).Compile();
 
-        resolutionPlans.TryAdd(originalType, new DynamicTypeResolutionPlan(names, getters, needsResolve, targetTypes, construct));
+        resolutionPlans.AddOrUpdate(originalType, new DynamicTypeResolutionPlan(names, getters, needsResolve, targetTypes, construct));
     }
 
     /// <summary>
@@ -1358,8 +1354,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
     // materializer delegates cached per runtime type - the types are per-query-shape anonymous types so the
     // reflection (interface scan + MakeGenericMethod) runs once per shape, not per request
-    private static readonly ConcurrentDictionary<Type, Func<object, CancellationToken, Task<object>>?> asyncListMaterializers = new();
-    private static readonly ConcurrentDictionary<Type, Func<object, object>> syncListMaterializers = new();
+    private static readonly ConditionalWeakTable<Type, Func<object, CancellationToken, Task<object>>?> asyncListMaterializers = new();
+    private static readonly ConditionalWeakTable<Type, Func<object, object>> syncListMaterializers = new();
 
     /// <summary>
     /// Materializes a deferred root list result. Async-capable LINQ providers (e.g. EF Core) return query
@@ -1370,7 +1366,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     private static async Task<object> MaterializeDeferredResultAsync(object result, CancellationToken cancellationToken)
     {
         var type = result.GetType();
-        var asyncMaterializer = asyncListMaterializers.GetOrAdd(
+        var asyncMaterializer = asyncListMaterializers.GetValue(
             type,
             static t =>
             {
@@ -1384,7 +1380,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         if (asyncMaterializer != null)
             return await asyncMaterializer(result, cancellationToken);
 
-        var syncMaterializer = syncListMaterializers.GetOrAdd(
+        var syncMaterializer = syncListMaterializers.GetValue(
             type,
             static t =>
             {

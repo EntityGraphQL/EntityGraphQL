@@ -184,7 +184,7 @@ public class Field : BaseField
         if (fieldArgs != null)
         {
             Arguments = fieldArgs;
-            ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
+            ExpressionArgumentType = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(fieldArgs.ToDictionary(x => x.Key, x => x.Value.RawType), name);
         }
     }
 

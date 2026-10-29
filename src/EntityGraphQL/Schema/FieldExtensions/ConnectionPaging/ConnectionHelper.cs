@@ -4,6 +4,7 @@ using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace EntityGraphQL.Schema.FieldExtensions;
@@ -122,7 +123,8 @@ public static class ConnectionHelper
         }
     }
 
-    private static readonly ConcurrentDictionary<(Type, string), FieldInfo[]> cursorFieldsCache = new();
+    // weak by edge type: the edges are a schema's dynamic types, which must be free to unload with it
+    private static readonly ConditionalWeakTable<Type, ConcurrentDictionary<string, FieldInfo[]>> cursorFieldsCache = new();
 
     /// <summary>
     /// Used at runtime for a nested collection: sets the cursor fields of the already-projected edges. The edges are
@@ -146,7 +148,7 @@ public static class ConnectionHelper
             }
             skip = rowsBefore;
         }
-        var fields = cursorFieldsCache.GetOrAdd((typeof(TEdge), cursorFields), key => Array.ConvertAll(key.Item2.Split(','), name => key.Item1.GetField(name)!));
+        var fields = cursorFieldsCache.GetValue(typeof(TEdge), static _ => new()).GetOrAdd(cursorFields, static names => Array.ConvertAll(names.Split(','), name => typeof(TEdge).GetField(name)!));
         for (var i = 0; i < edges.Count; i++)
         {
             var cursor = SerializeCursor(skip + i + 1);

@@ -50,6 +50,14 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
     }
 
     /// <summary>
+    /// A schema's result types are collectible (List&lt;T&gt; of them too), and JsonSerializer caches each type it is
+    /// given on the options, which live as long as the app - keeping those types loaded forever. They are serialized
+    /// as object instead, which this converter handles.
+    /// </summary>
+    private static void Serialize(Utf8JsonWriter writer, object? value, Type type, JsonSerializerOptions options) =>
+        JsonSerializer.Serialize(writer, value, type.IsCollectible ? typeof(object) : type, options);
+
+    /// <summary>
     /// Writes the values for an dictionary into the Utf8JsonWriter
     /// </summary>
     /// <param name="writer">The writer to write to.</param>
@@ -73,7 +81,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                 writer.WriteNullValue();
                 continue;
             }
-            JsonSerializer.Serialize(writer, propVal, propVal.GetType(), options);
+            Serialize(writer, propVal, propVal.GetType(), options);
         }
 
         writer.WriteEndObject();
@@ -100,7 +108,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                 name = options.PropertyNamingPolicy.ConvertName(name);
             }
             writer.WritePropertyName(name);
-            JsonSerializer.Serialize(writer, propVal, member.PropertyType, options);
+            Serialize(writer, propVal, member.PropertyType, options);
         }
 
         if (options.IncludeFields)
@@ -114,7 +122,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                     name = options.PropertyNamingPolicy.ConvertName(name);
                 }
                 writer.WritePropertyName(name);
-                JsonSerializer.Serialize(writer, propVal, member.FieldType, options);
+                Serialize(writer, propVal, member.FieldType, options);
             }
         }
 
@@ -139,7 +147,7 @@ public class RuntimeTypeJsonConverter : JsonConverter<object>
                 continue;
             }
 
-            JsonSerializer.Serialize(writer, item, item.GetType(), options);
+            Serialize(writer, item, item.GetType(), options);
         }
 
         writer.WriteEndArray();
