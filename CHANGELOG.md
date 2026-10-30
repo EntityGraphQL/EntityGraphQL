@@ -22,6 +22,7 @@
 - #577 - Fixed paging on the `node` of another connection (`movies(first: 2) { edges { node { actors(first: 1) { ... } } } }`) failing with `unbound variable: p_ConnectionEdge`1`, in memory and with EF. EF needs SQL `APPLY` to page a collection inside another paged collection, which SQLite does not support.
 - `item(id)` beside a paged list uses the items' own `id` field: an id remapped to another type works, and a type with both `Id` and `ID` no longer throws `AmbiguousMatchException`.
 - Building the fields of a type with a list of property bags no longer fails with `Value cannot be null. (Parameter 'key')`.
+- An EF Core `DbContext`'s own members (`Database`, `Model`, `ChangeTracker`, `ContextId`) are left out of the schema by the type that declares them, not only by name through `SchemaBuilderOptions.IgnoreProps`. The default `IgnoreProps` is unchanged, so a property with one of those names on your own types is still left out - you can now remove the name (`options.Builder.IgnoreProps.Remove("Model")`) to make it a field without exposing the `DbContext`'s member.
 
 # 6.3.0
 
