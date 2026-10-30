@@ -11,13 +11,13 @@ public delegate void OnFieldCreated(IField field);
 public class SchemaBuilderOptions
 {
     /// <summary>
-    /// Property or field names to ignore, on every type. Empty by default.
+    /// Property or field names to ignore, on every type. Default is the names of an Entity Framework Core
+    /// DbContext's own members (Database, Model, ChangeTracker, ContextId).
     ///
-    /// The members of an Entity Framework Core DbContext (Database, Model, ChangeTracker, ContextId) are
-    /// always left out, by the type that declares them rather than by name, so an entity's own property
-    /// with one of those names is kept. Add a name here to leave it out everywhere.
+    /// Those DbContext members are always left out, by the type that declares them, so a name can be removed
+    /// here (IgnoreProps.Remove("Model")) to make your own types' property of that name a field.
     /// </summary>
-    public HashSet<string> IgnoreProps { get; set; } = [];
+    public HashSet<string> IgnoreProps { get; set; } = ["Database", "Model", "ChangeTracker", "ContextId"];
 
     /// <summary>
     /// List of dotnet Types to ignore when adding types to the schema
