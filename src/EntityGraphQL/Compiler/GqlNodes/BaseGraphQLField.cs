@@ -298,6 +298,25 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
         return (baseExpression, selectionExpressions, selectContextParam);
     }
 
+    protected Expression ProcessExtensionsPostSelection(Expression resultExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? argumentParam, bool servicesPass)
+    {
+        if (Field == null)
+            return resultExpression;
+        foreach (var extension in Field.Extensions)
+        {
+            resultExpression = extension.ProcessExpressionPostSelection(
+                new FieldExtensionPostSelectionContext
+                {
+                    ResultExpression = resultExpression,
+                    SelectionExpressions = selectionExpressions,
+                    ArgumentParameter = argumentParam,
+                    ServicesPass = servicesPass,
+                }
+            );
+        }
+        return resultExpression;
+    }
+
     protected Expression ProcessScalarExpression(Expression expression, ParameterReplacer parameterReplacer)
     {
         if (Field == null)

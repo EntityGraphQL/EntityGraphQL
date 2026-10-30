@@ -153,6 +153,168 @@ public class PagingSqlTests
         Assert.Contains(Commands(sql), c => c.Contains("COUNT"));
     }
 
+    private static (TestDbContextFactory factory, TestDbContext data, List<string> sql, SchemaProvider<TestDbContext> schema) MakeNestedOffsetPaging()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        schema.Type<Actor>().ReplaceField("movies", new { }, (a, _) => a.Movies.OrderBy(m => m.Id), "Movies").UseOffsetPaging();
+
+        var sql = new List<string>();
+        var factory = new TestDbContextFactory();
+        var data = factory.CreateContext(b => (DbContextOptionsBuilder<TestDbContext>)b.LogTo(m => sql.Add(m), new[] { RelationalEventId.CommandExecuted }));
+        data.Actors.Add(new Actor("Actor") { Id = 1, Movies = Enumerable.Range(1, 10).Select(i => new Movie($"Movie{i}") { Id = i }).ToList() });
+        data.SaveChanges();
+        sql.Clear();
+        return (factory, data, sql, schema);
+    }
+
+    [Fact]
+    public void NestedOffsetPagingHasNextPageIsTranslated()
+    {
+        var (factory, data, sql, schema) = MakeNestedOffsetPaging();
+        using var _ = factory;
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ actors { movies(take: 2, skip: 4) { hasNextPage items { name } } } }" }, data, null, null);
+
+        Assert.Null(result.Errors);
+        dynamic movies = ((dynamic)result.Data!["actors"]!)[0].movies;
+        Assert.True((bool)movies.hasNextPage);
+        Assert.Equal("Movie5", (string)movies.items[0].name);
+        var page = Assert.Single(Commands(sql));
+        Assert.Contains("EXISTS", page);
+        // hasNextPage evaluated in memory would load every column of every movie of every actor
+        Assert.DoesNotContain("\"Released\"", page);
+
+        sql.Clear();
+        var last = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ actors { movies(take: 2, skip: 8) { hasNextPage } } }" }, data, null, null);
+        Assert.Null(last.Errors);
+        Assert.False((bool)((dynamic)last.Data!["actors"]!)[0].movies.hasNextPage);
+
+        // no take - the page is the rest of the collection
+        var noTake = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ actors { movies(skip: 2) { hasNextPage } } }" }, data, null, null);
+        Assert.Null(noTake.Errors);
+        Assert.False((bool)((dynamic)noTake.Data!["actors"]!)[0].movies.hasNextPage);
+    }
+
+    [Fact]
+    public void NestedOffsetPagingSkipWithoutTakeDoesNotOverflow()
+    {
+        var (factory, data, sql, schema) = MakeNestedOffsetPaging();
+        using var _ = factory;
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ actors { movies(skip: 7) { items { name } } } }" }, data, null, null);
+
+        Assert.Null(result.Errors);
+        var items = ((IEnumerable<dynamic>)((dynamic)result.Data!["actors"]!)[0].movies.items).Select(i => (string)i.name).ToList();
+        Assert.Equal(["Movie8", "Movie9", "Movie10"], items);
+        // EF pages a nested collection with `row <= skip + take`. A take of int.MaxValue overflows an int on SQL Server and
+        // Postgres for any skip > 0 (SQLite is 64-bit so would not show it)
+        Assert.DoesNotContain("2147483647", Assert.Single(Commands(sql)));
+    }
+
+    private static (TestDbContextFactory factory, TestDbContext data, List<string> sql, SchemaProvider<TestDbContext> schema) MakeNestedConnectionPaging()
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        schema.Type<Actor>().ReplaceField("movies", a => a.Movies.OrderBy(m => m.Id), "Movies").UseConnectionPaging();
+
+        var sql = new List<string>();
+        var factory = new TestDbContextFactory();
+        var data = factory.CreateContext(b => (DbContextOptionsBuilder<TestDbContext>)b.LogTo(m => sql.Add(m), new[] { RelationalEventId.CommandExecuted }));
+        data.Actors.Add(new Actor("Actor") { Id = 1, Movies = Enumerable.Range(1, 10).Select(i => new Movie($"Movie{i}") { Id = i }).ToList() });
+        data.SaveChanges();
+        sql.Clear();
+        return (factory, data, sql, schema);
+    }
+
+    [Fact]
+    public void NestedConnectionPagingIsOneQueryAndPrunesColumns()
+    {
+        var (factory, data, sql, schema) = MakeNestedConnectionPaging();
+        using var _ = factory;
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = $@"{{ actors {{ movies(first: 2, after: ""{ConnectionHelper.SerializeCursor(4)}"") {{ edges {{ cursor node {{ name }} }} }} }} }}" },
+            data,
+            null,
+            null
+        );
+
+        Assert.Null(result.Errors);
+        var edges = ((IEnumerable<dynamic>)((dynamic)result.Data!["actors"]!)[0].movies.edges).ToList();
+        Assert.Equal(["Movie5", "Movie6"], edges.Select(e => (string)e.node.name));
+        Assert.Equal([ConnectionHelper.SerializeCursor(5), ConnectionHelper.SerializeCursor(6)], edges.Select(e => (string)e.cursor));
+        var page = Assert.Single(Commands(sql));
+        Assert.Contains("ROW_NUMBER()", page); // paged in SQL
+        Assert.DoesNotContain("\"Released\"", page);
+
+        sql.Clear();
+        var last = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ actors { movies(last: 2) { edges { cursor node { name } } } } }" }, data, null, null);
+        Assert.Null(last.Errors);
+        edges = ((IEnumerable<dynamic>)((dynamic)last.Data!["actors"]!)[0].movies.edges).ToList();
+        Assert.Equal(["Movie9", "Movie10"], edges.Select(e => (string)e.node.name));
+        Assert.Equal([ConnectionHelper.SerializeCursor(9), ConnectionHelper.SerializeCursor(10)], edges.Select(e => (string)e.cursor));
+        page = Assert.Single(Commands(sql));
+        Assert.Contains("ROW_NUMBER()", page);
+        Assert.DoesNotContain("\"Released\"", page);
+    }
+
+    // Relay: apply after, then take the last N of what is left
+    [Theory]
+    [InlineData(8, new[] { 9, 10 })]
+    [InlineData(3, new[] { 6, 7, 8, 9, 10 })]
+    [InlineData(12, new int[0])]
+    public void NestedConnectionPagingLastAndAfter(int after, int[] expected)
+    {
+        var (factory, data, sql, schema) = MakeNestedConnectionPaging();
+        using var _ = factory;
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest
+            {
+                Query =
+                    $@"{{ actors {{ movies(last: 5, after: ""{ConnectionHelper.SerializeCursor(after)}"") {{ pageInfo {{ hasPreviousPage hasNextPage }} edges {{ cursor node {{ name }} }} }} }} }}",
+            },
+            data,
+            null,
+            null
+        );
+
+        Assert.Null(result.Errors);
+        dynamic movies = ((dynamic)result.Data!["actors"]!)[0].movies;
+        var edges = ((IEnumerable<dynamic>)movies.edges).ToList();
+        Assert.Equal(expected.Select(i => $"Movie{i}"), edges.Select(e => (string)e.node.name));
+        Assert.Equal(expected.Select(ConnectionHelper.SerializeCursor), edges.Select(e => (string)e.cursor));
+        Assert.True((bool)movies.pageInfo.hasPreviousPage);
+        Assert.False((bool)movies.pageInfo.hasNextPage);
+        Assert.Single(Commands(sql), c => c.Contains("ROW_NUMBER()"));
+    }
+
+    [Fact]
+    public void NestedConnectionPagingHasNextPageIsTranslated()
+    {
+        var (factory, data, sql, schema) = MakeNestedConnectionPaging();
+        using var _ = factory;
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ actors { movies(first: 2) { pageInfo { hasNextPage } edges { node { name } } } } }" }, data, null, null);
+
+        Assert.Null(result.Errors);
+        Assert.True((bool)((dynamic)result.Data!["actors"]!)[0].movies.pageInfo.hasNextPage);
+        var page = Assert.Single(Commands(sql));
+        // once - pageInfo is a non-null read off the new Connection, so it is not null-checked (which repeated the EXISTS)
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(page, "EXISTS"));
+        Assert.DoesNotContain("COUNT", page);
+        // hasNextPage evaluated in memory would load every column of every movie of every actor
+        Assert.DoesNotContain("\"Released\"", page);
+
+        var lastPage = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = $@"{{ actors {{ movies(first: 2, after: ""{ConnectionHelper.SerializeCursor(8)}"") {{ pageInfo {{ hasNextPage }} }} }} }}" },
+            data,
+            null,
+            null
+        );
+        Assert.Null(lastPage.Errors);
+        Assert.False((bool)((dynamic)lastPage.Data!["actors"]!)[0].movies.pageInfo.hasNextPage);
+    }
+
     [Fact]
     public void ConnectionPagingWithServiceFieldSharesThePageQuery()
     {

@@ -142,6 +142,12 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         if (nextFieldContext == null)
             return null;
 
+        // An expression typed object or a dictionary interface, of a type the field returns (Returns("Type")):
+        // the type's fields are expressions over its own dotnet type, so cast to it, as the bulk resolver path
+        // does. Only those - see GqlTypeInfo.NeedsCastTo.
+        if (Field?.ReturnType is { IsList: false, TypeDotnet: var returnsType } && GqlTypeInfo.NeedsCastTo(nextFieldContext.Type, returnsType))
+            nextFieldContext = Expression.Convert(nextFieldContext, returnsType);
+
         HandleBeforeRootFieldExpressionBuild(compileContext, GetOperationName(this), Name, contextChanged, IsRootField, ref nextFieldContext);
 
         (nextFieldContext, _) = ProcessExtensionsPreSelection(nextFieldContext, null, replacer);
@@ -184,7 +190,7 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
 
         // build a new {...} - returning a single object {}
         (nextFieldContext, selectionFields, _) = ProcessExtensionsSelection(nextFieldContext, selectionFields, null, argumentParam, contextChanged, replacer);
-        var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType)!;
+        var newExp = ExpressionUtil.CreateNewExpressionWithInterfaceOrUnionCheck(Schema, Name, nextFieldContext, Field!.ReturnType, selectionFields, out Type anonType)!;
 
         if (needsServiceWrap || Field?.IsAsync == true)
         {
@@ -199,7 +205,18 @@ public class GraphQLObjectProjectionField : BaseGraphQLQueryField
         else
         {
             var isNullable = !nextFieldContext.Type.IsValueType || nextFieldContext.Type.IsNullableType();
-            if (isNullable && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
+            // pageInfo read off the Connection<T> built right here (new Connection<T>(...).PageInfo) is never null - Connection
+            // creates it on demand. A null check would repeat the whole expression, and a LINQ provider like EF translates it
+            // twice (e.g. an EXISTS subquery). Only for Connection: any other object's member can be null
+            var connectionPageInfo =
+                nextFieldContext
+                    is MemberExpression
+                    {
+                        Expression: NewExpression or MemberInitExpression,
+                        Member: { Name: nameof(Connection<object>.PageInfo), DeclaringType: { IsGenericType: true } declaringType }
+                    }
+                && declaringType.GetGenericTypeDefinition() == typeof(Connection<>);
+            if (isNullable && !connectionPageInfo && nextFieldContext.NodeType != ExpressionType.MemberInit && nextFieldContext.NodeType != ExpressionType.New)
             {
                 // make a null check from this new expression
                 nextFieldContext = Expression.Condition(

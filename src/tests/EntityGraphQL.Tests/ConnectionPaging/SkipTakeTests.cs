@@ -74,6 +74,24 @@ public class SkipTakeTests
         Assert.Equal(1, take);
     }
 
+    // a root collection's count is known - a before cursor past its end counts back from the end
+    [Fact]
+    public void TestLastAndBeforePastTheEnd()
+    {
+        var args = new ConnectionArgs
+        {
+            Last = 3,
+            BeforeNum = 6,
+            TotalCount = 3,
+        };
+
+        Assert.Equal(0, ConnectionHelper.GetSkipNumber(args, true, true));
+        Assert.Equal(3, ConnectionHelper.GetTakeNumber(args, ConnectionHelper.GetSkipNumber(args, false, true)));
+        Assert.Equal(1, ConnectionHelper.GetCursorIndex(args, 0, ConnectionHelper.GetSkipNumber(args, false, true), true));
+        // not limited - a nested collection's parents share the arguments, so TotalCount is not theirs
+        Assert.Equal(2, ConnectionHelper.GetSkipNumber(args));
+    }
+
     [Fact]
     public void TestOnlyBefore()
     {

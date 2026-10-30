@@ -136,7 +136,7 @@ public abstract class BaseField : IField
         // get new argument values
         var newArgs = ExpressionUtil.ObjectToDictionaryArgs(Schema, args);
         // build a new type with the new arguments
-        var newArgType = ExpressionUtil.MergeTypes(ExpressionArgumentType, args.GetType());
+        var newArgType = ExpressionUtil.MergeTypes(Schema, ExpressionArgumentType, args.GetType());
         // Update the values - we don't read new values from this as the type has now lost any default values etc but we have them in allArguments
         newArgs.ToList().ForEach(k => Arguments.Add(k.Key, k.Value));
 

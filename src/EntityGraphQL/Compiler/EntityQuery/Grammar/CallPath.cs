@@ -21,7 +21,7 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         {
             if (parts[0] is CallExpression ce)
             {
-                return MakeMethodCall(schema, parser, methodProvider, ref context!, ce.Name, ce.Arguments, requestContext);
+                return MakeMethodCall(schema, parser, methodProvider, ref context!, ce.Name, ce.Arguments, requestContext, compileContext);
             }
             if (parts[0] is IdentityExpression ie)
             {
@@ -35,7 +35,7 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
             {
                 if (next is CallExpression ce)
                 {
-                    return MakeMethodCall(schema, parser, methodProvider, ref currentContext, ce.Name, ce.Arguments, requestContext);
+                    return MakeMethodCall(schema, parser, methodProvider, ref currentContext, ce.Name, ce.Arguments, requestContext, compileContext);
                 }
                 if (next is IdentityExpression ie)
                 {
@@ -54,7 +54,8 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         ref Expression currentContext,
         string name,
         IReadOnlyList<IExpression>? arguments,
-        QueryRequestContext requestContext
+        QueryRequestContext requestContext,
+        EqlCompileContext compileContext
     )
     {
         if (currentContext == null)
@@ -69,6 +70,11 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         var outerContext = currentContext;
         // some methods might have a different inner context (IEnumerable etc)
         var methodArgContext = methodProvider.GetMethodContext(currentContext, method);
+        // A method on a collection (any, where...) has its element as the context of its arguments: of
+        // the collection's schema type, where the collection's dotnet type could not say which.
+        var collectionSchemaType = compileContext.ElementSchemaTypeOf(outerContext);
+        if (collectionSchemaType != null && methodArgContext != outerContext)
+            compileContext.RecordSchemaType(methodArgContext, collectionSchemaType, isList: false);
         currentContext = methodArgContext;
         // build our method call
         var localContext = currentContext; // Create a local variable to store the value of currentContext
@@ -108,6 +114,21 @@ internal sealed class CallPath(IReadOnlyList<IExpression> parts, EqlCompileConte
         }
 
         var call = methodProvider.MakeCall(outerContext, methodArgContext, method, args, outerContext.Type);
+        // And so is what it returns, when that is the elements again - where(), first() - so a call
+        // chained on it (where(...).any(...), first().score) still knows; any() and count() are not.
+        if (collectionSchemaType != null)
+        {
+            // Unless an argument is the collection it returns the elements of - selectMany(priorities) is of
+            // the selector's schema type, not the source's, though property bags share one dotnet type.
+            var selector = args?.FirstOrDefault(a => a.Type.IsEnumerableOrArray() && !a.Type.IsDictionary());
+            var resultSchemaType = selector != null ? compileContext.ElementSchemaTypeOf(selector) : collectionSchemaType;
+            if (resultSchemaType != null && GqlTypeInfo.IsListOf(call.Type, resultSchemaType.TypeDotnet))
+                compileContext.RecordSchemaType(call, resultSchemaType, isList: true);
+            // one of the elements - exactly their type - not a bool or a count, which an element type of
+            // object would otherwise pass for
+            else if (call.Type == methodArgContext.Type)
+                compileContext.RecordSchemaType(call, collectionSchemaType, isList: false);
+        }
         currentContext = call;
         return call;
     }

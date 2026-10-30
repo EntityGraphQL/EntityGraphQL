@@ -11,13 +11,17 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// <summary>
 /// Sets up a few extensions to modify a simple collection expression - db.Movies.OrderBy() into a connection paging graph
 /// </summary>
-public class ConnectionPagingExtension : BaseFieldExtension
+public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
 {
     private Type? listType;
     private bool isQueryable;
     private Type? returnType;
 
     public Expression? OriginalFieldExpression { get; private set; }
+
+    /// <summary>The paged items' schema type - the field's own, before paging replaced it with its wrapper.</summary>
+    internal ISchemaType? OriginalSchemaType { get; private set; }
+    ISchemaType? IWrapsItemsExtension.OriginalSchemaType => OriginalSchemaType;
     public int? DefaultPageSize { get; }
     public int? MaxPageSize { get; }
     public List<IFieldExtension> ExtensionsBeforePaging { get; private set; } = [];
@@ -63,25 +67,32 @@ public class ConnectionPagingExtension : BaseFieldExtension
             schema.AddType<ConnectionPageInfo>("PageInfo", "Metadata about a page of data").AddAllFields();
         listType = field.ReturnType.TypeDotnet.GetEnumerableOrArrayType()!;
         isQueryable = field.ReturnType.TypeDotnet.IsGenericTypeQueryable();
+        OriginalSchemaType = field.ReturnType.SchemaType;
 
+        // Its edges' nodes built with the items' schema type, which their dotnet type can not say for
+        // property bags - see GeneratedTypes.
         var edgeType = typeof(ConnectionEdge<>).MakeGenericType(listType);
-        if (!schema.HasType(edgeType))
-        {
-            var edgeName = $"{field.ReturnType.SchemaType.Name}Edge";
-            schema.AddType(edgeType, edgeName, "Metadata about an edge of page result").AddAllFields();
-        }
+        var edgeSchemaType = GeneratedTypes.GetOrAdd(
+            schema,
+            $"{field.ReturnType.SchemaType.Name}Edge",
+            t => t == edgeType,
+            edgeType.Name,
+            () => edgeType,
+            "Metadata about an edge of page result",
+            t => GeneratedTypes.AddAllFieldsWithItems(t, "Node", OriginalSchemaType!)
+        );
 
-        ISchemaType returnSchemaType;
         var connectionType = typeof(Connection<>).MakeGenericType(listType);
         var connectionName = $"{field.ReturnType.SchemaType.Name}Connection";
-        if (!schema.HasType(connectionType))
-        {
-            returnSchemaType = schema.AddType(connectionType, connectionName, $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)").AddAllFields();
-        }
-        else
-        {
-            returnSchemaType = schema.Type(connectionName);
-        }
+        var returnSchemaType = GeneratedTypes.GetOrAdd(
+            schema,
+            connectionName,
+            t => t == connectionType,
+            connectionType.Name,
+            () => connectionType,
+            $"Metadata about a {field.ReturnType.SchemaType.Name} connection (paging over people)",
+            t => GeneratedTypes.AddAllFieldsWithItems(t, "Edges", edgeSchemaType)
+        );
         returnType = returnSchemaType.TypeDotnet;
 
         field.Returns(SchemaBuilder.MakeGraphQlType(schema, false, returnType, returnSchemaType, field.Name, field.FromType));
@@ -105,7 +116,7 @@ public class ConnectionPagingExtension : BaseFieldExtension
         // if they have 2 fields with the type and paging we don't want to add extension multiple times
         // See OffsetPagingTests.TestMultiUseWithArgs
         if (!edgesField.Extensions.Any(e => e is ConnectionEdgeExtension))
-            edgesField.AddExtension(new ConnectionEdgeExtension(listType, isQueryable));
+            edgesField.AddExtension(new ConnectionEdgeExtension(listType));
 
         OriginalFieldExpression = field.ResolveExpression;
 
@@ -207,12 +218,32 @@ public class ConnectionPagingExtension : BaseFieldExtension
 
         if (!needsCount && pageInfoNode?.QueryFields?.Any(f => f.Field?.Name == "hasNextPage") == true)
         {
-            var sourceType = isQueryable ? typeof(IQueryable<>) : typeof(System.Collections.Generic.IEnumerable<>);
-            var pageHasNext = typeof(ConnectionHelper)
-                .GetMethods()
-                .First(m => m.Name == nameof(ConnectionHelper.PageHasNext) && m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == sourceType)
-                .MakeGenericMethod(listType!);
-            var hasNextExp = Expression.Convert(Expression.Call(pageHasNext, resolve, argumentParam), typeof(bool?));
+            Expression hasNextExp;
+            if (isQueryable)
+            {
+                var pageHasNext = typeof(ConnectionHelper)
+                    .GetMethods()
+                    .First(m => m.Name == nameof(ConnectionHelper.PageHasNext) && m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IQueryable<>))
+                    .MakeGenericMethod(listType!);
+                hasNextExp = Expression.Call(pageHasNext, resolve, argumentParam);
+            }
+            else
+            {
+                // A collection on a parent object (e.g. a navigation property) is part of the parent's projection, so EF has
+                // to translate this. It does not know PageHasNext and would load the whole collection to call it, so spell
+                // it out with System.Linq: skip.HasValue && source.Skip(skip.Value).Any()
+                var skipExp = Expression.Call(typeof(ConnectionHelper), nameof(ConnectionHelper.GetHasNextSkip), null, argumentParam);
+                hasNextExp = Expression.AndAlso(
+                    Expression.Property(skipExp, nameof(Nullable<int>.HasValue)),
+                    Expression.Call(
+                        typeof(Enumerable),
+                        nameof(Enumerable.Any),
+                        [listType!],
+                        Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [listType!], resolve, Expression.Property(skipExp, nameof(Nullable<int>.Value)))
+                    )
+                );
+            }
+            hasNextExp = Expression.Convert(hasNextExp, typeof(bool?));
             return Expression.MemberInit(Expression.New(returnType!.GetConstructor([argumentParam.Type, typeof(bool?)])!, argumentParam, hasNextExp));
         }
 

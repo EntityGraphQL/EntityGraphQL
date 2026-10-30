@@ -61,7 +61,7 @@ public abstract class MethodField : BaseField
             else
                 Arguments.Add(item.ArgName, item.ArgType!);
         }
-        ExpressionArgumentType = LinqRuntimeTypeBuilder.GetDynamicType(flattenedTypes, method.Name)!;
+        ExpressionArgumentType = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(flattenedTypes, method.Name)!;
     }
 
     public virtual async Task<(object? data, IGraphQLValidator? methodValidator)> CallAsync(
@@ -84,6 +84,8 @@ public abstract class MethodField : BaseField
         var setProperties = new List<string>();
 
         var graphQLArgumentsSet = new ArgumentsTracker();
+        if (gqlRequestArgs != null)
+            gqlRequestArgs = LiteralWithVariables.ResolveAll(gqlRequestArgs, variableParameter, docVariables);
 
         // we get the validator so we can get errors from it
         IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();

@@ -74,6 +74,17 @@ public static partial class ExpressionUtil
         return (MemberExpression)exp;
     }
 
+    /// <summary>
+    /// Convert an object or list value with a custom converter only if <paramref name="toType"/> is a scalar - a
+    /// JSON scalar's value, say. One for an input type is still built field by field, whatever converters it has.
+    /// </summary>
+    internal static bool TryConvertCustomScalar(ISchemaProvider schema, object value, Type toType, out object? result)
+    {
+        result = null;
+        var type = Nullable.GetUnderlyingType(toType) ?? toType;
+        return schema.TryGetSchemaType(type, true, out var schemaType, null) && schemaType!.IsScalar && schema.TryConvertCustom(value, type, out result);
+    }
+
     public static object? ConvertObjectType(object? value, Type toType, ISchemaProvider? schema)
     {
         if (value == null)
@@ -90,13 +101,19 @@ public static partial class ExpressionUtil
 
         var fromType = value.GetType();
 
-        if (value == null || fromType == toType)
+        // a T is already a T? - boxed, there is no difference to make
+        if (fromType == toType || fromType == Nullable.GetUnderlyingType(toType))
             return value;
 
         // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
         if (typeof(JsonElement).IsAssignableFrom(fromType))
         {
             var jsonEle = (JsonElement)value;
+
+            // unless a custom scalar's converter says what an object or list is - its value can be any JSON.
+            // Other values still reach converters as the string below.
+            if (jsonEle.ValueKind is JsonValueKind.Object or JsonValueKind.Array && schema != null && TryConvertCustomScalar(schema, value, toType, out var custom))
+                return custom;
 
             if (jsonEle.ValueKind == JsonValueKind.Null)
             {
@@ -339,7 +356,12 @@ public static partial class ExpressionUtil
         return args;
     }
 
-    public static Type MergeTypes(Type? type1, Type type2)
+    [Obsolete("Pass the schema, whose types the merged one is built with: MergeTypes(schema, type1, type2)")]
+    public static Type MergeTypes(Type? type1, Type type2) => MergeTypes(LinqRuntimeTypeBuilder.Shared, type1, type2);
+
+    public static Type MergeTypes(ISchemaProvider schema, Type? type1, Type type2) => MergeTypes(LinqRuntimeTypeBuilder.For(schema), type1, type2);
+
+    private static Type MergeTypes(LinqRuntimeTypeBuilder types, Type? type1, Type type2)
     {
         if (type1 == null)
             return type2;
@@ -351,7 +373,7 @@ public static partial class ExpressionUtil
         type2.GetFields().ToList().ForEach(f => fields.Add(f.Name, f.FieldType));
         type2.GetProperties().ToList().ForEach(f => fields.Add(f.Name, f.PropertyType));
 
-        var newType = LinqRuntimeTypeBuilder.GetDynamicType(fields, "mergedArgs");
+        var newType = types.GetDynamicType(fields, "mergedArgs");
         return newType;
     }
 
@@ -438,11 +460,19 @@ public static partial class ExpressionUtil
     /// </summary>
     /// <param name="baseExpression"></param>
     /// <returns></returns>
-    public static Tuple<Expression?, Expression?> FindEnumerable(Expression baseExpression)
+    public static Tuple<Expression?, Expression?> FindEnumerable(Expression baseExpression) => FindEnumerable(baseExpression, false);
+
+    /// <summary>
+    /// As <see cref="FindEnumerable(Expression)"/> for an expression known to be one item, though its type may be
+    /// enumerable - a property bag (Dictionary&lt;string, object&gt;) from First() - so the search starts past it.
+    /// </summary>
+    internal static Tuple<Expression?, Expression?> FindEnumerableFromSingle(Expression singleExpression) => FindEnumerable(singleExpression, true);
+
+    private static Tuple<Expression?, Expression?> FindEnumerable(Expression baseExpression, bool baseIsSingle)
     {
         var exp = baseExpression;
         Expression? endExpression = null;
-        while (exp != null && !exp.Type.IsEnumerableOrArray())
+        while (exp != null && ((baseIsSingle && exp == baseExpression) || !exp.Type.IsEnumerableOrArray()))
         {
             switch (exp.NodeType)
             {
@@ -532,6 +562,7 @@ public static partial class ExpressionUtil
         if (!fieldExpressions.Any())
             return (baseExp, null);
 
+        var types = LinqRuntimeTypeBuilder.For(field.Schema);
         // fallback to parent return type for mutations
         var gqlType = field.Field?.ReturnType.SchemaType.GqlType ?? field.ParentNode?.Field?.ReturnType.SchemaType.GqlType;
         if (gqlType == GqlTypes.Union || gqlType == GqlTypes.Interface)
@@ -556,6 +587,7 @@ public static partial class ExpressionUtil
 
             // make a query that checks type of object and returns the valid properties for that specific type
             var (previous, allNonBaseDynamicTypes) = BuildTypeChecks(
+                types,
                 field.Name,
                 currentContextParam,
                 type =>
@@ -593,7 +625,7 @@ public static partial class ExpressionUtil
         else
         {
             var memberExpressions = fieldExpressions.ToDictionary(i => i.Key.Name, i => i.Value.Expression);
-            var memberInit = CreateNewExpression(field.Name, memberExpressions, out Type dynamicType);
+            var memberInit = CreateNewExpression(types, field.Name, memberExpressions, out Type dynamicType);
             if (memberInit == null || dynamicType == null) // nothing to select
                 return (baseExp, null);
             var selector = Expression.Lambda(memberInit, currentContextParam);
@@ -633,13 +665,31 @@ public static partial class ExpressionUtil
         return mi;
     }
 
-    public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressionsByName, out Type dynamicType, Type? parentType = null)
+    [Obsolete("Pass the schema, whose types the new one is built with: CreateNewExpression(schema, fieldDescription, fieldExpressionsByName, out dynamicType, parentType)")]
+    public static Expression? CreateNewExpression(string fieldDescription, IDictionary<string, Expression> fieldExpressionsByName, out Type dynamicType, Type? parentType = null) =>
+        CreateNewExpression(LinqRuntimeTypeBuilder.Shared, fieldDescription, fieldExpressionsByName, out dynamicType, parentType);
+
+    public static Expression? CreateNewExpression(
+        ISchemaProvider schema,
+        string fieldDescription,
+        IDictionary<string, Expression> fieldExpressionsByName,
+        out Type dynamicType,
+        Type? parentType = null
+    ) => CreateNewExpression(LinqRuntimeTypeBuilder.For(schema), fieldDescription, fieldExpressionsByName, out dynamicType, parentType);
+
+    private static MemberInitExpression? CreateNewExpression(
+        LinqRuntimeTypeBuilder types,
+        string fieldDescription,
+        IDictionary<string, Expression> fieldExpressionsByName,
+        out Type dynamicType,
+        Type? parentType = null
+    )
     {
         dynamicType = typeof(object);
         if (fieldExpressionsByName.Count == 0)
             return null;
 
-        dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
+        dynamicType = types.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription, parentType: parentType);
         if (dynamicType == null)
             throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
 
@@ -650,7 +700,7 @@ public static partial class ExpressionUtil
         return mi;
     }
 
-    private static MemberInitExpression CreateNewExpression(string fieldDescription, Dictionary<string, Expression> fieldExpressions)
+    private static MemberInitExpression CreateNewExpression(LinqRuntimeTypeBuilder types, string fieldDescription, Dictionary<string, Expression> fieldExpressions)
     {
         var fieldExpressionsByName = new Dictionary<string, Expression>();
         foreach (var item in fieldExpressions)
@@ -658,7 +708,7 @@ public static partial class ExpressionUtil
             // if there are duplicate fields (looking at you ApolloClient when using fragments) they override
             fieldExpressionsByName[item.Key] = item.Value;
         }
-        var dynamicType = LinqRuntimeTypeBuilder.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription);
+        var dynamicType = types.GetDynamicType(fieldExpressionsByName.ToDictionary(f => f.Key, f => f.Value.Type), fieldDescription);
 
         var bindings = dynamicType.GetFields().Select(p => Expression.Bind(p, fieldExpressionsByName[p.Name])).OfType<MemberBinding>();
         var constructor = dynamicType.GetConstructor(Type.EmptyTypes) ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
@@ -667,7 +717,26 @@ public static partial class ExpressionUtil
         return mi;
     }
 
+    [Obsolete("Pass the schema, whose types the new ones are built with: CreateNewExpressionWithInterfaceOrUnionCheck(schema, name, nextFieldContext, returnType, selectionFields, out anonType)")]
     public static Expression? CreateNewExpressionWithInterfaceOrUnionCheck(
+        string name,
+        Expression nextFieldContext,
+        GqlTypeInfo? returnType,
+        Dictionary<IFieldKey, CompiledField> selectionFields,
+        out Type anonType
+    ) => CreateNewExpressionWithInterfaceOrUnionCheck(LinqRuntimeTypeBuilder.Shared, name, nextFieldContext, returnType, selectionFields, out anonType);
+
+    public static Expression? CreateNewExpressionWithInterfaceOrUnionCheck(
+        ISchemaProvider schema,
+        string name,
+        Expression nextFieldContext,
+        GqlTypeInfo? returnType,
+        Dictionary<IFieldKey, CompiledField> selectionFields,
+        out Type anonType
+    ) => CreateNewExpressionWithInterfaceOrUnionCheck(LinqRuntimeTypeBuilder.For(schema), name, nextFieldContext, returnType, selectionFields, out anonType);
+
+    private static Expression? CreateNewExpressionWithInterfaceOrUnionCheck(
+        LinqRuntimeTypeBuilder types,
         string name,
         Expression nextFieldContext,
         GqlTypeInfo? returnType,
@@ -676,7 +745,7 @@ public static partial class ExpressionUtil
     )
     {
         if (returnType == null || (returnType.SchemaType.GqlType != GqlTypes.Union && returnType.SchemaType.GqlType != GqlTypes.Interface))
-            return CreateNewExpression(name, selectionFields.ExpressionOnly(), out anonType);
+            return CreateNewExpression(types, name, selectionFields.ExpressionOnly(), out anonType);
 
         // Figure out the types we need to select and the fields they each have
         var baseFields = returnType.SchemaType.GetFields().Select(f => f.Name).ToList();
@@ -684,6 +753,7 @@ public static partial class ExpressionUtil
 
         var validTypes = selectionFields.Keys.Select(v => v.FromType!.TypeDotnet).Distinct().ToList();
         var (expression, _) = BuildTypeChecks(
+            types,
             name,
             nextFieldContext,
             type =>
@@ -699,6 +769,7 @@ public static partial class ExpressionUtil
     }
 
     private static (Expression, List<Type>) BuildTypeChecks(
+        LinqRuntimeTypeBuilder types,
         string name,
         Expression nextFieldContext,
         Func<Type, IDictionary<string, Expression>> getFieldsOnType,
@@ -708,7 +779,7 @@ public static partial class ExpressionUtil
     )
     {
         anonType =
-            LinqRuntimeTypeBuilder.GetDynamicType(fieldsOnBaseType.ToDictionary(x => x.Key, x => x.Value.Type), name + "baseDynamicType")
+            types.GetDynamicType(fieldsOnBaseType.ToDictionary(x => x.Key, x => x.Value.Type), name + "baseDynamicType")
             ?? throw new EntityGraphQLException(GraphQLErrorCategory.ExecutionError, "Could not create dynamic type");
         // loop through possible types and create the TypeIs check
         var previous = CreateNewExpression(fieldsOnBaseType, anonType) ?? Expression.Constant(null, anonType);
@@ -719,7 +790,7 @@ public static partial class ExpressionUtil
                 continue;
 
             var fieldsOnType = getFieldsOnType(type);
-            var memberInit = CreateNewExpression(name, fieldsOnType, out Type dynamicType, parentType: anonType);
+            var memberInit = CreateNewExpression(types, name, fieldsOnType, out Type dynamicType, parentType: anonType);
             if (memberInit == null)
                 continue;
 
@@ -730,9 +801,22 @@ public static partial class ExpressionUtil
         return (previous, allNonBaseDynamicTypes);
     }
 
-    public static Expression BuildEntityQueryExpression(ISchemaProvider schemaProvider, Type queryType, string query, EqlCompileContext compileContext, ParameterExpression? contextParam)
+    public static Expression BuildEntityQueryExpression(ISchemaProvider schemaProvider, Type queryType, string query, EqlCompileContext compileContext, ParameterExpression? contextParam) =>
+        BuildEntityQueryExpression(schemaProvider, queryType, query, compileContext, contextParam, null);
+
+    /// <param name="querySchemaType">The schema type the query is over, where queryType can not say which - several schema types sharing one dotnet type.</param>
+    internal static Expression BuildEntityQueryExpression(
+        ISchemaProvider schemaProvider,
+        Type queryType,
+        string query,
+        EqlCompileContext compileContext,
+        ParameterExpression? contextParam,
+        ISchemaType? querySchemaType
+    )
     {
         contextParam ??= Expression.Parameter(queryType, $"q_{queryType.Name}");
+        if (querySchemaType != null)
+            compileContext.RecordSchemaType(contextParam, querySchemaType, isList: false);
         Expression expression = EntityQueryCompiler
             .CompileWith(query, contextParam, schemaProvider, new QueryRequestContext(null, null), compileContext, schemaProvider.MethodProvider)
             .ExpressionResult;

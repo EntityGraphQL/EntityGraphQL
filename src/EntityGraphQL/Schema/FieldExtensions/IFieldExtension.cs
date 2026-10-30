@@ -62,6 +62,17 @@ public interface IFieldExtension
     (Expression baseExpression, Dictionary<IFieldKey, CompiledField> selectionExpressions, ParameterExpression? selectContextParam) ProcessExpressionSelection(FieldExtensionSelectionContext context);
 
     /// <summary>
+    /// Called after a list field's selection has been built (the Select() of the fields asked for, and the ToList() for a
+    /// nested list). Lets an extension wrap the projected result. Only called for list fields
+    ///
+    /// This should be thread safe
+    /// </summary>
+    /// <param name="context">Request-scoped post-selection context. Contains the projected result expression and the
+    /// compiled child selections it was built from.</param>
+    /// <returns></returns>
+    Expression ProcessExpressionPostSelection(FieldExtensionPostSelectionContext context) => context.ResultExpression;
+
+    /// <summary>
     /// Called when the field is being finalized for execution
     ///
     /// This should be thread safe

@@ -135,7 +135,8 @@ public static class SchemaBuilder
     {
         if (fieldProp.ResolveExpression == null)
             throw new ArgumentException($"Field '{fieldProp.Name}' does not have a resolve function. This is required for AutoCreateIdArguments to work.");
-        if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray())
+        // A list, by its type info too: a property bag is enumerable, but one is not a list.
+        if (!fieldProp.ResolveExpression.Type.IsEnumerableOrArray() || !fieldProp.ReturnType.IsList)
             return null;
         var returnSchemaType = fieldProp.ReturnType.SchemaType;
         var idFieldDef = returnSchemaType.GetFields().FirstOrDefault(f => f.Name == "id");
@@ -144,18 +145,41 @@ public static class SchemaBuilder
 
         if (idFieldDef.ResolveExpression == null)
             throw new ArgumentException($"Field '{idFieldDef.Name}' does not have a resolve function. This is required for AutoCreateIdArguments to work.");
+        // An id typed object - a property bag's, read without a cast - gives the argument no type, and
+        // would compare boxed values by reference.
+        if (idFieldDef.ResolveExpression.Type == typeof(object))
+            return null;
 
         // We need to build an anonymous type with id = RequiredField<idFieldDef.Resolve.Type>()
         // Resulting lambda is (a, p) => a.Where(b => b.Id == p.Id).First()
         // This allows us to "insert" .Select() (and .Include()) before the .First()
         var requiredFieldType = typeof(RequiredField<>).MakeGenericType(idFieldDef.ResolveExpression.Type);
         var fieldNameAndType = new Dictionary<string, Type> { { "id", requiredFieldType } };
-        var argTypes = LinqRuntimeTypeBuilder.GetDynamicType(fieldNameAndType, fieldProp.Name);
+        var argTypes = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(fieldNameAndType, fieldProp.Name);
         var argTypesValue = Activator.CreateInstance(argTypes);
         var argTypeParam = Expression.Parameter(argTypes, $"args_{argTypes.Name}");
         Type arrayContextType = returnSchemaType.TypeDotnet;
         var arrayContextParam = Expression.Parameter(arrayContextType, $"arrcxt_{arrayContextType.Name}");
-        var ctxId = Expression.PropertyOrField(arrayContextParam, "Id");
+        // The type's Id member, where it has one of the argument's type - which EF translates whatever the id
+        // field does to it (p => Encode(p.Id)). Exactly Id first: there may be an ID or a redeclared Id too, and a
+        // case-insensitive lookup of one would throw. Else the id field's own expression - an id remapped to
+        // another type (p => p.ExternalId), or a property bag's, read from the bag - when nothing in it would be
+        // left unbound here: no services, no arguments.
+        var idMembers = arrayContextType.GetMember("Id", MemberTypes.Property | MemberTypes.Field, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+        var idMember = idMembers.FirstOrDefault(m => m.Name == "Id" && m.DeclaringType == arrayContextType) ?? idMembers.FirstOrDefault(m => m.Name == "Id") ?? idMembers.FirstOrDefault();
+        var idMemberType = idMember switch
+        {
+            PropertyInfo property => property.PropertyType,
+            FieldInfo field => field.FieldType,
+            _ => null,
+        };
+        Expression ctxId;
+        if (idMember != null && idMemberType == idFieldDef.ResolveExpression.Type)
+            ctxId = Expression.MakeMemberAccess(arrayContextParam, idMember);
+        else if (idFieldDef.FieldParam != null && idFieldDef.Services.Count == 0 && idFieldDef.ArgumentsParameter == null)
+            ctxId = new ParameterReplacer().Replace(idFieldDef.ResolveExpression, idFieldDef.FieldParam, arrayContextParam);
+        else
+            return null;
         Expression argId = Expression.PropertyOrField(argTypeParam, "id");
         argId = Expression.Property(argId, "Value"); // call RequiredField<>.Value to get the real type without a convert
         var idBody = Expression.MakeBinary(ExpressionType.Equal, ctxId, argId);
@@ -180,14 +204,31 @@ public static class SchemaBuilder
             selectionExpression,
             $"Return a {fieldProp.ReturnType.SchemaType.Name} by its Id",
             argTypesValue,
-            new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type),
+            new GqlTypeInfo(fieldProp.ReturnType.SchemaTypeGetter, selectionExpression.Body.Type)
+            {
+                // one item, even of a type that is enumerable (a property bag)
+                IsList = GqlTypeInfo.IsListOf(selectionExpression.Body.Type, returnSchemaType.TypeDotnet),
+            },
             fieldProp.RequiredAuthorization
         );
         options.OnFieldCreated?.Invoke(f);
         return f;
     }
 
-    public static List<BaseField> GetFieldsFromObject(Type type, ISchemaType fromType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType)
+    public static List<BaseField> GetFieldsFromObject(Type type, ISchemaType fromType, ISchemaProvider schema, SchemaBuilderOptions options, bool isInputType) =>
+        GetFieldsFromObject(type, fromType, schema, options, isInputType, null);
+
+    /// <param name="knownMember">A member of this type whose schema type is known, rather than looked up by its
+    /// dotnet type - which can not say which for schema types sharing one, as property bags do. This type's
+    /// own member only, not those of types built along the way.</param>
+    internal static List<BaseField> GetFieldsFromObject(
+        Type type,
+        ISchemaType fromType,
+        ISchemaProvider schema,
+        SchemaBuilderOptions options,
+        bool isInputType,
+        (string Name, ISchemaType SchemaType)? knownMember
+    )
     {
         var fields = new List<BaseField>();
         // cache fields/properties
@@ -197,13 +238,13 @@ public static class SchemaBuilder
 
         foreach (var prop in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType)?.ToList();
+            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType, knownMember)?.ToList();
             if (f != null)
                 fields.AddRange(f);
         }
         foreach (var prop in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
         {
-            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType)?.ToList();
+            var f = ProcessFieldOrPropertyIntoField(fromType, prop, param, schema, options, isInputType, knownMember)?.ToList();
             if (f != null)
                 fields.AddRange(f);
         }
@@ -287,7 +328,7 @@ public static class SchemaBuilder
             // engine-supplied like CancellationToken, so it must not become a DI service (which would also push
             // an otherwise service-free field onto the services pass)
             var wantsArgumentsTracker = argumentsFromMethod.Any(a => a.IsService && a.ServiceType == typeof(IArgumentsTracker));
-            fieldArgType = LinqRuntimeTypeBuilder.GetDynamicType(fieldDotnetArgtypes, method.Name, wantsArgumentsTracker ? typeof(ArgumentsTracker) : null)!;
+            fieldArgType = LinqRuntimeTypeBuilder.For(schema).GetDynamicType(fieldDotnetArgtypes, method.Name, wantsArgumentsTracker ? typeof(ArgumentsTracker) : null)!;
             var argTypeParam = Expression.Parameter(fieldArgType, $"args_{fieldArgType.Name}");
             // build argument expressions for the call
             foreach (var item in argumentsFromMethod)
@@ -473,7 +514,8 @@ public static class SchemaBuilder
         ParameterExpression param,
         ISchemaProvider schema,
         SchemaBuilderOptions options,
-        bool isInputType
+        bool isInputType,
+        (string Name, ISchemaType SchemaType)? knownMember
     )
     {
         if (!ShouldIncludeMember(prop, options, isInputType))
@@ -490,17 +532,27 @@ public static class SchemaBuilder
         };
         var requiredClaims = schema.AuthorizationService.GetRequiredAuthFromMember(prop);
 
-        var baseReturnType = GetBaseReturnType(schema, le.ReturnType, options);
+        // A known schema type for the member - taken before GetBaseReturnType, which would make a dictionary
+        // into its key/value pairs, and a property bag is a dictionary.
+        var knownSchemaType = knownMember?.Name == prop.Name ? knownMember.Value.SchemaType : null;
+        var baseReturnType = knownSchemaType?.TypeDotnet ?? GetBaseReturnType(schema, le.ReturnType, options);
 
         if (options.IgnoreTypes.Contains(baseReturnType))
             yield break;
 
-        var schemaType = CacheType(baseReturnType, schema, options, isInputType);
+        var schemaType = knownSchemaType ?? CacheType(baseReturnType, schema, options, isInputType);
 
         var nullabilityInfo = prop.GetNullabilityInfo();
         // see if there is a direct type mapping from the expression return to to something.
         // otherwise build the type info
-        var returnTypeInfo = schema.GetCustomTypeMapping(le.ReturnType) ?? new GqlTypeInfo(() => schemaType ?? schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo);
+        var customMapping = schema.GetCustomTypeMapping(le.ReturnType);
+        var returnTypeInfo =
+            customMapping
+            ?? (
+                knownSchemaType != null
+                    ? GqlTypeInfo.ForSchemaType(knownSchemaType, le.Body.Type, nullabilityInfo)
+                    : new GqlTypeInfo(() => schemaType ?? schema.GetSchemaType(baseReturnType, isInputType, null), le.Body.Type, nullabilityInfo)
+            );
         var field = new Field(schema, fromType, name, le, description, null, returnTypeInfo, requiredClaims);
         options.OnFieldCreated?.Invoke(field);
 
@@ -546,7 +598,9 @@ public static class SchemaBuilder
             returnType = returnType.IsEnumerableOrArray() ? returnType.GetEnumerableOrArrayType()! : returnType.GetNonNullableType()!;
 
         Type baseReturnType = returnType;
-        if (baseReturnType.IsEnumerableOrArray())
+        // A list of lists. Not a list of dictionaries: a property bag (Dictionary<string, object>) is the base
+        // type itself, not its key/value pairs.
+        if (baseReturnType.IsEnumerableOrArray() && !baseReturnType.IsDictionary())
             baseReturnType = baseReturnType.GetEnumerableOrArrayType()!;
         return baseReturnType;
     }
@@ -661,20 +715,23 @@ public static class SchemaBuilder
         if (customMapping != null)
             return customMapping;
 
-        Func<ISchemaType> typeGetter =
-            returnSchemaType != null
-                ? () => returnSchemaType // We can look the type up by it's unique schema name
-                // we need to look it up by the dotnet type
-                : () =>
-                {
-                    var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
-                    if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
-                        return schemaType!;
-                    throw new EntityGraphQLSchemaException(
-                        $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
-                    );
-                };
-        return new GqlTypeInfo(typeGetter, returnType, nullabilityInfo);
+        if (returnSchemaType != null)
+            return GqlTypeInfo.ForSchemaType(returnSchemaType, returnType, nullabilityInfo);
+
+        // we need to look it up by the dotnet type
+        return new GqlTypeInfo(
+            () =>
+            {
+                var getType = returnType.IsEnumerableOrArray() || returnType.IsNullableType() ? returnType.GetNonNullableOrEnumerableType() : returnType;
+                if (schema.TryGetSchemaType(getType, isInputType, out var schemaType, null))
+                    return schemaType!;
+                throw new EntityGraphQLSchemaException(
+                    $"No schema type found for dotnet type '{getType.Name}'. Make sure you add it or add a type mapping. Lookup failed for field '{fieldName}' on type '{fromType.Name}'"
+                );
+            },
+            returnType,
+            nullabilityInfo
+        );
     }
 
     public static IEnumerable<FieldArgInfo> GetGraphQlSchemaArgumentsFromMethod(

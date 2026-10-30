@@ -395,7 +395,8 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
 
         // evaluate Fields lazily so we don't end up in endless loop
         // The QueryRequestContext is injected by the engine so introspection only shows the requesting user
-        // the types/fields they are authorized to access. ToGraphQLSchemaString() still outputs the full schema.
+        // the types/fields they are authorized to access. ToGraphQLSchemaString() still outputs the full schema;
+        // ToGraphQLSchemaString(requestContext) applies the same filtering to SDL.
         Type<Models.TypeElement>("__Type")
             .ReplaceField("fields", new { includeDeprecated = false }, "Fields available on type")
             .Resolve<QueryRequestContext>((t, p, requestContext) => SchemaIntrospection.BuildFieldsForType(this, t.Name!, t.Kind, p.includeDeprecated, requestContext))
@@ -1146,6 +1147,42 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
     public string ToGraphQLSchemaString(bool includeDescriptions = true)
     {
         return SchemaGenerator.Make(this, includeDescriptions);
+    }
+
+    /// <summary>
+    /// Builds a GraphQL schema definition containing only the types and fields the user in <paramref name="requestContext"/>
+    /// is authorized to access - the same rules introspection and query execution apply. Useful when handing a schema to a
+    /// user or an AI agent where fields they cannot query are noise (or information they should not have).
+    ///
+    /// Prefer <see cref="ToGraphQLSchemaStringAsync"/>, which uses this schema's <see cref="AuthorizationService"/>. A
+    /// QueryRequestContext built with a null authorization service falls back to role checks, so a schema using policies or
+    /// a custom service would be filtered by the wrong rules. If you build the context yourself, build it from
+    /// <c>await AuthorizationService.PrepareForRequestAsync(schema, user)</c> as query execution does.
+    /// </summary>
+    /// <param name="requestContext">The user and authorization service to filter by. Null outputs the full schema</param>
+    /// <param name="includeDescriptions">Include descriptions (doc strings) in the output. Defaults to true</param>
+    /// <returns>String containing the schema definition</returns>
+    public string ToGraphQLSchemaString(QueryRequestContext? requestContext, bool includeDescriptions = true)
+    {
+        return SchemaGenerator.Make(this, includeDescriptions, requestContext);
+    }
+
+    /// <summary>
+    /// Builds a GraphQL schema definition containing only the types and fields <paramref name="user"/> is authorized to
+    /// access, using this schema's <see cref="AuthorizationService"/> exactly as query execution does. The result is
+    /// self-consistent SDL: a type left empty by the filtering is removed along with everything referring to it.
+    ///
+    /// A user who can see no query fields gets a bare <c>type Query</c> - it parses, but schema validation (e.g. graphql-js
+    /// validateSchema) rejects a type with no fields. No valid SDL exists for that user; check for it if it matters to you.
+    /// </summary>
+    /// <param name="user">The user to filter by. Null is an anonymous user (not "no filtering" - use ToGraphQLSchemaString() for that)</param>
+    /// <param name="includeDescriptions">Include descriptions (doc strings) in the output. Defaults to true</param>
+    /// <param name="cancellationToken">Cancels any async work the authorization service does to prepare</param>
+    /// <returns>String containing the schema definition</returns>
+    public async Task<string> ToGraphQLSchemaStringAsync(ClaimsPrincipal? user, bool includeDescriptions = true, CancellationToken cancellationToken = default)
+    {
+        var authorizationService = await AuthorizationService.PrepareForRequestAsync(this, user, cancellationToken);
+        return SchemaGenerator.Make(this, includeDescriptions, new QueryRequestContext(authorizationService, user));
     }
 
     /// <summary>

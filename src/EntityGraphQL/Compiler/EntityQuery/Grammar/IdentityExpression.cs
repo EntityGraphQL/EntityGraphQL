@@ -51,11 +51,11 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         }
 
         // we have a schema we follow it for fields etc
-        var schemaType = schema.GetSchemaType(context.Type, false, requestContext);
+        var schemaType = compileContext.SchemaTypeOf(context, schema, requestContext);
 
         if (!schemaType.HasField(name, requestContext))
         {
-            return MakeConstantFromIdentity(context, schema, name, requestContext);
+            return MakeConstantFromIdentity(context, schema, name, requestContext, schemaType);
         }
 
         if (schemaType.IsEnum)
@@ -64,18 +64,26 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
         }
         var gqlField = schemaType.GetField(name, requestContext);
 
+        // The schema type's fields are expressions over its dotnet type: a context typed object or a dictionary
+        // interface is cast to it first (GqlTypeInfo.NeedsCastTo).
+        if (GqlTypeInfo.NeedsCastTo(context.Type, schemaType.TypeDotnet))
+            context = Expression.Convert(context, schemaType.TypeDotnet);
+
         // A paged field's resolve is the Page/Connection wrapper object which only exists for the GraphQL
         // schema - it cannot execute inside a filter (or translate to SQL). Within a filter the field means
         // the underlying collection, so use the pre-paging resolve expression and remember it so a following
         // items/edges/totalItems/totalCount access can be mapped (above). See GitHub issue #378.
-        var pagingExt = gqlField.Extensions.FirstOrDefault(e => e is OffsetPagingExtension or ConnectionPagingExtension);
+        var pagingExt = gqlField.Extensions.OfType<IPagingExtension>().FirstOrDefault();
         if (pagingExt != null && gqlField.FieldParam != null)
         {
-            var original = pagingExt is OffsetPagingExtension offset ? offset.OriginalFieldExpression : ((ConnectionPagingExtension)pagingExt).OriginalFieldExpression;
+            var original = pagingExt.OriginalFieldExpression;
+            var itemsSchemaType = pagingExt.OriginalSchemaType;
             if (original != null)
             {
                 var collection = new Util.ParameterReplacer().Replace(original, gqlField.FieldParam, context);
                 compileContext.PagedFieldExpressions.Add(collection);
+                if (itemsSchemaType != null)
+                    compileContext.RecordSchemaType(collection, itemsSchemaType, isList: true);
                 return collection;
             }
         }
@@ -131,10 +139,19 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
             exp = Expression.Call(marker, exp);
         }
 
+        // What the field returns is of the field's schema type, whatever its dotnet type says.
+        // (the items', for a collection an aggregate or paging wraps)
+        if (exp != null)
+        {
+            var returnsSchemaType = gqlField.ItemsSchemaType();
+            var wrapped = !ReferenceEquals(returnsSchemaType, gqlField.ReturnType.SchemaType);
+            compileContext.RecordSchemaType(exp, returnsSchemaType, isList: wrapped || gqlField.ReturnType.IsList);
+        }
+
         return exp!;
     }
 
-    private static Expression MakeConstantFromIdentity(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext)
+    private static Expression MakeConstantFromIdentity(Expression context, ISchemaProvider? schema, string name, QueryRequestContext requestContext, ISchemaType? contextSchemaType = null)
     {
         var enumField = schema!.GetEnumTypes().Select(e => e.GetFields().FirstOrDefault(f => f.Name == name)).Where(f => f != null).FirstOrDefault();
         if (enumField != null)
@@ -152,6 +169,9 @@ public class IdentityExpression(string name, EqlCompileContext compileContext) :
             }
         }
 
-        throw new EntityGraphQLException(GraphQLErrorCategory.DocumentError, $"Field '{name}' not found on type '{schema?.GetSchemaType(context!.Type, false, null)?.Name ?? context!.Type.Name}'");
+        throw new EntityGraphQLException(
+            GraphQLErrorCategory.DocumentError,
+            $"Field '{name}' not found on type '{contextSchemaType?.Name ?? schema?.GetSchemaType(context!.Type, false, null)?.Name ?? context!.Type.Name}'"
+        );
     }
 }

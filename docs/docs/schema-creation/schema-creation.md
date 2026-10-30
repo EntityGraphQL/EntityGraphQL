@@ -262,6 +262,36 @@ surface as a confusing error on the first request that touches the field into an
 `Validate()` is not called for you - only you know when you have finished. It is cheap (it walks the schema once, at startup).
 :::
 
+## Types known only at runtime
+
+Some schemas are not known when you compile - tables an application lets its users create, for example. EF Core maps
+those as [shared-type entities](https://learn.microsoft.com/ef/core/modeling/entity-types#shared-type-entity-types):
+property bags (`Dictionary<string, object>`) with no class per table. Every such table is then the same dotnet type, so
+add a schema type for each and say on each field which one it returns with `Returns("TypeName")`:
+
+```cs
+var author = schema.AddType<Dictionary<string, object>>("Author", "An author");
+var priority = schema.AddType<Dictionary<string, object>>("Priority", "A priority");
+
+author.AddField("name", a => EF.Property<string>(a, "name"), "Name");
+author.AddField("priorities", a => EF.Property<IEnumerable<Dictionary<string, object>>>(a, "priorities"), "Priorities")
+    .Returns("Priority");
+
+priority.AddField("score", p => EF.Property<int>(p, "score"), "Score");
+priority.AddField("author", p => EF.Property<Dictionary<string, object>>(p, "author"), "Author")
+    .Returns("Author");
+
+schema.Query().AddField("priorities", db => db.Set<Dictionary<string, object>>("priorities"), "Priorities")
+    .Returns("Priority")
+    .UseFilter()
+    .UseSort(useSchemaFields: true);
+```
+
+Filters and sorts take the schema type from the field, so `filter: "author.name == \"Ada\""` and
+`sort: [{ score: DESC }]` know they are on a `Priority`. Use `UseSort(useSchemaFields: true)`, as a property bag has no
+dotnet properties to sort by. A field returning the named type itself (`author` above) is a single object, even though a
+dictionary is enumerable.
+
 ## More details
 
 See more details for each schema item in the following sections:

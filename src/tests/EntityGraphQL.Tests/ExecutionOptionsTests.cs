@@ -172,7 +172,7 @@ public class ExecutionOptionsTests
                 // new {edges = ctx.Projects.Skip(GetSkipNumber(arg_ConnectionArgs_exec))
                 // .Take(GetTakeNumber(arg_ConnectionArgs_exec))
                 // .Select(edgeNode => new ConnectionEdge`1() {Node = new {name = edgeNode.Name}})
-                // ApplyCursors(..., arg_ConnectionArgs_exec) // assigns cursors while enumerating (in memory)
+                // ApplyCursors(..., arg_ConnectionArgs_exec, limitBeforeToTotalCount) // assigns cursors while enumerating (in memory)
                 // .Select(newEdgeParam => new {node = newEdgeParam.Node})
                 // .ToListWithNullCheck(True)})
                 AssertExpression.MemberInit(
@@ -194,6 +194,7 @@ public class ExecutionOptionsTests
                                             AssertExpression.Call(null, "TagWith", AssertExpression.Any(), AssertExpression.AnyOfType(typeof(Action))),
                                             AssertExpression.Any()
                                         ),
+                                        AssertExpression.Any(),
                                         AssertExpression.Any()
                                     ),
                                     AssertExpression.Any()

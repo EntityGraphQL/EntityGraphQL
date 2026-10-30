@@ -15,9 +15,13 @@ namespace EntityGraphQL.Schema.FieldExtensions;
 /// We generate a non-list object type (e.g. PersonAggregate) whose fields resolve aggregate calls over
 /// the collection, and expose it according to the configured <see cref="AggregatePlacement"/>.
 /// </summary>
-public class AggregateExtension : BaseFieldExtension
+public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
 {
     private readonly AggregatePlacement placement;
+
+    /// <summary>The aggregated items' schema type - the field's own, before a wrapper replaced it.</summary>
+    internal ISchemaType? OriginalSchemaType { get; private set; }
+    ISchemaType? IWrapsItemsExtension.OriginalSchemaType => OriginalSchemaType;
     private readonly LambdaExpression? fieldSelection;
 
     // numeric types we expose aggregates for (Min/Max work for all of these; Sum/Average need an overload - see WidenForSumAverage)
@@ -63,7 +67,7 @@ public class AggregateExtension : BaseFieldExtension
             throw new EntityGraphQLSchemaException($"{nameof(AggregateExtension)} requires a Resolve function set on the field");
 
         // when chained after UseOffsetPaging/UseConnectionPaging the field returns a paging wrapper, not a collection
-        var paging = field.Extensions.OfType<OffsetPagingExtension>().Cast<IFieldExtension>().Concat(field.Extensions.OfType<ConnectionPagingExtension>()).FirstOrDefault();
+        var paging = field.Extensions.OfType<IPagingExtension>().FirstOrDefault();
         var isPaged = paging != null;
 
         // Auto uses the paging wrapper when paged, otherwise the OwnWrapper { items, aggregate } shape (which
@@ -84,7 +88,8 @@ public class AggregateExtension : BaseFieldExtension
                     $"{nameof(AggregatePlacement)}.{nameof(AggregatePlacement.PagingWrapper)} requires {nameof(UseAggregateExtension.UseAggregate)} to be chained after UseOffsetPaging()/UseConnectionPaging() on field {field.Name}."
                 );
 
-            ConfigurePagingWrapper(schema, field, paging!, GetAllowedFieldNames(schema));
+            OriginalSchemaType = paging!.OriginalSchemaType;
+            ConfigurePagingWrapper(schema, field, paging, GetAllowedFieldNames(schema));
             return;
         }
 
@@ -99,6 +104,7 @@ public class AggregateExtension : BaseFieldExtension
             ?? throw new EntityGraphQLSchemaException($"Could not determine element type for field {field.Name} to use {nameof(AggregateExtension)}");
 
         var elementSchemaType = field.ReturnType.SchemaType;
+        OriginalSchemaType = elementSchemaType;
         var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, GetAllowedFieldNames(schema));
 
         if (effectivePlacement == AggregatePlacement.OwnWrapper)
@@ -113,62 +119,61 @@ public class AggregateExtension : BaseFieldExtension
     /// </summary>
     private static void ConfigureOwnWrapper(ISchemaProvider schema, IField field, ISchemaType elementSchemaType, Type elementType, ISchemaType aggregateType)
     {
-        var wrapperName = $"{elementSchemaType.Name}WithAggregate";
-        ISchemaType wrapperType;
-        if (schema.HasType(wrapperName))
-        {
-            wrapperType = schema.Type(wrapperName);
-        }
-        else
-        {
-            var markerType = typeof(AggregateWithItems<>).MakeGenericType(elementType);
-            wrapperType = schema.AddType(markerType, wrapperName, $"A collection of {elementSchemaType.Name} with aggregate data");
-            // IEnumerable always - the wrapper type is cached per element type and must bind List and IQueryable sources alike
-            var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
+        var wrapperType = GetOrAddGenerated(
+            schema,
+            $"{elementSchemaType.Name}WithAggregate",
+            () => typeof(AggregateWithItems<>).MakeGenericType(elementType),
+            $"A collection of {elementSchemaType.Name} with aggregate data",
+            added =>
+            {
+                // IEnumerable always - the wrapper type is cached per element type and must bind List and IQueryable sources alike
+                var collType = typeof(IEnumerable<>).MakeGenericType(elementType);
 
-            var itemsParam = Expression.Parameter(collType, "c");
-            var itemsReturn = new GqlTypeInfo(() => elementSchemaType, collType) { IsList = true };
-            wrapperType.AddField(
-                new Field(
-                    schema,
-                    wrapperType,
-                    schema.SchemaFieldNamer("Items"),
-                    Expression.Lambda(itemsParam, itemsParam),
-                    "The items in the collection",
-                    (Dictionary<string, ArgType>?)null,
-                    itemsReturn,
-                    null
-                )
-            );
+                var itemsParam = Expression.Parameter(collType, "c");
+                var itemsReturn = new GqlTypeInfo(() => elementSchemaType, collType) { IsList = true };
+                added.AddField(
+                    new Field(
+                        schema,
+                        added,
+                        schema.SchemaFieldNamer("Items"),
+                        Expression.Lambda(itemsParam, itemsParam),
+                        "The items in the collection",
+                        (Dictionary<string, ArgType>?)null,
+                        itemsReturn,
+                        null
+                    )
+                );
 
-            var aggParam = Expression.Parameter(collType, "c");
-            var aggReturn = new GqlTypeInfo(() => aggregateType, aggregateType.TypeDotnet) { IsList = false };
-            wrapperType.AddField(
-                new Field(
-                    schema,
-                    wrapperType,
-                    schema.SchemaFieldNamer("Aggregate"),
-                    Expression.Lambda(aggParam, aggParam),
-                    "Aggregate data over the collection",
-                    (Dictionary<string, ArgType>?)null,
-                    aggReturn,
-                    null
-                )
-            );
-        }
+                var aggParam = Expression.Parameter(collType, "c");
+                var aggReturn = new GqlTypeInfo(() => aggregateType, aggregateType.TypeDotnet) { IsList = false };
+                added.AddField(
+                    new Field(
+                        schema,
+                        added,
+                        schema.SchemaFieldNamer("Aggregate"),
+                        Expression.Lambda(aggParam, aggParam),
+                        "Aggregate data over the collection",
+                        (Dictionary<string, ArgType>?)null,
+                        aggReturn,
+                        null
+                    )
+                );
+            }
+        );
 
         field.Returns(new GqlTypeInfo(() => wrapperType, wrapperType.TypeDotnet) { IsList = false });
     }
 
-    private static void ConfigurePagingWrapper(ISchemaProvider schema, IField field, IFieldExtension paging, HashSet<string>? allowedFieldNames)
+    private static void ConfigurePagingWrapper(ISchemaProvider schema, IField field, IPagingExtension paging, HashSet<string>? allowedFieldNames)
     {
-        var original = paging is OffsetPagingExtension off ? off.OriginalFieldExpression : ((ConnectionPagingExtension)paging).OriginalFieldExpression;
+        var original = paging.OriginalFieldExpression;
         if (original == null)
             throw new EntityGraphQLSchemaException($"Could not resolve the source collection for aggregate on field {field.Name}");
 
         var elementType =
             original.Type.GetEnumerableOrArrayType() ?? throw new EntityGraphQLSchemaException($"Could not determine element type for field {field.Name} to use {nameof(AggregateExtension)}");
-        var elementSchemaType = schema.GetSchemaType(elementType, null);
+        // The items' schema type as paging found it - by dotnet type it could be another sharing the type.
+        var elementSchemaType = paging.OriginalSchemaType ?? schema.GetSchemaType(elementType, null);
 
         var aggregateType = GetOrCreateAggregateType(schema, elementSchemaType, elementType, allowedFieldNames);
 
@@ -251,12 +256,17 @@ public class AggregateExtension : BaseFieldExtension
     /// </summary>
     private static ISchemaType GetOrCreateAggregateType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
     {
-        var aggTypeName = $"{elementSchemaType.Name}Aggregate";
-        if (schema.HasType(aggTypeName))
-            return schema.Type(aggTypeName);
+        return GetOrAddGenerated(
+            schema,
+            $"{elementSchemaType.Name}Aggregate",
+            () => typeof(Aggregation<>).MakeGenericType(elementType),
+            $"Aggregate data over a collection of {elementSchemaType.Name}",
+            aggType => BuildAggregateType(schema, aggType, elementSchemaType, elementType, allowedFieldNames)
+        );
+    }
 
-        var markerType = typeof(Aggregation<>).MakeGenericType(elementType);
-        var aggType = schema.AddType(markerType, aggTypeName, $"Aggregate data over a collection of {elementSchemaType.Name}");
+    private static void BuildAggregateType(ISchemaProvider schema, ISchemaType aggType, ISchemaType elementSchemaType, Type elementType, HashSet<string>? allowedFieldNames)
+    {
         // Always IEnumerable/Enumerable: the aggregate type is cached per element type but may be attached to
         // several fields whose collections differ (List vs IQueryable). IEnumerable params bind both (IQueryable
         // is IEnumerable), and EF translates the Enumerable calls in the projection.
@@ -317,19 +327,31 @@ public class AggregateExtension : BaseFieldExtension
                 )
             );
         }
-
-        return aggType;
     }
 
     private static ISchemaType BuildFunctionType(ISchemaProvider schema, ISchemaType elementSchemaType, Type elementType, AggregateFunction func, List<IField> fields, Type collType, Type methodClass)
     {
-        var typeName = $"{elementSchemaType.Name}{func.Name}Aggregate";
-        if (schema.HasType(typeName))
-            return schema.Type(typeName);
+        return GetOrAddGenerated(
+            schema,
+            $"{elementSchemaType.Name}{func.Name}Aggregate",
+            // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
+            () => LinqRuntimeTypeBuilder.For(schema).GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg"),
+            $"{func.Name} of each field over a collection of {elementSchemaType.Name}",
+            funcType => BuildFunctionFields(schema, funcType, elementSchemaType, elementType, func, fields, collType, methodClass)
+        );
+    }
 
-        // unique marker type per (element, function) - the sentinel field makes the cached dynamic type distinct
-        var markerType = LinqRuntimeTypeBuilder.GetDynamicType(new Dictionary<string, Type> { { $"__{elementType.Name}_{func.Name}", typeof(int) } }, $"{elementSchemaType.Name}_{func.Name}_Agg");
-        var funcType = schema.AddType(markerType, typeName, $"{func.Name} of each field over a collection of {elementSchemaType.Name}");
+    private static void BuildFunctionFields(
+        ISchemaProvider schema,
+        ISchemaType funcType,
+        ISchemaType elementSchemaType,
+        Type elementType,
+        AggregateFunction func,
+        List<IField> fields,
+        Type collType,
+        Type methodClass
+    )
+    {
 
         foreach (var elementField in fields)
         {
@@ -367,7 +389,7 @@ public class AggregateExtension : BaseFieldExtension
 
             var depsName = $"egql__agg_{elementSchemaType.Name}_{elementField.Name}";
 
-            if (elementField.BulkResolver is { IsAsync: false, BulkArgParam: null } bulk && AggregateReductionSplit.TryCreate(aggCall, elementField.Services, out _))
+            if (elementField.BulkResolver is { IsAsync: false, BulkArgParam: null } bulk && AggregateReductionSplit.TryCreate(schema, aggCall, elementField.Services, out _))
             {
                 // Bulk-resolved element field. Materialize just the bulk keys (dataSelector) in pass 1; pass 2
                 // fetches all values in a single bulk call and reduces the dictionary (see BulkAggregateReducer),
@@ -385,7 +407,7 @@ public class AggregateExtension : BaseFieldExtension
                 bulkLeaf.SetServiceResolve(leafResolve, services, [extracted], bulk);
                 funcType.AddField(bulkLeaf);
             }
-            else if (elementField.Services.Count > 0 && AggregateReductionSplit.TryCreate(aggCall, elementField.Services, out var split))
+            else if (elementField.Services.Count > 0 && AggregateReductionSplit.TryCreate(schema, aggCall, elementField.Services, out var split))
             {
                 // Service-backed element field (e.g. svc.Score(p.Id)). Build a service field whose dependency is
                 // the DB-translatable deps projection (materialized): the two-pass model projects/materializes
@@ -404,8 +426,6 @@ public class AggregateExtension : BaseFieldExtension
                 funcType.AddField(new Field(schema, funcType, elementField.Name, leafResolve, $"{func.Name} of {elementField.Name}", (Dictionary<string, ArgType>?)null, leafReturnType, null));
             }
         }
-
-        return funcType;
     }
 
     private sealed class AggregateFunction(string name, bool isMinMax)
@@ -424,4 +444,21 @@ public class AggregateExtension : BaseFieldExtension
             return IsMinMax && (nonNull == typeof(DateTime) || nonNull == typeof(DateTimeOffset) || nonNull == typeof(string));
         }
     }
+
+    /// <summary>
+    /// The aggregate type of this name, added and built, or the one the aggregate generated already: by name, whatever its element type - an
+    /// aggregate's members take IEnumerable&lt;T&gt;, so one built over Person serves a field over Employee as well
+    /// (covariance), as before. A type of that name the aggregate did not generate (the schema's own
+    /// PersonAggregate) is an error, as a clashing page type is.
+    /// </summary>
+    private static ISchemaType GetOrAddGenerated(ISchemaProvider schema, string name, Func<Type> markerType, string description, Action<ISchemaType> build) =>
+        GeneratedTypes.GetOrAdd(
+            schema,
+            name,
+            t => t.Assembly.IsDynamic || (t.IsGenericType && (t.GetGenericTypeDefinition() == typeof(Aggregation<>) || t.GetGenericTypeDefinition() == typeof(AggregateWithItems<>))),
+            "an aggregate",
+            markerType,
+            description,
+            build
+        );
 }

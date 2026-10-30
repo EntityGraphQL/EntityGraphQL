@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using System.Text;
+using EntityGraphQL.Schema;
 #if NET9_0_OR_GREATER
 using System.Threading;
 #endif
@@ -11,26 +13,51 @@ using System.Threading;
 namespace EntityGraphQL.Compiler.Util;
 
 /// <summary>
-/// Builds .NET types at runtime and caches them to be reused
+/// Builds .NET types at runtime and caches them to be reused. One builder per schema, its types in a collectible
+/// assembly: once the schema is no longer referenced its types can be unloaded, so an app that creates and drops
+/// schemas (one per tenant, or per version of a runtime-defined model) does not grow forever.
 /// </summary>
-internal static class LinqRuntimeTypeBuilder
+internal sealed class LinqRuntimeTypeBuilder
 {
     public static readonly string DynamicAssemblyName = "EntityGraphQL.DynamicTypes";
     public static readonly string DynamicTypePrefix = "Dynamic_";
-    private static readonly AssemblyName assemblyName = new() { Name = DynamicAssemblyName };
-    private static readonly ModuleBuilder moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run).DefineDynamicModule(assemblyName.Name);
+
+    private static readonly ConditionalWeakTable<ISchemaProvider, LinqRuntimeTypeBuilder> bySchema = new();
+
+    // the builder of each type built - a type rebuilt later (e.g. with its async fields resolved) goes in the same
+    // builder, as nothing that lives longer may reference it
+    private static readonly ConditionalWeakTable<Type, LinqRuntimeTypeBuilder> byType = new();
+
+    /// <summary>
+    /// For the obsolete public methods that are not given a schema. Never unloaded, as all types were before.
+    /// </summary>
+    internal static readonly LinqRuntimeTypeBuilder Shared = new();
+
+    /// <summary>The builder of a schema's types</summary>
+    public static LinqRuntimeTypeBuilder For(ISchemaProvider schema) => bySchema.GetValue(schema, static _ => new LinqRuntimeTypeBuilder());
+
+    /// <summary>The builder that built this type, or the shared one if none of them did</summary>
+    public static LinqRuntimeTypeBuilder For(Type type) => byType.TryGetValue(type, out var builder) ? builder : Shared;
+
+    private readonly ModuleBuilder moduleBuilder;
 
 #if NET9_0_OR_GREATER
-    private static readonly Lock lockObj = new();
+    private readonly Lock lockObj = new();
 #else
-    private static readonly object lockObj = new();
+    private readonly object lockObj = new();
 #endif
 
     // We build a key based on all the selected fields so we can cache the anonymous types we built.
     // The key must be a full, collision-free description (field names + assembly-qualified field types +
     // parent type) - a hash key could collide and hand a query a type with the wrong fields/parent.
     // Type names can't be > 1024 length, so the CLR type name itself uses a Guid instead of this key.
-    private static readonly Dictionary<string, Type> builtTypes = [];
+    private readonly Dictionary<string, Type> builtTypes = [];
+
+    private LinqRuntimeTypeBuilder()
+    {
+        var assemblyName = new AssemblyName { Name = DynamicAssemblyName };
+        moduleBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect).DefineDynamicModule(assemblyName.Name!);
+    }
 
     private static string GetTypeKey(IReadOnlyDictionary<string, Type> fields, Type? parentType)
     {
@@ -53,7 +80,7 @@ internal static class LinqRuntimeTypeBuilder
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public static Type GetDynamicType(IReadOnlyDictionary<string, Type> fields, string description, Type? parentType = null)
+    public Type GetDynamicType(IReadOnlyDictionary<string, Type> fields, string description, Type? parentType = null)
     {
         ArgumentNullException.ThrowIfNull(fields, nameof(fields));
 
@@ -78,6 +105,7 @@ internal static class LinqRuntimeTypeBuilder
 
             var newType = typeBuilder.CreateTypeInfo()!.AsType();
             builtTypes[typeKey] = newType;
+            byType.AddOrUpdate(newType, this);
             return newType;
         }
     }

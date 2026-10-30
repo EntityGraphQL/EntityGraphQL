@@ -1,4 +1,5 @@
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 using Xunit;
 
 namespace EntityGraphQL.Tests.Util;
@@ -10,7 +11,7 @@ public class ExpressionUtilTests
     {
         var obj2 = new { hi = "world" };
 
-        var result = ExpressionUtil.MergeTypes(null, obj2.GetType());
+        var result = ExpressionUtil.MergeTypes(new SchemaProvider<object>(), null, obj2.GetType());
 
         Assert.NotNull(result);
         Assert.Single(result.GetProperties());
@@ -23,7 +24,7 @@ public class ExpressionUtilTests
 
         var obj2 = new { hi = "world" };
 
-        var result = ExpressionUtil.MergeTypes(obj1.GetType(), obj2.GetType());
+        var result = ExpressionUtil.MergeTypes(new SchemaProvider<object>(), obj1.GetType(), obj2.GetType());
 
         Assert.NotNull(result);
         Assert.Equal(2, result.GetFields().Length);
