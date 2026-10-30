@@ -84,6 +84,8 @@ public abstract class MethodField : BaseField
         var setProperties = new List<string>();
 
         var graphQLArgumentsSet = new ArgumentsTracker();
+        if (gqlRequestArgs != null)
+            gqlRequestArgs = LiteralWithVariables.ResolveAll(gqlRequestArgs, variableParameter, docVariables);
 
         // we get the validator so we can get errors from it
         IGraphQLValidator? validator = serviceProvider?.GetService<IGraphQLValidator>();

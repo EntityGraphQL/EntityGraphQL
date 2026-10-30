@@ -118,9 +118,11 @@ public class GraphQLMutationStatement : ExecutableGraphQLStatement
             var mutationContextParam = mutationLambda.Parameters.First();
             var mutationContextExpression = mutationLambda.Body;
 
-            if (!mutationContextExpression.Type.IsEnumerableOrArray())
+            // A list or one item as the field says, not as the expression's dotnet type does: a property bag
+            // (Dictionary<string, object>) is enumerable, and is one row of the type the field names.
+            if (!(node.Field?.ReturnType.IsList ?? mutationContextExpression.Type.IsEnumerableOrArray()))
             {
-                var listExp = ExpressionUtil.FindEnumerable(mutationContextExpression);
+                var listExp = ExpressionUtil.FindEnumerableFromSingle(mutationContextExpression);
                 if (listExp.Item1 != null && mutationContextExpression.NodeType == ExpressionType.Call)
                 {
                     // yes we can

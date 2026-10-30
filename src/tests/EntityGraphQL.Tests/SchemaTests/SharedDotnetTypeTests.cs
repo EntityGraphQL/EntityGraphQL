@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
@@ -512,5 +513,46 @@ public class SharedDotnetTypeTests
         var authors = Run(schema, data, "{ authors(filter: \"peers.selectMany(priorities).any(score > 8)\") { name } }", "authors");
 
         Assert.Equal("Ben", Get(Assert.Single(authors), "name"));
+    }
+
+    private class BagMutations
+    {
+        public Expression<Func<BagContext, Dictionary<string, object>>> Rescore(BagContext ctx, int id, int score)
+        {
+            ctx.Priorities.First(p => (int)p["id"] == id)["score"] = score;
+            return c => c.Priorities.First(p => (int)p["id"] == id);
+        }
+    }
+
+    [Fact]
+    public void A_mutation_returning_a_bag_is_one_row_of_the_type_it_names()
+    {
+        // The row it returns is a dictionary, so enumerable: only the field can say it is one Priority.
+        var (schema, data) = Build();
+        schema.Mutation()
+            .Add("rescore", new Func<BagContext, int, int, Expression<Func<BagContext, Dictionary<string, object>>>>(new BagMutations().Rescore))
+            .Returns(GqlTypeInfo.FromGqlType(schema, typeof(Dictionary<string, object>), "Priority"));
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "mutation { rescore(id: 2, score: 8) { mergeRequest score author { name } } }" }, data, null, null);
+
+        Assert.True(result.Errors == null, string.Join(" | ", result.Errors?.Select(e => e.Message) ?? []));
+        var row = ((IDictionary<string, object?>)result.Data!)["rescore"];
+        Assert.Equal("!13", Get(row, "mergeRequest"));
+        Assert.Equal(8, Get(row, "score"));
+        Assert.Equal("Ben", Get(Get(row, "author"), "name"));
+    }
+
+    [Fact]
+    public void A_field_taking_one_bag_from_a_list_is_one_row_of_the_type_it_names()
+    {
+        var (schema, data) = Build();
+        schema.Query().AddField("top", new { id = 0 }, (c, a) => c.Priorities.First(p => (int)p["id"] == a.id), null).Returns("Priority");
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ top(id: 3) { mergeRequest author { name } } }" }, data, null, null);
+
+        Assert.True(result.Errors == null, string.Join(" | ", result.Errors?.Select(e => e.Message) ?? []));
+        var row = ((IDictionary<string, object?>)result.Data!)["top"];
+        Assert.Equal("!14", Get(row, "mergeRequest"));
+        Assert.Equal("Ada", Get(Get(row, "author"), "name"));
     }
 }

@@ -74,6 +74,17 @@ public static partial class ExpressionUtil
         return (MemberExpression)exp;
     }
 
+    /// <summary>
+    /// Convert an object or list value with a custom converter only if <paramref name="toType"/> is a scalar - a
+    /// JSON scalar's value, say. One for an input type is still built field by field, whatever converters it has.
+    /// </summary>
+    internal static bool TryConvertCustomScalar(ISchemaProvider schema, object value, Type toType, out object? result)
+    {
+        result = null;
+        var type = Nullable.GetUnderlyingType(toType) ?? toType;
+        return schema.TryGetSchemaType(type, true, out var schemaType, null) && schemaType!.IsScalar && schema.TryConvertCustom(value, type, out result);
+    }
+
     public static object? ConvertObjectType(object? value, Type toType, ISchemaProvider? schema)
     {
         if (value == null)
@@ -90,13 +101,19 @@ public static partial class ExpressionUtil
 
         var fromType = value.GetType();
 
-        if (value == null || fromType == toType)
+        // a T is already a T? - boxed, there is no difference to make
+        if (fromType == toType || fromType == Nullable.GetUnderlyingType(toType))
             return value;
 
         // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
         if (typeof(JsonElement).IsAssignableFrom(fromType))
         {
             var jsonEle = (JsonElement)value;
+
+            // unless a custom scalar's converter says what an object or list is - its value can be any JSON.
+            // Other values still reach converters as the string below.
+            if (jsonEle.ValueKind is JsonValueKind.Object or JsonValueKind.Array && schema != null && TryConvertCustomScalar(schema, value, toType, out var custom))
+                return custom;
 
             if (jsonEle.ValueKind == JsonValueKind.Null)
             {
@@ -443,11 +460,19 @@ public static partial class ExpressionUtil
     /// </summary>
     /// <param name="baseExpression"></param>
     /// <returns></returns>
-    public static Tuple<Expression?, Expression?> FindEnumerable(Expression baseExpression)
+    public static Tuple<Expression?, Expression?> FindEnumerable(Expression baseExpression) => FindEnumerable(baseExpression, false);
+
+    /// <summary>
+    /// As <see cref="FindEnumerable(Expression)"/> for an expression known to be one item, though its type may be
+    /// enumerable - a property bag (Dictionary&lt;string, object&gt;) from First() - so the search starts past it.
+    /// </summary>
+    internal static Tuple<Expression?, Expression?> FindEnumerableFromSingle(Expression singleExpression) => FindEnumerable(singleExpression, true);
+
+    private static Tuple<Expression?, Expression?> FindEnumerable(Expression baseExpression, bool baseIsSingle)
     {
         var exp = baseExpression;
         Expression? endExpression = null;
-        while (exp != null && !exp.Type.IsEnumerableOrArray())
+        while (exp != null && ((baseIsSingle && exp == baseExpression) || !exp.Type.IsEnumerableOrArray()))
         {
             switch (exp.NodeType)
             {

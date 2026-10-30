@@ -16,6 +16,9 @@
 
 ## Fixes
 
+- A mutation returning one property bag (`Dictionary<string, object>` with `Returns("Type")`) is one object, not a list.
+- A custom scalar's converter receives an object or list literal (`{ a: 1 }`, `[1, 2]`) or JSON variable as is, so a `JSON` scalar can take any value.
+- Variables inside object and list literals (`filter: { name: $name, ids: [1, $id] }`) are supported.
 - #577 - Fixed paging on the `node` of another connection (`movies(first: 2) { edges { node { actors(first: 1) { ... } } } }`) failing with `unbound variable: p_ConnectionEdge`1`, in memory and with EF. EF needs SQL `APPLY` to page a collection inside another paged collection, which SQLite does not support.
 - `item(id)` beside a paged list uses the items' own `id` field: an id remapped to another type works, and a type with both `Id` and `ID` no longer throws `AmbiguousMatchException`.
 - Building the fields of a type with a list of property bags no longer fails with `Value cannot be null. (Parameter 'key')`.

@@ -1324,6 +1324,11 @@ public static class GraphQLParser
                 // Keep Expression and VariableReference as-is, they'll be resolved later during compilation
                 arguments[argName] = arg.Value;
             }
+            else if (LiteralWithVariables.Contains(arg.Value))
+            {
+                // built when the variables are known
+                arguments[argName] = new LiteralWithVariables(node.Schema, arg.Value!, argType.Type.TypeDotnet);
+            }
             else
             {
                 var processedValue = ConvertArgumentValue(node.Schema, arg.Value, argType.Type.TypeDotnet);
@@ -1338,6 +1343,11 @@ public static class GraphQLParser
     {
         if (value == null)
             return null;
+
+        // A custom scalar's converter decides what its value is - JSON, say - however the literal is
+        // shaped: an object or list literal for one is not an input object or a list to build.
+        if (value is Dictionary<string, object?> or List<object?> && ExpressionUtil.TryConvertCustomScalar(schema, value, targetType, out var custom))
+            return custom;
 
         if (value is Dictionary<string, object?> dict)
         {
@@ -1520,7 +1530,7 @@ public static class GraphQLParser
             var rootParam = schemaField.FieldParam ?? node.RootParameter!;
             field = new GraphQLObjectProjectionField(node.Schema, schemaField, resultName, schemaField.ResolveExpression!, rootParam, node, processedArguments);
 
-            var listExp = ExpressionUtil.FindEnumerable(schemaField.ResolveExpression!);
+            var listExp = ExpressionUtil.FindEnumerableFromSingle(schemaField.ResolveExpression!);
             if (listExp.Item1 != null && listExp.Item2 != null)
             {
                 var returnType = node.Schema.GetSchemaType(listExp.Item1.Type.GetEnumerableOrArrayType()!, node.Field?.FromType.GqlType == GqlTypes.InputObject, null);

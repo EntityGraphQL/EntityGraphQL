@@ -143,6 +143,10 @@ public class DefaultQueryComplexityAnalyzer : IQueryComplexityAnalyzer
             {
                 resolvedVal = Expression.Lambda(argExpr, docParam).Compile().DynamicInvoke([docVariables]);
             }
+            else if (val is LiteralWithVariables literal)
+            {
+                resolvedVal = literal.Resolve(docParam, docVariables);
+            }
             else
             {
                 continue; // inline literal — no change needed

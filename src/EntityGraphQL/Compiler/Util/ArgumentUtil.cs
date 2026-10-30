@@ -27,6 +27,8 @@ public static class ArgumentUtil
             return new();
         }
 
+        args = LiteralWithVariables.ResolveAll(args, docParam, docVariables);
+
         // get the values for the argument anonymous type object constructor
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         // if a variable was set or is just the default dotnet value
