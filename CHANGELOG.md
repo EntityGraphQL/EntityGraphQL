@@ -1,3 +1,9 @@
+# 6.4.1
+
+## Fixes
+
+- Async fields (`ResolveAsync`, async `[GraphQLField]` methods) selected through a named fragment on a single object (`item(id: 1) { ...ItemFields }`, or a mutation result) are awaited. They were left as an unawaited `Task` in the result, so serializing it failed or blocked. Inline fragments and fields inside lists were not affected.
+
 # 6.4.0
 
 ## Changes

@@ -293,6 +293,48 @@ public class AsyncTests
     }
 
     /// <summary>
+    /// An async field selected through a named fragment on a single object must be awaited like a direct
+    /// selection. The fragment spread node has no QueryFields of its own, so it has to look inside the fragment
+    /// to report async fields, otherwise the result holds an unawaited Task.
+    /// </summary>
+    [Theory]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...WorkflowFields } } fragment WorkflowFields on Workflow { id toolCatalog { name } }")]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...Outer } } fragment Outer on Workflow { id ...Inner } fragment Inner on Workflow { toolCatalog { name } }")]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ... on Workflow { ...WorkflowFields } } } fragment WorkflowFields on Workflow { id toolCatalog { name } }")]
+    public void TestAsyncServiceFieldInNamedFragmentOnSingleObject(string query)
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.AddType<WorkflowTool>("WorkflowTool").AddAllFields();
+
+        schema.UpdateType<Workflow>(type =>
+        {
+            type.AddField("toolCatalog", "Resolved tool catalog from workflow-bound services.")
+                .ResolveAsync<IWorkflowToolCatalogService>((workflow, tools) => tools.GetWorkflowToolCatalogAsync(workflow.Id));
+        });
+
+        var gql = new QueryRequest
+        {
+            Query = query,
+            Variables = new QueryVariables { { "id", "wf-1" } },
+        };
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IWorkflowToolCatalogService>(new WorkflowToolCatalogService());
+
+        var res = schema.ExecuteRequestWithContext(gql, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        Assert.NotNull(res.Data);
+        dynamic workflow = res.Data!["workflow"]!;
+        Assert.Equal("wf-1", workflow.id);
+        Assert.IsNotAssignableFrom<Task>((object)workflow.toolCatalog);
+        var catalog = (IEnumerable<dynamic>)workflow.toolCatalog;
+        Assert.Single(catalog);
+    }
+
+    /// <summary>
     /// Same as TestAsyncServiceFieldReturningListOnSingleObjectFromQueryArg but toolCatalog
     /// is on Step (a list element), so the path is workflow -> steps (list) -> toolCatalog (service).
     /// </summary>
