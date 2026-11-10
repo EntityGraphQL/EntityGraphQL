@@ -11,7 +11,7 @@ namespace EntityGraphQL.Compiler.EntityQuery;
 /// </summary>
 public class CompiledQueryResult
 {
-    public LambdaExpression LambdaExpression => Expression.Lambda(ExpressionResult, ContextParams.Concat(ConstantParameters.Keys).ToArray());
+    public LambdaExpression LambdaExpression => Util.ExpressionUtil.Lambda(ExpressionResult, [.. ContextParams, .. ConstantParameters.Keys]);
 
     public IReadOnlyDictionary<ParameterExpression, object> ConstantParameters { get; } = new Dictionary<ParameterExpression, object>();
 

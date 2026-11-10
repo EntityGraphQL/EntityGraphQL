@@ -109,4 +109,55 @@ internal sealed class LinqRuntimeTypeBuilder
             return newType;
         }
     }
+
+    /// <summary>
+    /// The builder of the first collectible type built by a builder in these types (or their element and generic
+    /// argument types), or null if there is none
+    /// </summary>
+    internal static LinqRuntimeTypeBuilder? ForCollectible(IEnumerable<Type> types)
+    {
+        foreach (var type in types)
+        {
+            if (!type.IsCollectible)
+                continue;
+            if (byType.TryGetValue(type, out var builder))
+                return builder;
+            var inner = type.HasElementType ? [type.GetElementType()!] : type.IsGenericType ? type.GetGenericArguments() : [];
+            if (ForCollectible(inner) is { } innerBuilder)
+                return innerBuilder;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// A delegate type for this signature, in this builder's collectible assembly. Expression.Lambda without a
+    /// delegate type emits one for more than 16 parameters into a non-collectible assembly, which can not reference
+    /// collectible types.
+    /// </summary>
+    public Type GetDelegateType(Type[] parameterTypes, Type returnType)
+    {
+        var key = "delegate|" + string.Join(";", parameterTypes.Append(returnType).Select(t => t.AssemblyQualifiedName ?? t.ToString()));
+        lock (lockObj)
+        {
+            if (builtTypes.TryGetValue(key, out var existingType))
+                return existingType;
+
+            var typeBuilder = moduleBuilder.DefineType(
+                $"{DynamicTypePrefix}Delegate_{Guid.NewGuid()}",
+                TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AutoClass,
+                typeof(MulticastDelegate)
+            );
+            typeBuilder
+                .DefineConstructor(MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.RTSpecialName, CallingConventions.Standard, [typeof(object), typeof(IntPtr)])
+                .SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
+            typeBuilder
+                .DefineMethod("Invoke", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Virtual, returnType, parameterTypes)
+                .SetImplementationFlags(MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
+
+            var newType = typeBuilder.CreateTypeInfo()!.AsType();
+            builtTypes[key] = newType;
+            byType.AddOrUpdate(newType, this);
+            return newType;
+        }
+    }
 }

@@ -408,6 +408,36 @@ public class AsyncTests
         Assert.Equal(16, (int)workflow.a16);
     }
 
+    /// <summary>
+    /// A method field's lambda is the object, its arguments (in a collectible type built at runtime) and each
+    /// service - 15 services pass 16 parameters
+    /// </summary>
+    [Fact]
+    public void TestMethodFieldWithManyServices()
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new WorkflowCounter());
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ workflows { manyServices(x: 3) } }" }, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        dynamic workflow = ((IEnumerable<dynamic>)((IDictionary<string, object?>)res.Data!)["workflows"]!).Single();
+        Assert.Equal(3, (int)workflow.manyServices);
+    }
+
+    [Fact]
+    public void LambdaPastSixteenParametersWithCollectibleType()
+    {
+        var generated = LinqRuntimeTypeBuilder.For(SchemaBuilder.FromObject<WorkflowContext>()).GetDynamicType(new Dictionary<string, Type> { { "x", typeof(int) } }, "probe");
+        var parameters = Enumerable.Range(0, 16).Select(i => Expression.Parameter(typeof(int), $"p{i}")).Append(Expression.Parameter(generated, "g")).ToList();
+        var lambda = ExpressionUtil.Lambda(Expression.Field(parameters[16], "x"), parameters);
+        var instance = Activator.CreateInstance(generated)!;
+        generated.GetField("x")!.SetValue(instance, 4);
+        Assert.Equal(4, lambda.Compile().DynamicInvoke([.. Enumerable.Range(0, 16).Cast<object>(), instance]));
+    }
+
     [Fact]
     public void LambdaOverArgsArrayPassesDefaultForNullValueType()
     {
@@ -543,6 +573,26 @@ public class AsyncTests
 
         [GraphQLField]
         public int Echo(int x) => x;
+
+        [GraphQLField]
+        public int ManyServices(
+            int x,
+            WorkflowCounter s0,
+            WorkflowCounter s1,
+            WorkflowCounter s2,
+            WorkflowCounter s3,
+            WorkflowCounter s4,
+            WorkflowCounter s5,
+            WorkflowCounter s6,
+            WorkflowCounter s7,
+            WorkflowCounter s8,
+            WorkflowCounter s9,
+            WorkflowCounter s10,
+            WorkflowCounter s11,
+            WorkflowCounter s12,
+            WorkflowCounter s13,
+            WorkflowCounter s14
+        ) => x;
     }
 
     private class Step

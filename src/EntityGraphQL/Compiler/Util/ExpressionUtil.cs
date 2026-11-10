@@ -17,6 +17,18 @@ public static partial class ExpressionUtil
     public static readonly Regex GuidRegex = GuidRegexImpl();
 
     /// <summary>
+    /// Expression.Lambda(body, parameters), except that past 16 parameters, where it would emit a delegate type into
+    /// a non-collectible assembly, the delegate type is built with the collectible types it references. Use where the
+    /// lambda must keep its own parameters; otherwise LambdaOverArgsArray.
+    /// </summary>
+    internal static LambdaExpression Lambda(Expression body, IReadOnlyList<ParameterExpression> parameters)
+    {
+        if (parameters.Count > 16 && LinqRuntimeTypeBuilder.ForCollectible(parameters.Select(p => p.Type).Append(body.Type)) is { } types)
+            return Expression.Lambda(types.GetDelegateType([.. parameters.Select(p => p.Type)], body.Type), body, parameters);
+        return Expression.Lambda(body, parameters);
+    }
+
+    /// <summary>
     /// args => { p0 = (T0)args[0]; ...; return (object)body; }. Expression.Lambda without a delegate type emits a new
     /// delegate type once there are more than 16 parameters - each async or service field brings its own - and that
     /// type lives in a non-collectible assembly that can not reference the schema's collectible result types

@@ -384,8 +384,7 @@ public static class SchemaBuilder
             }
 
             var call = Expression.Call(method.IsStatic ? null : callInstance ?? param, method, argsForCallExpression.Values);
-            var lambdaParams = new[] { param, argTypeParam }.Concat(fieldServices.Values);
-            le = Expression.Lambda(call, lambdaParams);
+            le = ExpressionUtil.Lambda(call, [param, argTypeParam, .. fieldServices.Values]);
         }
         else
         {
