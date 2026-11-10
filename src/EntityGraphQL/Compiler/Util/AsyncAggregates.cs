@@ -20,9 +20,9 @@ namespace EntityGraphQL.Compiler.Util;
 internal sealed class AsyncAggregateContext(
     ConcurrencyLimiterRegistry registry,
     List<(string scopeKey, int maxConcurrency)> limits,
-    CancellationToken cancellationToken,
     IField elementField,
-    ConcurrentDictionary<object, Lazy<Task>> values
+    ConcurrentDictionary<object, Lazy<Task>> values,
+    CancellationToken cancellationToken
 )
 {
     public Task<T> RunAsync<T>(Func<Task<T>> operation) => ConcurrencyLimitFieldExtension.RunWithLimitsAsync(operation, limits, registry, cancellationToken);

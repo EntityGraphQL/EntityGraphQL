@@ -149,7 +149,7 @@ public class GraphQLScalarField : BaseGraphQLField
         compileContext.AddConstant(
             null,
             param,
-            new AsyncAggregateContext(compileContext.ConcurrencyLimiterRegistry, limits, compileContext.CancellationToken, elementField ?? Field!, compileContext.AsyncAggregateValues)
+            new AsyncAggregateContext(compileContext.ConcurrencyLimiterRegistry, limits, elementField ?? Field!, compileContext.AsyncAggregateValues, compileContext.CancellationToken)
         );
         return param;
     }
