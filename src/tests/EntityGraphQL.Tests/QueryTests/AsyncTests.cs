@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -335,6 +337,118 @@ public class AsyncTests
     }
 
     /// <summary>
+    /// Each async field brings its own service parameters into the executed expression, so a selection of many of
+    /// them passes the 16 a Func can take. Expression.Lambda then emits a delegate type into a non-collectible
+    /// assembly, which can not reference the schema's collectible result types: "A non-collectible assembly may not
+    /// reference a collectible assembly".
+    /// </summary>
+    [Theory]
+    [InlineData("query Q($id: String) { workflow(id: $id) { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", false)]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...F } } fragment F on Workflow { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 }", false)]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...Outer } } fragment Outer on Workflow { id c0 c1 c2 c3 c4 ...Inner } fragment Inner on Workflow { c5 c6 c7 c8 c9 }", false)]
+    [InlineData("query { workflows { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", false)]
+    // compiled to IL rather than interpreted
+    [InlineData("query Q($id: String) { workflow(id: $id) { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", true)]
+    [InlineData("query { workflows { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", true)]
+    public void TestManyAsyncServiceFieldsOnOneType(string query, bool cacheCompiledDelegates)
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.UpdateType<Workflow>(type =>
+        {
+            for (var i = 0; i < 10; i++)
+                type.AddField($"c{i}", "").ResolveAsync<WorkflowCounter>((w, c) => c.OneAsync(w.Id)).ResolveBulkAsync<WorkflowCounter, string, int>(w => w.Id, (ids, c) => c.ManyAsync(ids));
+        });
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new WorkflowCounter());
+
+        var res = schema.ExecuteRequestWithContext(
+            new QueryRequest
+            {
+                Query = query,
+                Variables = new QueryVariables { { "id", "wf-1" } },
+            },
+            context,
+            serviceCollection.BuildServiceProvider(),
+            null,
+            new ExecutionOptions { EnableQueryCache = cacheCompiledDelegates, CacheCompiledDelegates = cacheCompiledDelegates }
+        );
+        Assert.Null(res.Errors);
+        var data = (IDictionary<string, object?>)res.Data!;
+        dynamic workflow = data.ContainsKey("workflow") ? data["workflow"]! : ((IEnumerable<dynamic>)data["workflows"]!).Single();
+        Assert.Equal(7, (int)workflow.c0);
+        Assert.Equal(7, (int)workflow.c9);
+    }
+
+    /// <summary>
+    /// A bulk loader's expression takes every constant parameter of the query - each field argument adds one. A method
+    /// field's arguments are in a type built at runtime, so collectible, and 17 of them beside a bulk field pass 16
+    /// </summary>
+    [Fact]
+    public void TestBulkFieldBesideManyFieldsWithArguments()
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.UpdateType<Workflow>(type =>
+        {
+            type.AddField("c0", "").ResolveAsync<WorkflowCounter>((w, c) => c.OneAsync(w.Id)).ResolveBulkAsync<WorkflowCounter, string, int>(w => w.Id, (ids, c) => c.ManyAsync(ids));
+        });
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new WorkflowCounter());
+
+        var fields = string.Join(" ", Enumerable.Range(0, 17).Select(i => $"a{i}: echo(x: {i})"));
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = $"{{ workflows {{ id c0 {fields} }} }}" }, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        dynamic workflow = ((IEnumerable<dynamic>)((IDictionary<string, object?>)res.Data!)["workflows"]!).Single();
+        Assert.Equal(7, (int)workflow.c0);
+        Assert.Equal(16, (int)workflow.a16);
+    }
+
+    /// <summary>
+    /// A method field's lambda is the object, its arguments (in a collectible type built at runtime) and each
+    /// service - 15 services pass 16 parameters
+    /// </summary>
+    [Fact]
+    public void TestMethodFieldWithManyServices()
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new WorkflowCounter());
+
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ workflows { manyServices(x: 3) } }" }, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        dynamic workflow = ((IEnumerable<dynamic>)((IDictionary<string, object?>)res.Data!)["workflows"]!).Single();
+        Assert.Equal(3, (int)workflow.manyServices);
+    }
+
+    [Fact]
+    public void LambdaPastSixteenParametersWithCollectibleType()
+    {
+        var generated = LinqRuntimeTypeBuilder.For(SchemaBuilder.FromObject<WorkflowContext>()).GetDynamicType(new Dictionary<string, Type> { { "x", typeof(int) } }, "probe");
+        var parameters = Enumerable.Range(0, 16).Select(i => Expression.Parameter(typeof(int), $"p{i}")).Append(Expression.Parameter(generated, "g")).ToList();
+        var lambda = ExpressionUtil.Lambda(Expression.Field(parameters[16], "x"), parameters);
+        var instance = Activator.CreateInstance(generated)!;
+        generated.GetField("x")!.SetValue(instance, 4);
+        Assert.Equal(4, lambda.Compile().DynamicInvoke([.. Enumerable.Range(0, 16).Cast<object>(), instance]));
+    }
+
+    [Fact]
+    public void LambdaOverArgsArrayPassesDefaultForNullValueType()
+    {
+        var a = Expression.Parameter(typeof(int), "a");
+        var b = Expression.Parameter(typeof(int?), "b");
+        var lambda = ExpressionUtil.LambdaOverArgsArray(Expression.Add(a, Expression.Coalesce(b, Expression.Constant(1))), [a, b]).Compile();
+        Assert.Equal(1, lambda([null, null]));
+        Assert.Equal(5, lambda([2, 3]));
+    }
+
+    /// <summary>
     /// Same as TestAsyncServiceFieldReturningListOnSingleObjectFromQueryArg but toolCatalog
     /// is on Step (a list element), so the path is workflow -> steps (list) -> toolCatalog (service).
     /// </summary>
@@ -456,6 +570,29 @@ public class AsyncTests
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public List<Step> Steps { get; set; } = [];
+
+        [GraphQLField]
+        public int Echo(int x) => x;
+
+        [GraphQLField]
+        public int ManyServices(
+            int x,
+            WorkflowCounter s0,
+            WorkflowCounter s1,
+            WorkflowCounter s2,
+            WorkflowCounter s3,
+            WorkflowCounter s4,
+            WorkflowCounter s5,
+            WorkflowCounter s6,
+            WorkflowCounter s7,
+            WorkflowCounter s8,
+            WorkflowCounter s9,
+            WorkflowCounter s10,
+            WorkflowCounter s11,
+            WorkflowCounter s12,
+            WorkflowCounter s13,
+            WorkflowCounter s14
+        ) => x;
     }
 
     private class Step
@@ -467,6 +604,21 @@ public class AsyncTests
     private class WorkflowTool
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    private class WorkflowCounter
+    {
+        public async System.Threading.Tasks.Task<int> OneAsync(string id)
+        {
+            await System.Threading.Tasks.Task.Delay(10);
+            return 7;
+        }
+
+        public async System.Threading.Tasks.Task<IDictionary<string, int>> ManyAsync(IEnumerable<string> ids)
+        {
+            await System.Threading.Tasks.Task.Delay(10);
+            return ids.ToDictionary(i => i, _ => 7);
+        }
     }
 
     private interface IWorkflowToolCatalogService

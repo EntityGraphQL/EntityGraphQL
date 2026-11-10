@@ -17,6 +17,42 @@ public static partial class ExpressionUtil
     public static readonly Regex GuidRegex = GuidRegexImpl();
 
     /// <summary>
+    /// Expression.Lambda(body, parameters), except that past 16 parameters, where it would emit a delegate type into
+    /// a non-collectible assembly, the delegate type is built with the collectible types it references. Use where the
+    /// lambda must keep its own parameters; otherwise LambdaOverArgsArray.
+    /// </summary>
+    internal static LambdaExpression Lambda(Expression body, IReadOnlyList<ParameterExpression> parameters)
+    {
+        if (parameters.Count > 16 && LinqRuntimeTypeBuilder.ForCollectible(parameters.Select(p => p.Type).Append(body.Type)) is { } types)
+            return Expression.Lambda(types.GetDelegateType([.. parameters.Select(p => p.Type)], body.Type), body, parameters);
+        return Expression.Lambda(body, parameters);
+    }
+
+    /// <summary>
+    /// args => { p0 = (T0)args[0]; ...; return (object)body; }. Expression.Lambda without a delegate type emits a new
+    /// delegate type once there are more than 16 parameters - each async or service field brings its own - and that
+    /// type lives in a non-collectible assembly that can not reference the schema's collectible result types
+    /// ("A non-collectible assembly may not reference a collectible assembly"). A null for a value type parameter is
+    /// its default, as DynamicInvoke passed it.
+    /// </summary>
+    internal static Expression<Func<object?[], object?>> LambdaOverArgsArray(Expression body, IReadOnlyList<ParameterExpression> parameters)
+    {
+        var args = Expression.Parameter(typeof(object?[]), "args");
+        var assignments = parameters.Select(
+            (p, i) =>
+            {
+                // ArrayAccess, not ArrayIndex - ParameterReplacer.VisitBinary would swap the constant index for a typed null
+                Expression arg = Expression.ArrayAccess(args, Expression.Constant(i));
+                Expression value = Expression.Convert(arg, p.Type);
+                if (p.Type.IsValueType && Nullable.GetUnderlyingType(p.Type) == null)
+                    value = Expression.Condition(Expression.Equal(arg, Expression.Constant(null)), Expression.Default(p.Type), value);
+                return (Expression)Expression.Assign(p, value);
+            }
+        );
+        return Expression.Lambda<Func<object?[], object?>>(Expression.Block(parameters, assignments.Append(Expression.Convert(body, typeof(object)))), args);
+    }
+
+    /// <summary>
     /// List of methods that take a list and return a single item. We need to handle these differently as we need to
     /// add a Select() before the method call to optimize EF queries.
     ///

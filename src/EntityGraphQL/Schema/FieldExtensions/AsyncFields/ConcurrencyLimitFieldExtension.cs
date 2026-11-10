@@ -27,12 +27,8 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
     /// </summary>
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<LambdaExpression, Func<object?[], object?>> compiledOperations = new();
 
-    private static Func<object?[], object?> CompileOperation(LambdaExpression exp)
-    {
-        var argsParam = Expression.Parameter(typeof(object?[]), "args");
-        var call = Expression.Invoke(exp, exp.Parameters.Select((p, i) => (Expression)Expression.Convert(Expression.ArrayIndex(argsParam, Expression.Constant(i)), p.Type)));
-        return Expression.Lambda<Func<object?[], object?>>(Expression.Convert(call, typeof(object)), argsParam).Compile();
-    }
+    private static Func<object?[], object?> CompileOperation(LambdaExpression exp) =>
+        (exp as Expression<Func<object?[], object?>> ?? ExpressionUtil.LambdaOverArgsArray(exp.Body, exp.Parameters)).Compile();
 
     /// <summary>
     /// Create a service-based concurrency limit (resolved from ExecutionOptions)
@@ -109,7 +105,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         // bind the expression's actual free parameters - depending on the field shape the expression may have
         // been rebound to per-element/anonymous-type parameters that are not field.FieldParam/field.Services
         var expArgs = FreeParameterCollector.Collect(asyncExpression);
-        Expression asyncExpressionExp = Expression.Lambda(asyncExpression, expArgs);
+        Expression asyncExpressionExp = ExpressionUtil.LambdaOverArgsArray(asyncExpression, expArgs);
 
         // Create an array expression containing the dynamic arguments - value types (e.g. a CancellationToken
         // service parameter) must be boxed for the object[] array

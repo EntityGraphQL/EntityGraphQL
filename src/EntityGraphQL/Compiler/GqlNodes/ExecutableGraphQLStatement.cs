@@ -576,7 +576,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     allArgs.AddRange(compileContext.ConstantParameters.Values);
                 }
 
-                var lambdaExpression = Expression.Lambda(bulkLoader, parameters);
+                var lambdaExpression = ExpressionUtil.LambdaOverArgsArray(bulkLoader, parameters);
 
                 // Handle async bulk resolvers with concurrency control
                 if (bulkResolver.IsAsync)
@@ -587,7 +587,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                 }
                 else
                 {
-                    var dataLoaded = lambdaExpression.Compile().DynamicInvoke([.. allArgs])!;
+                    var dataLoaded = lambdaExpression.Compile().DynamicInvoke([allArgs.ToArray()])!;
                     bulkData[bulkResolver.Name] = dataLoaded;
                 }
             }
@@ -639,7 +639,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         return Expression.Call(typeof(Enumerable), nameof(Enumerable.Select), [newParam.Type, selection.Type], listExpression, selectionLambda);
     }
 
-    private static async Task<object> ExecuteBulkResolverWithConcurrencyAsync(LambdaExpression lambdaExpression, object?[] args, CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)
+    private static async Task<object> ExecuteBulkResolverWithConcurrencyAsync(Expression<Func<object?[], object?>> lambdaExpression, object?[] args, CompiledBulkFieldResolver bulkResolver, CompileContext compileContext)
     {
         // Generate semaphore configurations for bulk resolver concurrency limiting
         var semaphoreConfigs = GetBulkResolverSemaphoreConfigs(bulkResolver, compileContext);
@@ -651,13 +651,13 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     lambdaExpression,
                     semaphoreConfigs,
                     compileContext.ConcurrencyLimiterRegistry,
-                    args.Where(a => a != null).ToArray()!,
+                    args!,
                     compileContext.CancellationToken
                 ) ?? new object();
         }
 
         // No concurrency limiting, execute directly
-        var result = lambdaExpression.Compile().DynamicInvoke(args);
+        var result = lambdaExpression.Compile().DynamicInvoke([args]);
 
         if (result is Task task)
         {
@@ -751,9 +751,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             expression = compileContext.ExecutionOptions.BeforeExecuting.Invoke(expression, isFinal);
         }
 
-        var parametersArray = parameters.ToArray();
         var argsArray = allArgs.ToArray();
-        var lambdaExpression = Expression.Lambda(expression, parametersArray);
+        var lambdaExpression = ExpressionUtil.LambdaOverArgsArray(expression, parameters);
 
         Delegate compiledDelegate;
         var delegateCache = compileContext.DelegateCache;
@@ -783,13 +782,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 #endif
 
         object? res = null;
-        if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.IsAsyncGenericType())
+        // DynamicInvoke keeps exceptions wrapped in TargetInvocationException, which the callers unwrap
+        if (expression.Type.IsGenericType && expression.Type.IsAsyncGenericType())
         {
-            var invoked = compiledDelegate.DynamicInvoke(argsArray);
+            var invoked = compiledDelegate.DynamicInvoke([argsArray]);
             res = AsTask(invoked) is { } task ? await ResultOfAsync(task) : invoked;
         }
         else
-            res = compiledDelegate.DynamicInvoke(argsArray);
+            res = compiledDelegate.DynamicInvoke([argsArray]);
 
         // Root list fields on the database-bound pass are built without an in-tree ToList() so the deferred
         // query reaches here - materialize it before further processing. string/IList/IDictionary are
