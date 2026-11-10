@@ -751,9 +751,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             expression = compileContext.ExecutionOptions.BeforeExecuting.Invoke(expression, isFinal);
         }
 
-        var parametersArray = parameters.ToArray();
         var argsArray = allArgs.ToArray();
-        var lambdaExpression = Expression.Lambda(expression, parametersArray);
+        var lambdaExpression = LambdaOverArgsArray(expression, parameters);
 
         Delegate compiledDelegate;
         var delegateCache = compileContext.DelegateCache;
@@ -783,13 +782,14 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 #endif
 
         object? res = null;
-        if (lambdaExpression.ReturnType.IsGenericType && lambdaExpression.ReturnType.IsAsyncGenericType())
+        // DynamicInvoke keeps exceptions wrapped in TargetInvocationException, which the callers unwrap
+        if (expression.Type.IsGenericType && expression.Type.IsAsyncGenericType())
         {
-            var invoked = compiledDelegate.DynamicInvoke(argsArray);
+            var invoked = compiledDelegate.DynamicInvoke([argsArray]);
             res = AsTask(invoked) is { } task ? await ResultOfAsync(task) : invoked;
         }
         else
-            res = compiledDelegate.DynamicInvoke(argsArray);
+            res = compiledDelegate.DynamicInvoke([argsArray]);
 
         // Root list fields on the database-bound pass are built without an in-tree ToList() so the deferred
         // query reaches here - materialize it before further processing. string/IList/IDictionary are
@@ -826,6 +826,18 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
     public void AddDirectives(IEnumerable<GraphQLDirective> graphQLDirectives)
     {
         Directives.AddRange(graphQLDirectives);
+    }
+
+    /// <summary>
+    /// args => { p0 = (T0)args[0]; ...; return (object)body; }. Expression.Lambda without a delegate type emits a new
+    /// delegate type once there are more than 16 parameters - each async field brings its own service parameters - and
+    /// that type lives in a non-collectible assembly that can not reference the schema's collectible result types.
+    /// </summary>
+    private static Expression<Func<object?[], object?>> LambdaOverArgsArray(Expression body, IReadOnlyList<ParameterExpression> parameters)
+    {
+        var args = Expression.Parameter(typeof(object?[]), "args");
+        var assignments = parameters.Select((p, i) => (Expression)Expression.Assign(p, Expression.Convert(Expression.ArrayIndex(args, Expression.Constant(i)), p.Type)));
+        return Expression.Lambda<Func<object?[], object?>>(Expression.Block(parameters, assignments.Append(Expression.Convert(body, typeof(object)))), args);
     }
 
     /// <summary>

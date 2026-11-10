@@ -1,3 +1,9 @@
+# 6.4.2
+
+## Fixes
+
+- A selection with more than 16 parameters in its executed expression - each async or service field adds its own, so about 10 `ResolveAsync` fields with bulk resolvers on one type is enough - failed with `A non-collectible assembly may not reference a collectible assembly`. Since 6.4.0 the result types are collectible, and `Expression.Lambda` without a delegate type emits a delegate for more than 16 parameters into an assembly that can not reference them. The executed expression now takes its arguments as one array.
+
 # 6.4.1
 
 ## Fixes

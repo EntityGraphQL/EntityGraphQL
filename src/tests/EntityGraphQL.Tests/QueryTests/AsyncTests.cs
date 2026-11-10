@@ -335,6 +335,48 @@ public class AsyncTests
     }
 
     /// <summary>
+    /// Each async field brings its own service parameters into the executed expression, so a selection of many of
+    /// them passes the 16 a Func can take. Expression.Lambda then emits a delegate type into a non-collectible
+    /// assembly, which can not reference the schema's collectible result types: "A non-collectible assembly may not
+    /// reference a collectible assembly".
+    /// </summary>
+    [Theory]
+    [InlineData("query Q($id: String) { workflow(id: $id) { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }")]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...F } } fragment F on Workflow { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 }")]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...Outer } } fragment Outer on Workflow { id ...Inner } fragment Inner on Workflow { c0 c1 }")]
+    [InlineData("query { workflows { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }")]
+    public void TestManyAsyncServiceFieldsOnOneType(string query)
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.UpdateType<Workflow>(type =>
+        {
+            for (var i = 0; i < 10; i++)
+                type.AddField($"c{i}", "").ResolveAsync<WorkflowCounter>((w, c) => c.OneAsync(w.Id)).ResolveBulkAsync<WorkflowCounter, string, int>(w => w.Id, (ids, c) => c.ManyAsync(ids));
+        });
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new WorkflowCounter());
+
+        var res = schema.ExecuteRequestWithContext(
+            new QueryRequest
+            {
+                Query = query,
+                Variables = new QueryVariables { { "id", "wf-1" } },
+            },
+            context,
+            serviceCollection.BuildServiceProvider(),
+            null
+        );
+        Assert.Null(res.Errors);
+        var data = (IDictionary<string, object?>)res.Data!;
+        dynamic workflow = data.ContainsKey("workflow") ? data["workflow"]! : ((IEnumerable<dynamic>)data["workflows"]!).Single();
+        Assert.Equal(7, (int)workflow.c0);
+        Assert.Equal(7, (int)workflow.c1);
+    }
+
+    /// <summary>
     /// Same as TestAsyncServiceFieldReturningListOnSingleObjectFromQueryArg but toolCatalog
     /// is on Step (a list element), so the path is workflow -> steps (list) -> toolCatalog (service).
     /// </summary>
@@ -467,6 +509,21 @@ public class AsyncTests
     private class WorkflowTool
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    private class WorkflowCounter
+    {
+        public async System.Threading.Tasks.Task<int> OneAsync(string id)
+        {
+            await System.Threading.Tasks.Task.Delay(10);
+            return 7;
+        }
+
+        public async System.Threading.Tasks.Task<IDictionary<string, int>> ManyAsync(IEnumerable<string> ids)
+        {
+            await System.Threading.Tasks.Task.Delay(10);
+            return ids.ToDictionary(i => i, _ => 7);
+        }
     }
 
     private interface IWorkflowToolCatalogService
