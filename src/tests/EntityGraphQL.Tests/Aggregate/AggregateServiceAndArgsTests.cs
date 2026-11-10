@@ -43,6 +43,23 @@ public class AggregateServiceAndArgsTests
     }
 
     [Fact]
+    public void AsyncFieldsAreNotAggregatable()
+    {
+        // an async field's per-element value is a Task - LINQ can not Sum/Min/Max over it, so it is left out
+        // rather than failing the schema build
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<Person>().AddField("asyncScore", "async score").ResolveAsync<ScoreService>((p, svc) => System.Threading.Tasks.Task.FromResult(svc.Score(p.Id)));
+        schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate(AggregatePlacement.SiblingField);
+
+        Assert.False(schema.Type("PersonSumAggregate").HasField("asyncScore", null));
+        Assert.True(schema.Type("PersonSumAggregate").HasField("id", null));
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ peopleAggregate { sum { id } } }" }, MakeData(), null, null);
+        Assert.Null(result.Errors);
+        Assert.Equal(7, (int)((dynamic)result.Data!["peopleAggregate"]!).sum.id);
+    }
+
+    [Fact]
     public void AggregateOverEmptySet()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();

@@ -226,7 +226,9 @@ schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate(
 
 The per-element values the service needs are projected and materialized in the first (DB) pass, then the reduction runs in memory with the service in the second pass — so this works under EF even though the service itself isn't translatable to SQL.
 
-If the field uses a bulk resolver (`ResolveBulk`), aggregation keeps the bulk optimization: the keys are materialized in the first pass and all values are fetched in a single bulk call in the second pass, then reduced — rather than one service call per element. (Applies to sync, no-argument bulk resolvers; async or argument-taking bulk resolvers fall back to the per-element resolver.)
+If the field uses a bulk resolver (`ResolveBulk`), aggregation keeps the bulk optimization: the keys are materialized in the first pass and all values are fetched in a single bulk call in the second pass, then reduced — rather than one service call per element. (Applies to no-argument bulk resolvers; argument-taking bulk resolvers fall back to the per-element resolver.)
+
+Async fields (`ResolveAsync`, async `[GraphQLField]` methods) are not aggregatable and are left out of the aggregate types - their per-element value is a `Task`, which `Sum`/`Min`/`Max` can not reduce.
 
 ## Ordering with other extensions
 

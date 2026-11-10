@@ -297,6 +297,8 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
                 && !f.ReturnType.IsList
                 && !f.Arguments.Any()
                 && f.ResolveExpression != null
+                // an async field's per-element value is a Task, which Sum/Min/Max can not reduce
+                && !f.ResolveExpression.Type.IsAsyncGenericType()
                 && f.FieldParam != null
                 && (allowedFieldNames == null || allowedFieldNames.Contains(f.Name))
             )
