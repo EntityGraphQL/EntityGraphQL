@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -341,11 +343,14 @@ public class AsyncTests
     /// reference a collectible assembly".
     /// </summary>
     [Theory]
-    [InlineData("query Q($id: String) { workflow(id: $id) { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }")]
-    [InlineData("query Q($id: String) { workflow(id: $id) { ...F } } fragment F on Workflow { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 }")]
-    [InlineData("query Q($id: String) { workflow(id: $id) { ...Outer } } fragment Outer on Workflow { id ...Inner } fragment Inner on Workflow { c0 c1 }")]
-    [InlineData("query { workflows { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }")]
-    public void TestManyAsyncServiceFieldsOnOneType(string query)
+    [InlineData("query Q($id: String) { workflow(id: $id) { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", false)]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...F } } fragment F on Workflow { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 }", false)]
+    [InlineData("query Q($id: String) { workflow(id: $id) { ...Outer } } fragment Outer on Workflow { id c0 c1 c2 c3 c4 ...Inner } fragment Inner on Workflow { c5 c6 c7 c8 c9 }", false)]
+    [InlineData("query { workflows { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", false)]
+    // compiled to IL rather than interpreted
+    [InlineData("query Q($id: String) { workflow(id: $id) { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", true)]
+    [InlineData("query { workflows { id c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 } }", true)]
+    public void TestManyAsyncServiceFieldsOnOneType(string query, bool cacheCompiledDelegates)
     {
         var schema = SchemaBuilder.FromObject<WorkflowContext>();
         schema.UpdateType<Workflow>(type =>
@@ -367,13 +372,50 @@ public class AsyncTests
             },
             context,
             serviceCollection.BuildServiceProvider(),
-            null
+            null,
+            new ExecutionOptions { EnableQueryCache = cacheCompiledDelegates, CacheCompiledDelegates = cacheCompiledDelegates }
         );
         Assert.Null(res.Errors);
         var data = (IDictionary<string, object?>)res.Data!;
         dynamic workflow = data.ContainsKey("workflow") ? data["workflow"]! : ((IEnumerable<dynamic>)data["workflows"]!).Single();
         Assert.Equal(7, (int)workflow.c0);
-        Assert.Equal(7, (int)workflow.c1);
+        Assert.Equal(7, (int)workflow.c9);
+    }
+
+    /// <summary>
+    /// A bulk loader's expression takes every constant parameter of the query - each field argument adds one. A method
+    /// field's arguments are in a type built at runtime, so collectible, and 17 of them beside a bulk field pass 16
+    /// </summary>
+    [Fact]
+    public void TestBulkFieldBesideManyFieldsWithArguments()
+    {
+        var schema = SchemaBuilder.FromObject<WorkflowContext>();
+        schema.UpdateType<Workflow>(type =>
+        {
+            type.AddField("c0", "").ResolveAsync<WorkflowCounter>((w, c) => c.OneAsync(w.Id)).ResolveBulkAsync<WorkflowCounter, string, int>(w => w.Id, (ids, c) => c.ManyAsync(ids));
+        });
+
+        var context = new WorkflowContext();
+        context.Workflows.Add(new Workflow { Id = "wf-1", Name = "My Workflow" });
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(new WorkflowCounter());
+
+        var fields = string.Join(" ", Enumerable.Range(0, 17).Select(i => $"a{i}: echo(x: {i})"));
+        var res = schema.ExecuteRequestWithContext(new QueryRequest { Query = $"{{ workflows {{ id c0 {fields} }} }}" }, context, serviceCollection.BuildServiceProvider(), null);
+        Assert.Null(res.Errors);
+        dynamic workflow = ((IEnumerable<dynamic>)((IDictionary<string, object?>)res.Data!)["workflows"]!).Single();
+        Assert.Equal(7, (int)workflow.c0);
+        Assert.Equal(16, (int)workflow.a16);
+    }
+
+    [Fact]
+    public void LambdaOverArgsArrayPassesDefaultForNullValueType()
+    {
+        var a = Expression.Parameter(typeof(int), "a");
+        var b = Expression.Parameter(typeof(int?), "b");
+        var lambda = ExpressionUtil.LambdaOverArgsArray(Expression.Add(a, Expression.Coalesce(b, Expression.Constant(1))), [a, b]).Compile();
+        Assert.Equal(1, lambda([null, null]));
+        Assert.Equal(5, lambda([2, 3]));
     }
 
     /// <summary>
@@ -498,6 +540,9 @@ public class AsyncTests
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public List<Step> Steps { get; set; } = [];
+
+        [GraphQLField]
+        public int Echo(int x) => x;
     }
 
     private class Step

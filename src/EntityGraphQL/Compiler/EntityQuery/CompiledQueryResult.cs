@@ -27,8 +27,7 @@ public class CompiledQueryResult
 
     public object? Execute(params object[] args)
     {
-        var allArgs = new List<object>(args);
-        allArgs.AddRange(ConstantParameters.Values);
-        return LambdaExpression.Compile().DynamicInvoke(allArgs.ToArray());
+        object?[] allArgs = [.. args, .. ConstantParameters.Values];
+        return Util.ExpressionUtil.LambdaOverArgsArray(ExpressionResult, [.. ContextParams, .. ConstantParameters.Keys]).Compile().DynamicInvoke([allArgs]);
     }
 }
