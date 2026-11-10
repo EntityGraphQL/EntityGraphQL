@@ -24,7 +24,7 @@
     <InternalsVisibleTo Include="EntityGraphQL.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Parlot" Version="1.5.7" />
+    <PackageReference Include="Parlot" Version="1.5.12" />
     <PackageReference Include="Humanizer.Core" Version="3.0.10" />
   </ItemGroup>
   <!-- Runtime-library dependencies use per-TFM floors: a net8.0 consumer should get 8.x minimums, not be
@@ -35,12 +35,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="System.Runtime.Caching" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.18" />
+    <PackageReference Include="System.Runtime.Caching" Version="9.0.22" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.22" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="System.Runtime.Caching" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+    <PackageReference Include="System.Runtime.Caching" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="" />
