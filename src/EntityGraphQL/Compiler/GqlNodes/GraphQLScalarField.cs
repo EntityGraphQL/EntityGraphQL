@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
+using EntityGraphQL.Schema.FieldExtensions;
 
 namespace EntityGraphQL.Compiler;
 
@@ -79,11 +80,12 @@ public class GraphQLScalarField : BaseGraphQLField
                     : Field.ExtractedFieldsFromServices?.FirstOrDefault()?.GetNodeExpression(replacementNextFieldContext, possibleNextContextTypes);
                 if (materializedDeps != null)
                 {
+                    var asyncContext = Field.IsAsync ? AsyncAggregateContextFor(compileContext) : null;
                     // A bulk-resolved element field: fetch the values for all keys in one call, then reduce the
-                    // dictionary in memory (instead of the per-element fallback). Only sync, no-arg bulk here.
-                    if (!IsRootField && Field is Schema.Field { AggregateBulkResolver: { IsAsync: false, BulkArgParam: null } bulk })
-                        return ProcessScalarExpression(BulkAggregateReducer.Build(materializedDeps, bulk.FieldExpression, split!.Method), replacer);
-                    return ProcessScalarExpression(split!.BuildReduce(materializedDeps), replacer);
+                    // dictionary in memory (instead of the per-element fallback). Only no-arg bulk here.
+                    if (!IsRootField && Field is Schema.Field { AggregateBulkResolver: { BulkArgParam: null } bulk })
+                        return ProcessScalarExpression(BulkAggregateReducer.Build(materializedDeps, bulk.FieldExpression, split!.Method, asyncContext), replacer);
+                    return ProcessScalarExpression(split!.BuildReduce(materializedDeps, asyncContext), replacer);
                 }
             }
         }
@@ -131,5 +133,20 @@ public class GraphQLScalarField : BaseGraphQLField
         if (HasServices)
             compileContext.AddServices(Field.Services);
         return newExpression;
+    }
+
+    /// <summary>
+    /// A parameter bound for this request to an async aggregate's concurrency limits - the aggregated element field's,
+    /// or else MaxQueryConcurrency - and cancellation
+    /// </summary>
+    private ParameterExpression AsyncAggregateContextFor(CompileContext compileContext)
+    {
+        var elementField = (Field as Schema.Field)?.AggregateElementField;
+        var limits =
+            elementField?.Extensions.OfType<ConcurrencyLimitFieldExtension>().FirstOrDefault()?.GetSemaphoreConfigs(elementField, compileContext.ExecutionOptions)
+            ?? (compileContext.ExecutionOptions.MaxQueryConcurrency is > 0 and var max ? [("global_query", max)] : []);
+        var param = Expression.Parameter(typeof(AsyncAggregateContext), "asyncAggregate");
+        compileContext.AddConstant(null, param, new AsyncAggregateContext(compileContext.ConcurrencyLimiterRegistry, limits, compileContext.CancellationToken));
+        return param;
     }
 }

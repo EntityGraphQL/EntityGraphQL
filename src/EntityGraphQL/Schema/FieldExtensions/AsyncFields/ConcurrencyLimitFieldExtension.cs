@@ -127,7 +127,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         return call;
     }
 
-    private List<(string scopeKey, int maxConcurrency)> GetSemaphoreConfigs(IField field, ExecutionOptions executionOptions)
+    internal List<(string scopeKey, int maxConcurrency)> GetSemaphoreConfigs(IField field, ExecutionOptions executionOptions)
     {
         var configs = new List<(string scopeKey, int maxConcurrency)>();
 
@@ -172,13 +172,80 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
         CancellationToken cancellationToken
     )
     {
-        // Get all semaphores for hierarchical limiting
+        return await RunWithLimitsAsync(
+            async () =>
+            {
+                // The lambda is compiled once per expression instance - this method runs per row for list fields,
+                // so compiling here every call is expensive
+                var compiledOperation = compiledOperations.GetValue(asyncOperationExp, static exp => CompileOperation(exp));
+                var asyncOperation = compiledOperation(expArgs);
+                if (asyncOperation is null)
+                {
+                    return default;
+                }
+                // common case - a correctly typed task, no reflection needed
+                if (asyncOperation is Task<TResult> typedTask)
+                {
+                    return await typedTask;
+                }
+                if (asyncOperation is ValueTask<TResult> typedValueTask)
+                {
+                    return await typedValueTask;
+                }
+                if (asyncOperation is Task task)
+                {
+                    await task;
+
+                    // Get the result from Task<T>
+                    var taskType = task.GetType();
+                    if (taskType.IsGenericType)
+                    {
+                        var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
+                        return (TResult?)resultProperty?.GetValue(task);
+                    }
+                    return default;
+                }
+                // Handle ValueTask<T>
+                var type = asyncOperation.GetType();
+                if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
+                {
+                    var asTaskMethod = type.GetMethod(nameof(ValueTask<object>.AsTask));
+                    if (asTaskMethod != null)
+                    {
+                        var taskToAwait = (Task?)asTaskMethod.Invoke(asyncOperation, null);
+                        if (taskToAwait != null)
+                        {
+                            await taskToAwait;
+                            var resultProperty = taskToAwait.GetType().GetProperty(nameof(ValueTask<object>.Result));
+                            return (TResult?)resultProperty?.GetValue(taskToAwait);
+                        }
+                    }
+                }
+
+                return (TResult)asyncOperation; // Not async, return as-is
+            },
+            semaphoreConfigs,
+            concurrencyLimiterRegistry,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Runs the operation holding a permit from each limit (query -> service -> field)
+    /// </summary>
+    internal static async Task<TResult> RunWithLimitsAsync<TResult>(
+        Func<Task<TResult>> operation,
+        List<(string scopeKey, int maxConcurrency)> semaphoreConfigs,
+        ConcurrencyLimiterRegistry concurrencyLimiterRegistry,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         var semaphores = new SemaphoreSlim[semaphoreConfigs.Count];
         for (var i = 0; i < semaphoreConfigs.Count; i++)
             semaphores[i] = concurrencyLimiterRegistry.GetSemaphore(semaphoreConfigs[i].scopeKey, semaphoreConfigs[i].maxConcurrency);
 
-        // Acquire all semaphores in order (query -> service -> field). Acquisition happens inside the
-        // try so a cancelled/faulted WaitAsync releases the permits already acquired
+        // Acquisition happens inside the try so a cancelled/faulted WaitAsync releases the permits already acquired
         var acquired = 0;
         try
         {
@@ -187,55 +254,7 @@ public class ConcurrencyLimitFieldExtension : BaseFieldExtension
                 await semaphore.WaitAsync(cancellationToken);
                 acquired++;
             }
-
-            // Execute the async operation. The lambda is compiled once per expression instance - this method
-            // runs per row for list fields, so compiling here every call is expensive
-            var compiledOperation = compiledOperations.GetValue(asyncOperationExp, static exp => CompileOperation(exp));
-            var asyncOperation = compiledOperation(expArgs);
-            if (asyncOperation is null)
-            {
-                return default;
-            }
-            // common case - a correctly typed task, no reflection needed
-            if (asyncOperation is Task<TResult> typedTask)
-            {
-                return await typedTask;
-            }
-            if (asyncOperation is ValueTask<TResult> typedValueTask)
-            {
-                return await typedValueTask;
-            }
-            if (asyncOperation is Task task)
-            {
-                await task;
-
-                // Get the result from Task<T>
-                var taskType = task.GetType();
-                if (taskType.IsGenericType)
-                {
-                    var resultProperty = taskType.GetProperty(nameof(Task<object>.Result));
-                    return (TResult?)resultProperty?.GetValue(task);
-                }
-                return default;
-            }
-            // Handle ValueTask<T>
-            var type = asyncOperation.GetType();
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
-            {
-                var asTaskMethod = type.GetMethod(nameof(ValueTask<object>.AsTask));
-                if (asTaskMethod != null)
-                {
-                    var taskToAwait = (Task?)asTaskMethod.Invoke(asyncOperation, null);
-                    if (taskToAwait != null)
-                    {
-                        await taskToAwait;
-                        var resultProperty = taskToAwait.GetType().GetProperty(nameof(ValueTask<object>.Result));
-                        return (TResult?)resultProperty?.GetValue(taskToAwait);
-                    }
-                }
-            }
-
-            return (TResult)asyncOperation; // Not async, return as-is
+            return await operation();
         }
         finally
         {

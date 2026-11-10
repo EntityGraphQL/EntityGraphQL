@@ -19,16 +19,24 @@ public static class BulkAggregateReducer
     /// <paramref name="fetch"/> is the bulk resolver's <c>(IEnumerable&lt;TKey&gt; keys, TService svc) =&gt; IDictionary&lt;TKey, TResult&gt;</c>
     /// lambda; its service parameter must be registered in the field's Services so it is injected at execution.
     /// </summary>
-    public static Expression Build(Expression materializedKeys, LambdaExpression fetch, string method)
+    public static Expression Build(Expression materializedKeys, LambdaExpression fetch, string method) => Build(materializedKeys, fetch, method, null);
+
+    /// <summary>
+    /// As Build(materializedKeys, fetch, method). An async bulk resolver (returning a Task of the dictionary) is called
+    /// under <paramref name="asyncContext"/> (an AsyncAggregateContext - the request's concurrency limits and
+    /// cancellation) and the result is a Task the engine awaits.
+    /// </summary>
+    internal static Expression Build(Expression materializedKeys, LambdaExpression fetch, string method, Expression? asyncContext)
     {
         var keysParam = fetch.Parameters[0];
-        var dictType = fetch.Body.Type; // IDictionary<TKey, TResult>
-        var keyType = dictType.GetGenericArguments()[0];
+        var isAsync = fetch.Body.Type.IsAwaitableGenericType();
+        var dictType = isAsync ? fetch.Body.Type.GetGenericArguments()[0] : fetch.Body.Type; // IDictionary<TKey, TResult>
+        var keyType = materializedKeys.Type.GetEnumerableOrArrayType()!;
 
         // dict = fetch(keys.Distinct(), svc) — the service param stays and is injected by the framework
         var distinctKeys = Expression.Call(typeof(Enumerable), nameof(Enumerable.Distinct), [keyType], materializedKeys);
         var dictExpr = new ParameterReplacer().Replace(fetch.Body, keysParam, distinctKeys);
-        var dictVar = Expression.Variable(dictType, "bulkDict");
+        var dictVar = Expression.Parameter(dictType, "bulkDict");
 
         // values = keys.Select(k => dict[k]) — nullable for Min/Max/Average so an empty set yields null (not throw)
         var kParam = Expression.Parameter(keyType, "k");
@@ -54,6 +62,17 @@ public static class BulkAggregateReducer
                 ? Expression.Call(typeof(Enumerable), method, [lookup.Type], values)
                 : Expression.Call(typeof(Enumerable), method, Type.EmptyTypes, values);
 
-        return Expression.Block([dictVar], Expression.Assign(dictVar, dictExpr), agg);
+        var reduce = Expression.Lambda(agg, dictVar);
+        if (!isAsync)
+            return Expression.Invoke(reduce, dictExpr);
+        // the fetch is a lambda so it starts once the concurrency limits allow
+        return Expression.Call(
+            typeof(AsyncAggregates),
+            nameof(AsyncAggregates.ReduceBulk),
+            [dictType, agg.Type],
+            Expression.Lambda(dictExpr),
+            reduce,
+            asyncContext ?? AsyncAggregates.NoContext
+        );
     }
 }

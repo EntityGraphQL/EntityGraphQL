@@ -141,4 +141,188 @@ public class AsyncAggregateTests
         Assert.Null(result.Errors);
         Assert.Equal(3, (int)((dynamic)result.Data!["things"]!).aggregate.sum.id);
     }
+
+    /// <summary>Counts calls and the most running at once</summary>
+    public class TrackingService
+    {
+        private int running;
+        public int Calls;
+        public int BulkCalls;
+        public int MaxRunning;
+        public System.Threading.CancellationTokenSource? CancelOnFirstCall;
+
+        public async System.Threading.Tasks.Task<int> ScoreAsync(int id)
+        {
+            System.Threading.Interlocked.Increment(ref Calls);
+            CancelOnFirstCall?.Cancel();
+            var now = System.Threading.Interlocked.Increment(ref running);
+            int max;
+            while (now > (max = MaxRunning) && System.Threading.Interlocked.CompareExchange(ref MaxRunning, now, max) != max) { }
+            await System.Threading.Tasks.Task.Delay(20);
+            System.Threading.Interlocked.Decrement(ref running);
+            return id * 10;
+        }
+
+        public int Score(int id) => id * 10;
+
+        public IDictionary<int, int> Scores(IEnumerable<int> ids)
+        {
+            System.Threading.Interlocked.Increment(ref BulkCalls);
+            return ids.ToDictionary(i => i, i => i * 10);
+        }
+
+        public async System.Threading.Tasks.Task<IDictionary<int, int>> ScoresAsync(IEnumerable<int> ids)
+        {
+            await System.Threading.Tasks.Task.Yield();
+            return Scores(ids);
+        }
+
+        public System.Threading.Tasks.Task<int> ForAsync(Person p) => System.Threading.Tasks.Task.FromResult(p.Id);
+    }
+
+    private static TestDataContext People(int count) => new() { People = Enumerable.Range(1, count).Select(i => new Person { Id = i }).ToList() };
+
+    private static (SchemaProvider<TestDataContext> schema, TrackingService svc, System.IServiceProvider services) Tracked(System.Action<SchemaProvider<TestDataContext>> addFields)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        addFields(schema);
+        schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate(AggregatePlacement.OwnWrapper);
+        var svc = new TrackingService();
+        var services = new ServiceCollection();
+        services.AddSingleton(svc);
+        return (schema, svc, services.BuildServiceProvider());
+    }
+
+    [Fact]
+    public void AsyncFieldWithSyncBulkResolverUsesTheBulkResolver()
+    {
+        var (schema, svc, services) = Tracked(s =>
+            s.Type<Person>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id)).ResolveBulk<TrackingService, int, int>(p => p.Id, (ids, t) => t.Scores(ids))
+        );
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { aggregate { sum { score } max { score } } } }" }, People(4), services, null);
+
+        Assert.Null(result.Errors);
+        var agg = ((dynamic)result.Data!["people"]!).aggregate;
+        Assert.Equal(100, (int)agg.sum.score);
+        Assert.Equal(40, (int)agg.max.score);
+        Assert.Equal(0, svc.Calls);
+        Assert.Equal(2, svc.BulkCalls); // one per function
+    }
+
+    [Fact]
+    public void AsyncBulkResolverIsCalledOncePerFunction()
+    {
+        var (schema, svc, services) = Tracked(s =>
+            s.Type<Person>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id)).ResolveBulkAsync<TrackingService, int, int>(p => p.Id, (ids, t) => t.ScoresAsync(ids))
+        );
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { aggregate { sum { score } max { score } average { score } } } }" }, People(50), services, null);
+
+        Assert.Null(result.Errors);
+        var agg = ((dynamic)result.Data!["people"]!).aggregate;
+        Assert.Equal(12750, (int)agg.sum.score);
+        Assert.Equal(500, (int)agg.max.score);
+        Assert.Equal(255.0, (double)agg.average.score);
+        Assert.Equal(0, svc.Calls);
+        Assert.Equal(3, svc.BulkCalls);
+    }
+
+    [Fact]
+    public void AsyncFieldRespectsItsConcurrencyLimitAcrossFunctions()
+    {
+        var (schema, svc, services) = Tracked(s => s.Type<Person>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id), maxConcurrency: 1));
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { aggregate { sum { score } max { score } average { score } } } }" }, People(5), services, null);
+
+        Assert.Null(result.Errors);
+        Assert.Equal(150, (int)((dynamic)result.Data!["people"]!).aggregate.sum.score);
+        Assert.Equal(15, svc.Calls);
+        Assert.Equal(1, svc.MaxRunning);
+    }
+
+    [Fact]
+    public void AsyncFieldElementsAreAwaitedConcurrently()
+    {
+        var (schema, svc, services) = Tracked(s => s.Type<Person>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id)));
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { aggregate { sum { score } } } }" }, People(20), services, null);
+
+        Assert.Null(result.Errors);
+        Assert.Equal(2100, (int)((dynamic)result.Data!["people"]!).aggregate.sum.score);
+        Assert.True(svc.MaxRunning > 1, $"max running {svc.MaxRunning}");
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task AsyncFieldStopsWhenCancelled()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<Person>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id), maxConcurrency: 1);
+        schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate(AggregatePlacement.OwnWrapper);
+        using var cts = new System.Threading.CancellationTokenSource();
+        var svc = new TrackingService { CancelOnFirstCall = cts };
+        var services = new ServiceCollection();
+        services.AddSingleton(svc);
+        services.AddSingleton(People(20));
+
+        var result = await schema.ExecuteRequestAsync(new QueryRequest { Query = "{ people { aggregate { sum { score } } } }" }, services.BuildServiceProvider(), null, null, cts.Token);
+
+        Assert.NotNull(result.Errors);
+        // the request ends at the cancellation - give any calls still being made time to show up
+        await System.Threading.Tasks.Task.Delay(300);
+        Assert.Equal(1, svc.Calls);
+    }
+
+    [Fact]
+    public void AsyncFieldWhoseServiceTakesTheElementIsNotAggregatable()
+    {
+        // pass 1 fetches the members a service reads, not the element itself
+        var (schema, _, services) = Tracked(s =>
+        {
+            s.Type<Person>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id));
+            s.Type<Person>().AddField("whole", "").ResolveAsync<TrackingService>((p, t) => t.ForAsync(p));
+        });
+
+        Assert.True(schema.Type("PersonSumAggregate").HasField("score", null));
+        Assert.False(schema.Type("PersonSumAggregate").HasField("whole", null));
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ people { aggregate { sum { score } } } }" }, People(2), services, null);
+        Assert.Null(result.Errors);
+    }
+
+    public class MethodContext
+    {
+        public List<MethodThing> Things { get; set; } = [new MethodThing { Id = 1 }, new MethodThing { Id = 2 }];
+    }
+
+    public class MethodThing
+    {
+        public int Id { get; set; }
+
+        [GraphQLField]
+        public System.Threading.Tasks.Task<int> TaskScore([GraphQLService] TrackingService svc) => svc.ScoreAsync(Id);
+
+        [GraphQLField]
+        public async System.Threading.Tasks.ValueTask<int> ValueTaskScore([GraphQLService] TrackingService svc) => await svc.ScoreAsync(Id);
+
+        [GraphQLField]
+        public int SyncScore([GraphQLService] TrackingService svc) => svc.Score(Id);
+    }
+
+    [Fact]
+    public void MethodFieldsWithServicesAreNotAggregatable()
+    {
+        // a method field is called on the element, which pass 1 does not fetch - they failed with "unbound variable"
+        var schema = SchemaBuilder.FromObject<MethodContext>();
+        schema.Query().ReplaceField("things", ctx => ctx.Things, "Things").UseAggregate(AggregatePlacement.OwnWrapper);
+
+        var sumType = schema.Type("MethodThingSumAggregate");
+        Assert.True(sumType.HasField("id", null));
+        Assert.False(sumType.HasField("taskScore", null));
+        Assert.False(sumType.HasField("valueTaskScore", null));
+        Assert.False(sumType.HasField("syncScore", null));
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ things { aggregate { sum { id } } } }" }, new MethodContext(), null, null);
+        Assert.Null(result.Errors);
+        Assert.Equal(3, (int)((dynamic)result.Data!["things"]!).aggregate.sum.id);
+    }
 }
