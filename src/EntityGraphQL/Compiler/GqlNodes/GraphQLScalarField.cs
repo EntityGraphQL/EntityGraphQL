@@ -146,7 +146,11 @@ public class GraphQLScalarField : BaseGraphQLField
             elementField?.Extensions.OfType<ConcurrencyLimitFieldExtension>().FirstOrDefault()?.GetSemaphoreConfigs(elementField, compileContext.ExecutionOptions)
             ?? (compileContext.ExecutionOptions.MaxQueryConcurrency is > 0 and var max ? [("global_query", max)] : []);
         var param = Expression.Parameter(typeof(AsyncAggregateContext), "asyncAggregate");
-        compileContext.AddConstant(null, param, new AsyncAggregateContext(compileContext.ConcurrencyLimiterRegistry, limits, compileContext.CancellationToken));
+        compileContext.AddConstant(
+            null,
+            param,
+            new AsyncAggregateContext(compileContext.ConcurrencyLimiterRegistry, limits, compileContext.CancellationToken, elementField ?? Field!, compileContext.AsyncAggregateValues)
+        );
         return param;
     }
 }

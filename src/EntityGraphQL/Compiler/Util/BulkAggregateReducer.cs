@@ -63,13 +63,17 @@ public static class BulkAggregateReducer
                 : Expression.Call(typeof(Enumerable), method, Type.EmptyTypes, values);
 
         var reduce = Expression.Lambda(agg, dictVar);
-        if (!isAsync)
+        if (!isAsync && asyncContext == null)
             return Expression.Invoke(reduce, dictExpr);
-        // the fetch is a lambda so it starts once the concurrency limits allow
+        // an async aggregate (its own or its element field's resolver is async) shares the one fetch between the
+        // functions. The fetch is a lambda so it starts once the concurrency limits allow
+        if (!isAsync)
+            dictExpr = Expression.Call(typeof(System.Threading.Tasks.Task), nameof(System.Threading.Tasks.Task.FromResult), [dictType], dictExpr);
         return Expression.Call(
             typeof(AsyncAggregates),
             nameof(AsyncAggregates.ReduceBulk),
-            [dictType, agg.Type],
+            [keyType, dictType, agg.Type],
+            materializedKeys,
             Expression.Lambda(dictExpr),
             reduce,
             asyncContext ?? AsyncAggregates.NoContext

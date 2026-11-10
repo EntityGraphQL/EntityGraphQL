@@ -207,11 +207,11 @@ public class AsyncAggregateTests
         Assert.Equal(100, (int)agg.sum.score);
         Assert.Equal(40, (int)agg.max.score);
         Assert.Equal(0, svc.Calls);
-        Assert.Equal(2, svc.BulkCalls); // one per function
+        Assert.Equal(1, svc.BulkCalls); // shared by the functions
     }
 
     [Fact]
-    public void AsyncBulkResolverIsCalledOncePerFunction()
+    public void AsyncBulkResolverIsCalledOnce()
     {
         var (schema, svc, services) = Tracked(s =>
             s.Type<Person>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id)).ResolveBulkAsync<TrackingService, int, int>(p => p.Id, (ids, t) => t.ScoresAsync(ids))
@@ -225,7 +225,7 @@ public class AsyncAggregateTests
         Assert.Equal(500, (int)agg.max.score);
         Assert.Equal(255.0, (double)agg.average.score);
         Assert.Equal(0, svc.Calls);
-        Assert.Equal(3, svc.BulkCalls);
+        Assert.Equal(1, svc.BulkCalls);
     }
 
     [Fact]
@@ -237,7 +237,7 @@ public class AsyncAggregateTests
 
         Assert.Null(result.Errors);
         Assert.Equal(150, (int)((dynamic)result.Data!["people"]!).aggregate.sum.score);
-        Assert.Equal(15, svc.Calls);
+        Assert.Equal(5, svc.Calls); // the functions share the values
         Assert.Equal(1, svc.MaxRunning);
     }
 
@@ -324,5 +324,42 @@ public class AsyncAggregateTests
         var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ things { aggregate { sum { id } } } }" }, new MethodContext(), null, null);
         Assert.Null(result.Errors);
         Assert.Equal(3, (int)((dynamic)result.Data!["things"]!).aggregate.sum.id);
+    }
+
+    [Fact]
+    public void NestedAggregatesShareValuesOnlyWithinTheirCollection()
+    {
+        // each person's projects are their own collection - two people with the same project ids share, others do not
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<Project>().AddField("score", "").ResolveAsync<TrackingService>((p, t) => t.ScoreAsync(p.Id));
+        schema.Type<Person>().ReplaceField("projects", p => p.Projects, "").UseAggregate(AggregatePlacement.OwnWrapper);
+        var svc = new TrackingService();
+        var services = new ServiceCollection();
+        services.AddSingleton(svc);
+        var data = new TestDataContext
+        {
+            People =
+            [
+                new Person { Id = 1, Projects = [new Project { Id = 1 }, new Project { Id = 2 }] },
+                new Person { Id = 2, Projects = [new Project { Id = 3 }] },
+                new Person { Id = 3, Projects = [new Project { Id = 1 }, new Project { Id = 2 }] },
+            ],
+        };
+
+        var result = schema.ExecuteRequestWithContext(
+            new QueryRequest { Query = "{ people { id projects { aggregate { sum { score } max { score } } } } }" },
+            data,
+            services.BuildServiceProvider(),
+            null
+        );
+
+        Assert.Null(result.Errors);
+        var people = ((IEnumerable<dynamic>)result.Data!["people"]!).ToList();
+        Assert.Equal(30, (int)people[0].projects.aggregate.sum.score);
+        Assert.Equal(20, (int)people[0].projects.aggregate.max.score);
+        Assert.Equal(30, (int)people[1].projects.aggregate.sum.score);
+        Assert.Equal(30, (int)people[1].projects.aggregate.max.score);
+        Assert.Equal(30, (int)people[2].projects.aggregate.sum.score);
+        Assert.Equal(3, svc.Calls); // projects 1 and 2 once (people 1 and 3 share), project 3 once
     }
 }
