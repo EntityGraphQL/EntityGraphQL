@@ -26,14 +26,26 @@ public sealed class AggregateReductionSplit
     public LambdaExpression Selector { get; }
     public bool IsQueryableSource { get; }
 
+    // AsyncAggregates.Reduce(source, selector, reduce) for an async element field, rebuilt as is over the deps
+    private readonly MethodCallExpression? asyncReduce;
     private readonly Type elementType;
     private readonly Type depsType;
 
     // member accesses on the selector's element parameter, keyed by the deps-type field name
     private readonly Dictionary<string, MemberExpression> elementDeps;
 
-    private AggregateReductionSplit(Expression source, string method, LambdaExpression selector, bool isQueryableSource, Type elementType, Type depsType, Dictionary<string, MemberExpression> elementDeps)
+    private AggregateReductionSplit(
+        Expression source,
+        string method,
+        LambdaExpression selector,
+        bool isQueryableSource,
+        Type elementType,
+        Type depsType,
+        Dictionary<string, MemberExpression> elementDeps,
+        MethodCallExpression? asyncReduce
+    )
     {
+        this.asyncReduce = asyncReduce;
         Source = source;
         Method = method;
         Selector = selector;
@@ -63,7 +75,8 @@ public sealed class AggregateReductionSplit
         split = null;
         if (serviceParams.Count == 0 || body is not MethodCallExpression call)
             return false;
-        if (!ReductionMethods.Contains(call.Method.Name) || call.Arguments.Count != 2)
+        var isAsyncReduce = call.Method.DeclaringType == typeof(AsyncAggregates) && call.Arguments.Count == 3;
+        if (!isAsyncReduce && (!ReductionMethods.Contains(call.Method.Name) || call.Arguments.Count != 2))
             return false;
 
         var source = call.Arguments[0];
@@ -99,7 +112,7 @@ public sealed class AggregateReductionSplit
 
         var depsType = types.GetDynamicType(depFieldTypes, "aggDeps");
         var isQueryable = source.Type.IsGenericTypeQueryable();
-        split = new AggregateReductionSplit(source, call.Method.Name, selector, isQueryable, elementType, depsType, deps);
+        split = new AggregateReductionSplit(source, call.Method.Name, selector, isQueryable, elementType, depsType, deps, isAsyncReduce ? call : null);
         return true;
     }
 
@@ -126,6 +139,11 @@ public sealed class AggregateReductionSplit
         var newParam = Expression.Parameter(depsElementType, "x");
         var remapped = new ElementMemberRemapper(Selector.Parameters[0], newParam).Visit(Selector.Body);
         var newSelector = Expression.Lambda(remapped, newParam);
+        if (asyncReduce != null)
+        {
+            var method = asyncReduce.Method.GetGenericMethodDefinition().MakeGenericMethod([depsElementType, .. asyncReduce.Method.GetGenericArguments()[1..]]);
+            return Expression.Call(method, materializedDeps, newSelector, asyncReduce.Arguments[2]);
+        }
         var resultType = remapped.Type;
         var isQueryable = materializedDeps.Type.IsGenericTypeQueryable();
         var methodClass = isQueryable ? typeof(Queryable) : typeof(Enumerable);

@@ -228,7 +228,7 @@ The per-element values the service needs are projected and materialized in the f
 
 If the field uses a bulk resolver (`ResolveBulk`), aggregation keeps the bulk optimization: the keys are materialized in the first pass and all values are fetched in a single bulk call in the second pass, then reduced — rather than one service call per element. (Applies to no-argument bulk resolvers; argument-taking bulk resolvers fall back to the per-element resolver.)
 
-Async fields (`ResolveAsync`, async `[GraphQLField]` methods) are not aggregatable and are left out of the aggregate types - their per-element value is a `Task`, which `Sum`/`Min`/`Max` can not reduce.
+Async fields (`ResolveAsync`) are aggregated the same way: the values the service needs are materialized in the first pass, then each element's value is awaited in the second pass and reduced. Elements are awaited one at a time, so a service that is not thread-safe (e.g. a scoped `DbContext`) is safe to use. An async bulk resolver is not used for the aggregate - it awaits the per-element resolver. An async field without a service (an async `[GraphQLField]` method that takes no services) is not aggregatable.
 
 ## Ordering with other extensions
 

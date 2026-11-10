@@ -39,6 +39,8 @@ public class Field : BaseField
     {
         Services.AddRange(services);
         ProcessResolveExpression(resolve, extractedFields == null, false);
+        // an async element field's reduction is a Task the engine awaits
+        IsAsync = resolve.ReturnType.IsAsyncGenericType();
         if (extractedFields != null)
             ExtractedFieldsFromServices = extractedFields;
         // NOTE: deliberately NOT set as BulkResolver — that would make the normal bulk loader machinery try to

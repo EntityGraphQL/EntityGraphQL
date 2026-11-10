@@ -297,8 +297,9 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
                 && !f.ReturnType.IsList
                 && !f.Arguments.Any()
                 && f.ResolveExpression != null
-                // an async field's per-element value is a Task, which Sum/Min/Max can not reduce
-                && !f.ResolveExpression.Type.IsAsyncGenericType()
+                // an async field is awaited and reduced in memory in the services pass, so it needs a service to
+                // be on that pass - without one it would be reduced in the database query
+                && (!f.ResolveExpression.Type.IsAsyncGenericType() || f.Services.Count > 0)
                 && f.FieldParam != null
                 && (allowedFieldNames == null || allowedFieldNames.Contains(f.Name))
             )
@@ -360,6 +361,12 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
             var collParam = Expression.Parameter(collType, "c");
             var selectorParam = Expression.Parameter(elementType, "x");
             var selectorBody = new ParameterReplacer().Replace(elementField.ResolveExpression!, elementField.FieldParam!, selectorParam);
+            // an async field: the function reduces the awaited values (v), see AsyncAggregates
+            var asyncSelector = selectorBody.Type.IsAwaitableGenericType() ? Expression.Lambda(selectorBody, selectorParam) : null;
+            var valueParam = asyncSelector != null ? Expression.Parameter(selectorBody.Type.GetGenericArguments()[0], "v") : selectorParam;
+            var valuesParam = asyncSelector != null ? Expression.Parameter(typeof(IEnumerable<>).MakeGenericType(valueParam.Type), "values") : collParam;
+            if (asyncSelector != null)
+                selectorBody = valueParam;
 
             // Sum/Average have no Queryable/Enumerable overload for some numeric types (e.g. short), so widen the
             // selector to a type that does (short -> int). Min/Max are generic on TResult and need no widening.
@@ -379,15 +386,19 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
             if (func.Name != nameof(Enumerable.Sum) && selectorBody.Type.IsValueType && Nullable.GetUnderlyingType(selectorBody.Type) == null)
                 selectorBody = Expression.Convert(selectorBody, typeof(Nullable<>).MakeGenericType(selectorBody.Type));
 
-            var selector = Expression.Lambda(selectorBody, selectorParam);
+            var selector = Expression.Lambda(selectorBody, valueParam);
+            var reduceClass = asyncSelector != null ? typeof(Enumerable) : methodClass;
 
             // Min/Max are generic on <TSource, TResult>; Sum/Average resolve overload by selector return type
             Expression aggCall = func.IsMinMax
-                ? Expression.Call(methodClass, func.Name, [elementType, selectorBody.Type], collParam, selector)
-                : Expression.Call(methodClass, func.Name, [elementType], collParam, selector);
+                ? Expression.Call(reduceClass, func.Name, [valueParam.Type, selectorBody.Type], valuesParam, selector)
+                : Expression.Call(reduceClass, func.Name, [valueParam.Type], valuesParam, selector);
+            var resultType = aggCall.Type;
+            if (asyncSelector != null)
+                aggCall = Expression.Call(typeof(AsyncAggregates), nameof(AsyncAggregates.Reduce), [elementType, valueParam.Type, resultType], collParam, asyncSelector, Expression.Lambda(aggCall, valuesParam));
 
             var leafResolve = Expression.Lambda(aggCall, collParam);
-            var leafReturnType = SchemaBuilder.MakeGraphQlType(schema, false, aggCall.Type, null, elementField.Name, funcType);
+            var leafReturnType = SchemaBuilder.MakeGraphQlType(schema, false, resultType, null, elementField.Name, funcType);
 
             var depsName = $"egql__agg_{elementSchemaType.Name}_{elementField.Name}";
 
