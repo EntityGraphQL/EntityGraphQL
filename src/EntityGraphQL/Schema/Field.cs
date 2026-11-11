@@ -35,10 +35,19 @@ public class Field : BaseField
     /// used verbatim as the service dependencies (the default extractor mis-handles a reduction over the
     /// context, so callers that build a reduction provide the deps projection explicitly).
     /// </summary>
-    internal void SetServiceResolve(LambdaExpression resolve, IEnumerable<ParameterExpression> services, List<GraphQLExtractedField>? extractedFields = null, IBulkFieldResolver? aggregateBulkResolver = null)
+    internal void SetServiceResolve(
+        LambdaExpression resolve,
+        IEnumerable<ParameterExpression> services,
+        List<GraphQLExtractedField>? extractedFields = null,
+        IBulkFieldResolver? aggregateBulkResolver = null,
+        IField? aggregateElementField = null
+    )
     {
         Services.AddRange(services);
         ProcessResolveExpression(resolve, extractedFields == null, false);
+        // an async element field's (or async bulk resolver's) reduction is a Task the engine awaits
+        IsAsync = resolve.ReturnType.IsAsyncGenericType() || aggregateBulkResolver?.IsAsync == true;
+        AggregateElementField = aggregateElementField;
         if (extractedFields != null)
             ExtractedFieldsFromServices = extractedFields;
         // NOTE: deliberately NOT set as BulkResolver — that would make the normal bulk loader machinery try to
@@ -72,6 +81,11 @@ public class Field : BaseField
     /// Used by <see cref="Compiler.GraphQLScalarField"/> to fetch all values in one call and reduce in memory.
     /// </summary>
     internal IBulkFieldResolver? AggregateBulkResolver { get; private set; }
+
+    /// <summary>
+    /// The element field an aggregate leaf reduces. An async one's values are fetched under its concurrency limits
+    /// </summary>
+    internal IField? AggregateElementField { get; private set; }
 
     protected void ProcessResolveExpression(LambdaExpression resolve, bool withServices, bool hasArguments)
     {

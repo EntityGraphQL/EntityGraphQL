@@ -61,6 +61,12 @@ public class CompileContext
     public ConcurrencyLimiterRegistry ConcurrencyLimiterRegistry { get; } = new ConcurrencyLimiterRegistry();
 
     /// <summary>
+    /// The awaited values of each async aggregate's element field, by field and the values pass 1 fetched for it -
+    /// so sum, max, ... of one field fetch them once (see AsyncAggregateContext.ValuesFor)
+    /// </summary>
+    internal System.Collections.Concurrent.ConcurrentDictionary<object, Lazy<System.Threading.Tasks.Task>> AsyncAggregateValues { get; } = new();
+
+    /// <summary>
     /// What the engine will read off the objects each bulk loader returns, by resolver name. The same bulk
     /// field can be selected in several places and they load in one call, so the selections merge - see
     /// <see cref="IFieldSelection"/>.

@@ -49,6 +49,44 @@ public class ServiceAggregateTests
         Assert.Equal(50, (int)agg.max.bulkScore);
     }
 
+    public class AsyncScoreService
+    {
+        public async System.Threading.Tasks.Task<int> ScoreAsync(int id)
+        {
+            await System.Threading.Tasks.Task.Yield();
+            return id * 10;
+        }
+    }
+
+    [Theory]
+    [InlineData(AggregatePlacement.OwnWrapper)]
+    [InlineData(AggregatePlacement.PagingWrapper)]
+    public void AggregatesAsyncFieldOverEf(AggregatePlacement placement)
+    {
+        var schema = SchemaBuilder.FromObject<TestDbContext>();
+        schema.Type<Movie>().AddField("score", "async score").ResolveAsync<AsyncScoreService>((m, svc) => svc.ScoreAsync(m.Id));
+        var movies = schema.Query().ReplaceField("movies", db => db.Movies.OrderBy(m => m.Id), "Movies");
+        if (placement == AggregatePlacement.PagingWrapper)
+            movies.UseOffsetPaging();
+        movies.UseAggregate(placement);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(new AsyncScoreService());
+        using var factory = new TestDbContextFactory();
+        var data = factory.CreateContext();
+        data.Movies.AddRange(new Movie("A") { Id = 2 }, new Movie("B") { Id = 5 });
+        data.SaveChanges();
+
+        // pass 1 projects m.Id on the DB; pass 2 awaits each score and reduces in memory
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = "{ movies { aggregate { sum { score } max { score } average { score } } } }" }, data, services.BuildServiceProvider(), null);
+
+        Assert.Null(result.Errors);
+        dynamic agg = ((dynamic)result.Data!["movies"]!).aggregate;
+        Assert.Equal(70, (int)agg.sum.score);
+        Assert.Equal(50, (int)agg.max.score);
+        Assert.Equal(35.0, (double)agg.average.score);
+    }
+
     [Fact]
     public void OwnWrapperAggregatesServiceFieldOverEf()
     {

@@ -226,7 +226,11 @@ schema.Query().ReplaceField("people", ctx => ctx.People, "People").UseAggregate(
 
 The per-element values the service needs are projected and materialized in the first (DB) pass, then the reduction runs in memory with the service in the second pass — so this works under EF even though the service itself isn't translatable to SQL.
 
-If the field uses a bulk resolver (`ResolveBulk`), aggregation keeps the bulk optimization: the keys are materialized in the first pass and all values are fetched in a single bulk call in the second pass, then reduced — rather than one service call per element. (Applies to sync, no-argument bulk resolvers; async or argument-taking bulk resolvers fall back to the per-element resolver.)
+If the field uses a bulk resolver (`ResolveBulk` or `ResolveBulkAsync`), aggregation keeps the bulk optimization: the keys are materialized in the first pass and all values are fetched in a single bulk call in the second pass, then reduced — rather than one service call per element. (Applies to no-argument bulk resolvers; argument-taking bulk resolvers fall back to the per-element resolver.)
+
+Async fields (`ResolveAsync`) are aggregated the same way: the values the service needs are materialized in the first pass, then each element's value is awaited in the second pass and reduced. The elements run under the field's concurrency limits (`maxConcurrency`, `ServiceConcurrencyLimits`, `MaxQueryConcurrency`), as they do when the field is selected in a list, and stop when the request is cancelled. The functions selected on a field (`sum`, `max`, ...) share one fetch of its values. Elements still run concurrently, so give a service that is not thread-safe (e.g. a scoped `DbContext`) `maxConcurrency: 1`.
+
+A service field is aggregatable when its service reads the element only through its members (`svc.Score(p.Id)`), as those are what the first pass fetches. Fields whose service takes the element itself (`svc.Score(p)`), `[GraphQLField]` methods that take a service, and async fields without a service are left out of the aggregate types.
 
 ## Ordering with other extensions
 
