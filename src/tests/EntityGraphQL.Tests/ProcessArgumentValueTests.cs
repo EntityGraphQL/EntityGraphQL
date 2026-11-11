@@ -23,12 +23,42 @@ public class ProcessArgumentValueTests
         Assert.Equal(1.2d, res);
     }
 
+#if !NET11_0_OR_GREATER
+    [Fact]
+    public void NumberConversionMatchesDecimalConversionBeforeNet11()
+    {
+        // before .NET 11 the runtime's own conversion is the behaviour NumberConversion keeps on every target. They
+        // agree for any value of up to 15 significant digits; for 16-17 digits the runtime's approximate rounding
+        // can be one off in the 15th digit when the 16th is a 5
+        var random = new System.Random(42);
+        for (var i = 0; i < 100000; i++)
+        {
+            var digits = random.Next(1, 16);
+            var mantissa = (long)(random.NextDouble() * System.Math.Pow(10, digits));
+            var d = (random.Next(2) == 0 ? -1 : 1) * mantissa * System.Math.Pow(10, random.Next(-12 - digits, 13 - digits));
+            Assert.Equal((decimal)d, EntityGraphQL.Compiler.Util.NumberConversion.ToDecimal(d));
+            var f = (float)(mantissa % 10000000 * System.Math.Pow(10, random.Next(-6, 6)));
+            Assert.Equal((decimal)f, EntityGraphQL.Compiler.Util.NumberConversion.ToDecimal(f));
+        }
+    }
+#endif
+
     [Fact]
     public void TestParseArgumentDecimal()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
         var res = GraphQLParser.ConvertArgumentValue(schema, 1.2, typeof(decimal));
         Assert.Equal(1.2m, res);
+    }
+
+    [Theory]
+    // a double is rounded to 15 significant digits for decimal, as .NET did before 11, on every target
+    [InlineData(0.30000000000000004, "0.3")]
+    [InlineData(123456789.123456789, "123456789.123457")]
+    public void TestParseArgumentDecimalFromDoubleRoundsTo15Digits(double value, string expected)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), GraphQLParser.ConvertArgumentValue(schema, value, typeof(decimal)));
     }
 
     [Fact]
