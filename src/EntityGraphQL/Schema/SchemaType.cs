@@ -188,7 +188,7 @@ public class SchemaType<TBaseType> : BaseSchemaTypeWithFields<IField>
         if (FieldsByName.ContainsKey(field.Name))
             throw new EntityGraphQLSchemaException($"Field '{field.Name}' already exists on type '{Name}'. Use ReplaceField() if this is intended.");
 
-        if (field.Arguments.Any() && (GqlType == GqlTypes.InputObject || GqlType == GqlTypes.Enum))
+        if (field.Arguments.Count > 0 && (GqlType == GqlTypes.InputObject || GqlType == GqlTypes.Enum))
             throw new EntityGraphQLSchemaException($"Field '{field.Name}' on type '{Name}' has arguments but is a GraphQL '{GqlType}' type and can not have arguments.");
 
         if (GqlType == GqlTypes.Scalar)

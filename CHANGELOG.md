@@ -1,3 +1,11 @@
+# 6.5.0
+
+## Changes
+
+- Added a .NET 11 target (`net11.0`) to `EntityGraphQL` and `EntityGraphQL.AspNet`.
+- On .NET 11 a `Float` value for a `decimal` argument or variable, and a `double` compared with a `decimal` in a filter, convert as the number reads (`1.2` -> `1.2m`). .NET 11's own double-to-decimal conversion keeps the binary value's full precision (`1.1999999999999999555910790150`), where earlier versions rounded it, so without this a filter like `amount == estimate` stopped matching.
+- On .NET 11 a filter date of `T24:00:00` (e.g. `"2023-01-15T24:00:00"`) is midnight of the next day. Filter dates are parsed by `DateTime.Parse`, which accepts the ISO 8601 end-of-day time since .NET 11; earlier versions reject it.
+
 # 6.4.3
 
 ## Fixes

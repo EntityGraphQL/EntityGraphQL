@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Linq.Expressions;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
 using EntityGraphQL.Schema;
 
@@ -180,9 +181,9 @@ internal sealed class Binary(ExpressionType op, IExpression left, IExpression ri
         if (leftType != rightType)
         {
             if (prioritizeLeft)
-                right = Expression.Convert(right, left.Type);
+                right = NumberConversion.Convert(right, left.Type);
             else
-                left = Expression.Convert(left, right.Type);
+                left = NumberConversion.Convert(left, right.Type);
             return true;
         }
 
