@@ -578,6 +578,8 @@ public static class GraphQLParser
         reader.SkipIgnored();
         reader.Expect('{', parseContext, "Expected '{' to start object value.");
 
+        // Only ever added to, never removed from: a Dictionary then enumerates in insertion order, which is how an
+        // IArgumentsTracker learns the order fields were written in (UseSort relies on it). Keep it append-only.
         var obj = new Dictionary<string, object?>();
         reader.SkipIgnored();
 
@@ -1344,19 +1346,29 @@ public static class GraphQLParser
         if (value == null)
             return null;
 
+        // Keep Expression and VariableReference as-is, they'll be resolved later during compilation
+        if (value is Expression or VariableReference)
+            return value;
+
         // A custom scalar's converter decides what its value is - JSON, say - however the literal is
         // shaped: an object or list literal for one is not an input object or a list to build.
         if (value is Dictionary<string, object?> or List<object?> && ExpressionUtil.TryConvertCustomScalar(schema, value, targetType, out var custom))
             return custom;
 
-        if (value is Dictionary<string, object?> dict)
-        {
-            return ConvertObjectArgument(schema, dict, targetType);
-        }
-
         if (value is List<object?> list)
         {
             return ConvertListArgument(schema, list, targetType);
+        }
+
+        // Input coercion: a single value for a list type is a list of one (GraphQL spec, List input coercion)
+        if (ExpressionUtil.IsSingleValueForList(schema, value, targetType))
+        {
+            return ConvertListArgument(schema, [value], targetType);
+        }
+
+        if (value is Dictionary<string, object?> dict)
+        {
+            return ConvertObjectArgument(schema, dict, targetType);
         }
 
         if (targetType.IsEnum && value is string enumStr)
@@ -1368,12 +1380,6 @@ public static class GraphQLParser
         if (underlyingType != null && underlyingType.IsEnum && value is string enumStrNullable)
         {
             return Enum.Parse(underlyingType, enumStrNullable, true);
-        }
-
-        if (value is Expression or VariableReference)
-        {
-            // Keep Expression and VariableReference as-is, they'll be resolved later during compilation
-            return value;
         }
 
         return ExpressionUtil.ConvertObjectType(value, targetType, schema);

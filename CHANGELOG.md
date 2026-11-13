@@ -1,3 +1,11 @@
+# 6.4.3
+
+## Fixes
+
+- A single value for a list argument is coerced to a list of one, as the GraphQL spec requires, whether inline or in a variable - e.g. `people(sort: { lastName: DESC })` for `sort: [PeopleSortInput!]`. It failed with ``No schema type found for dotnet type 'List`1'`` inline, and `Supplied variable 'sort' can not be applied to defined variable type` from a variable. A list-typed custom scalar (JSON, say) is still left to its converter.
+- `UseSort()`: every field set in one sort object is applied, in the order it is written in the query or variables - `sort: { lastName: DESC, height: ASC }` sorts by `lastName`, then `height`. Only the first set field in the sort input's own field order was applied, and the rest were ignored. A list (`sort: [{ lastName: DESC }, { height: ASC }]`) is still the way to sort on several fields that does not rely on object field order, which GraphQL leaves unordered.
+- An input object given as a .NET object in `QueryVariables` (an anonymous object, say) marks the fields it has as set on an `IArgumentsTracker`, as a dictionary or JSON value already did, in the order it declares them. `IsSet` was false for all of them.
+
 # 6.4.2
 
 ## Fixes

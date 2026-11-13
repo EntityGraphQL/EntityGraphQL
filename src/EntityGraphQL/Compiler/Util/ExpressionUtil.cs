@@ -121,6 +121,29 @@ public static partial class ExpressionUtil
         return schema.TryGetSchemaType(type, true, out var schemaType, null) && schemaType!.IsScalar && schema.TryConvertCustom(value, type, out result);
     }
 
+    /// <summary>
+    /// GraphQL input coercion: a single value for a list type is a list of one. Not a value that is already a list,
+    /// nor for a dictionary type (a property bag, not a list of pairs) or a list-typed scalar (its converter decides).
+    /// </summary>
+    internal static bool IsSingleValueForList(ISchemaProvider? schema, object value, Type toType) =>
+        toType.IsEnumerableOrArray()
+        && !toType.IsDictionary()
+        && IsSingleInputValue(value)
+        && (schema == null || !schema.TryGetSchemaType(toType, true, out var schemaType, null) || !schemaType!.IsScalar);
+
+    /// <summary>
+    /// True for a value that is not itself a list - an object, a dictionary or a scalar. A JSON null is not a value.
+    /// </summary>
+    private static bool IsSingleInputValue(object value) =>
+        value switch
+        {
+            JsonElement json => json.ValueKind is not (JsonValueKind.Array or JsonValueKind.Null or JsonValueKind.Undefined),
+            string => true,
+            _ when value.GetType().IsDictionary() => true,
+            IEnumerable => false,
+            _ => true,
+        };
+
     public static object? ConvertObjectType(object? value, Type toType, ISchemaProvider? schema)
     {
         if (value == null)
@@ -140,6 +163,11 @@ public static partial class ExpressionUtil
         // a T is already a T? - boxed, there is no difference to make
         if (fromType == toType || fromType == Nullable.GetUnderlyingType(toType))
             return value;
+
+        // Input coercion: a single value for a list type is a list of one (GraphQL spec, List input coercion) - built
+        // as any list is, so an array is an array
+        if (IsSingleValueForList(schema, value, toType))
+            return ConvertObjectType(new List<object?> { value }, toType, schema);
 
         // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
         if (typeof(JsonElement).IsAssignableFrom(fromType))
@@ -349,6 +377,27 @@ public static partial class ExpressionUtil
                 var fromField = valueObjType.GetFields().FirstOrDefault(p => p.Name.Equals(toProperty.Name, StringComparison.OrdinalIgnoreCase));
                 if (fromField != null)
                     toProperty.SetValue(newValue, ConvertObjectType(fromField.GetValue(value), toProperty.PropertyType, schema));
+            }
+        }
+
+        // An object built in code - an anonymous object, say - sets the members it has, in the order it declares
+        // them (an anonymous object's is the order written), as a dictionary or JSON object does. One that tracks
+        // what was set passes that on - only what it was given, in the order it was given
+        if (newValue is IArgumentsTracker tracker)
+        {
+            var toNames = toType.GetFields().Select(f => f.Name).Concat(toType.GetProperties().Select(p => p.Name)).ToList();
+            var fromMembers = valueObjType.GetProperties().Select(p => p.Name).Concat(valueObjType.GetFields().Select(f => f.Name));
+            var fromNames = value switch
+            {
+                ArgumentsTracker fromTracker => fromTracker.GetSetPropertiesInOrder(),
+                IArgumentsTracker fromTracker => fromMembers.Where(fromTracker.IsSet),
+                _ => fromMembers,
+            };
+            foreach (var fromName in fromNames)
+            {
+                var toName = toNames.Find(n => n.Equals(fromName, StringComparison.OrdinalIgnoreCase));
+                if (toName != null)
+                    tracker.MarkAsSet(toName);
             }
         }
 

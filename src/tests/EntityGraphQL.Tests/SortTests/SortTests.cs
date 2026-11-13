@@ -8,6 +8,93 @@ namespace EntityGraphQL.Tests;
 
 public class SortTests
 {
+    // a: lastName A, height 2 - b: lastName B, height 3 - c: lastName B, height 1
+    private static TestDataContext MultiSortContext()
+    {
+        var context = new TestDataContext();
+        context.People.Add(
+            new Person
+            {
+                Id = 1,
+                Name = "a",
+                LastName = "A",
+                Height = 2,
+            }
+        );
+        context.People.Add(
+            new Person
+            {
+                Id = 2,
+                Name = "b",
+                LastName = "B",
+                Height = 3,
+            }
+        );
+        context.People.Add(
+            new Person
+            {
+                Id = 3,
+                Name = "c",
+                LastName = "B",
+                Height = 1,
+            }
+        );
+        return context;
+    }
+
+    private static string RunMultiSort(string sortArg, QueryVariables? variables = null)
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<TestDataContext>().GetField("people", null).UseSort();
+        var gql = new QueryRequest
+        {
+            Query = variables == null ? $"{{ people(sort: {sortArg}) {{ name }} }}" : "query($sort: [QueryPeopleSortInput!]) { people(sort: $sort) { name } }",
+            Variables = variables,
+        };
+        var tree = schema.ExecuteRequestWithContext(gql, MultiSortContext(), null, null);
+        Assert.Null(tree.Errors);
+        var people = (IEnumerable<object>)((IDictionary<string, object>)tree.Data!)["people"];
+        return string.Join(",", people.Select(p => (string)((dynamic)p).name));
+    }
+
+    [Theory]
+    // every field set in one sort object is applied, in the order it is written
+    [InlineData("{ lastName: DESC, height: ASC }", "c,b,a")]
+    [InlineData("{ height: ASC, lastName: DESC }", "c,a,b")]
+    [InlineData("[{ lastName: DESC, height: DESC }]", "b,c,a")]
+    // and across list items
+    [InlineData("[{ lastName: DESC }, { height: ASC }]", "c,b,a")]
+    [InlineData("[{ lastName: ASC, height: DESC }, { name: DESC }]", "a,b,c")]
+    public void SupportUseSortMultipleFieldsInOrderWritten(string sort, string expected)
+    {
+        Assert.Equal(expected, RunMultiSort(sort));
+    }
+
+    [Theory]
+    [InlineData("{\"lastName\": \"DESC\", \"height\": \"ASC\"}", "c,b,a")]
+    [InlineData("{\"height\": \"ASC\", \"lastName\": \"DESC\"}", "c,a,b")]
+    [InlineData("[{\"height\": \"DESC\"}, {\"lastName\": \"ASC\"}]", "b,a,c")]
+    public void SupportUseSortMultipleFieldsInOrderWrittenJsonVariable(string json, string expected)
+    {
+        var variables = new QueryVariables { { "sort", System.Text.Json.JsonDocument.Parse(json).RootElement } };
+        Assert.Equal(expected, RunMultiSort("", variables));
+    }
+
+    [Fact]
+    public void SupportUseSortMultipleFieldsInOrderWrittenObjectVariable()
+    {
+        // an object built in code sets its fields in the order it declares them - for an anonymous object, as written
+        Assert.Equal("c,a,b", RunMultiSort("", new QueryVariables { { "sort", new { height = SortDirection.ASC, lastName = SortDirection.DESC } } }));
+        Assert.Equal("c,b,a", RunMultiSort("", new QueryVariables { { "sort", new[] { new { lastName = SortDirection.DESC, height = SortDirection.ASC } } } }));
+    }
+
+    [Fact]
+    public void SupportUseSortEmptySortObjectFirst()
+    {
+        // an empty sort object sorts nothing - the next one is still the first sort, not a ThenBy
+        Assert.Equal("c,a,b", RunMultiSort("[{}, { height: ASC }]"));
+    }
+
     [Fact]
     public void SupportUseSort()
     {
@@ -29,6 +116,63 @@ public class SortTests
         Assert.Equal(2, Enumerable.Count(people));
         var person = Enumerable.First(people);
         Assert.Equal("Zoo", person.lastName);
+    }
+
+    [Fact]
+    public void SupportUseSortSingleObjectInline()
+    {
+        // GraphQL input coercion: a single value for a list argument is a list of one
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<TestDataContext>().GetField("people", null).UseSort();
+        var gql = new QueryRequest { Query = @"{ people(sort: { lastName: DESC }) { lastName } }" };
+        var context = new TestDataContext().FillWithTestData();
+        context.People.Add(new Person { LastName = "Zoo" });
+        var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(tree.Errors);
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
+        Assert.Equal("Zoo", Enumerable.First(people).lastName);
+    }
+
+    [Fact]
+    public void SupportUseSortSingleObjectVariable()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<TestDataContext>().GetField("people", null).UseSort();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query($sort: [QueryPeopleSortInput]) {
+                    people(sort: $sort) { lastName }
+                }",
+            Variables = new QueryVariables { { "sort", new { lastName = SortDirection.DESC } } },
+        };
+        var context = new TestDataContext().FillWithTestData();
+        context.People.Add(new Person { LastName = "Zoo" });
+        var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(tree.Errors);
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
+        Assert.Equal("Zoo", Enumerable.First(people).lastName);
+    }
+
+    [Fact]
+    public void SupportUseSortSingleObjectJsonVariable()
+    {
+        var schema = SchemaBuilder.FromObject<TestDataContext>();
+        schema.Type<TestDataContext>().GetField("people", null).UseSort();
+        var gql = new QueryRequest
+        {
+            Query =
+                @"query($sort: [QueryPeopleSortInput]) {
+                    people(sort: $sort) { lastName }
+                }",
+            Variables = new QueryVariables { { "sort", System.Text.Json.JsonDocument.Parse("{\"lastName\": \"DESC\"}").RootElement } },
+        };
+        var context = new TestDataContext().FillWithTestData();
+        context.People.Add(new Person { LastName = "Zoo" });
+        var tree = schema.ExecuteRequestWithContext(gql, context, null, null);
+        Assert.Null(tree.Errors);
+        dynamic people = ((IDictionary<string, object>)tree.Data!)["people"];
+        Assert.Equal("Zoo", Enumerable.First(people).lastName);
     }
 
     [Fact]
