@@ -295,7 +295,7 @@ public class AggregateExtension : BaseFieldExtension, IWrapsItemsExtension
             .Where(f =>
                 !f.Name.StartsWith("__", StringComparison.Ordinal)
                 && !f.ReturnType.IsList
-                && !f.Arguments.Any()
+                && f.Arguments.Count == 0
                 && f.ResolveExpression != null
                 && f.FieldParam != null
                 // a service field is reduced in the services pass over what pass 1 fetched for it, so its service
