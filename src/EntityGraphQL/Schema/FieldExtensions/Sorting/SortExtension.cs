@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using EntityGraphQL.Compiler;
 using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Extensions;
@@ -115,9 +116,24 @@ public class SortExtension : BaseFieldExtension
                 fields.Add(prop.Name, directionType);
             }
         }
-        // build SortInput - need a unique name if they use sort on another field with the same name
-        var argSortType = LinqRuntimeTypeBuilder.For(field.Schema).GetDynamicType(fields, field.Name);
+        // build SortInput - need a unique name if they use sort on another field with the same name.
+        // An ArgumentsTracker so each sort object knows the order its fields were written in
+        var argSortType = LinqRuntimeTypeBuilder.For(field.Schema).GetDynamicType(fields, field.Name, typeof(ArgumentsTracker));
         return argSortType;
+    }
+
+    /// <summary>
+    /// The sort object's fields in the order they were written in the query or variables, then any others set
+    /// another way (a default sort, or an object built in code) in declaration order. GraphQL input objects are
+    /// unordered, but the written order is the only one that means anything to the caller.
+    /// </summary>
+    private static IEnumerable<FieldInfo> SortFieldsInOrder(object sort)
+    {
+        var fields = sort.GetType().GetFields();
+        var written = sort is ArgumentsTracker tracker
+            ? tracker.GetSetPropertiesInOrder().Select(name => fields.FirstOrDefault(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase))).OfType<FieldInfo>().ToList()
+            : [];
+        return written.Concat(fields.Except(written));
     }
 
     private static bool IsNotInputType(Type type)
@@ -148,8 +164,8 @@ public class SortExtension : BaseFieldExtension
             var sortMethod = "OrderBy";
             foreach (var sort in arguments!.Sort)
             {
-                // find the field that tells us the order field
-                foreach (var fieldInfo in ((Type)sort.GetType()).GetFields())
+                // every field set on the sort object, in the order the user wrote them
+                foreach (var fieldInfo in SortFieldsInOrder((object)sort))
                 {
                     var direction = (SortDirection?)fieldInfo.GetValue(sort);
                     if (!direction.HasValue)
@@ -177,9 +193,8 @@ public class SortExtension : BaseFieldExtension
                     }
 
                     expression = Expression.Call(methodType!, method, [listType!, sortReturnType], expression, Expression.Lambda(sortExpression, listParam));
-                    break;
+                    sortMethod = "ThenBy";
                 }
-                sortMethod = "ThenBy";
             }
         }
         else if (defaultSorts.Count > 0)

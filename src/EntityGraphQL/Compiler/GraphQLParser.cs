@@ -1349,14 +1349,20 @@ public static class GraphQLParser
         if (value is Dictionary<string, object?> or List<object?> && ExpressionUtil.TryConvertCustomScalar(schema, value, targetType, out var custom))
             return custom;
 
-        if (value is Dictionary<string, object?> dict)
-        {
-            return ConvertObjectArgument(schema, dict, targetType);
-        }
-
         if (value is List<object?> list)
         {
             return ConvertListArgument(schema, list, targetType);
+        }
+
+        // Input coercion: a single value for a list type is a list of one (GraphQL spec, List input coercion)
+        if (value is not (Expression or VariableReference) && targetType.IsEnumerableOrArray())
+        {
+            return ConvertListArgument(schema, [value], targetType);
+        }
+
+        if (value is Dictionary<string, object?> dict)
+        {
+            return ConvertObjectArgument(schema, dict, targetType);
         }
 
         if (targetType.IsEnum && value is string enumStr)

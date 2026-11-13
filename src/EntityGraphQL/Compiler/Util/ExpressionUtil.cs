@@ -121,6 +121,19 @@ public static partial class ExpressionUtil
         return schema.TryGetSchemaType(type, true, out var schemaType, null) && schemaType!.IsScalar && schema.TryConvertCustom(value, type, out result);
     }
 
+    /// <summary>
+    /// True for a value that is not itself a list - an object, a dictionary or a scalar. A JSON null is not a value.
+    /// </summary>
+    private static bool IsSingleInputValue(object value) =>
+        value switch
+        {
+            JsonElement json => json.ValueKind is not (JsonValueKind.Array or JsonValueKind.Null or JsonValueKind.Undefined),
+            string => true,
+            _ when value.GetType().IsDictionary() => true,
+            IEnumerable => false,
+            _ => true,
+        };
+
     public static object? ConvertObjectType(object? value, Type toType, ISchemaProvider? schema)
     {
         if (value == null)
@@ -140,6 +153,16 @@ public static partial class ExpressionUtil
         // a T is already a T? - boxed, there is no difference to make
         if (fromType == toType || fromType == Nullable.GetUnderlyingType(toType))
             return value;
+
+        // Input coercion: a single value for a list type is a list of one (GraphQL spec, List input coercion).
+        // A list-typed scalar (JSON, say) is left to its converter.
+        if (toType.IsEnumerableOrArray() && IsSingleInputValue(value) && (schema == null || !schema.TryGetSchemaType(toType, true, out var listSchemaType, null) || !listSchemaType!.IsScalar))
+        {
+            var eleType = toType.GetEnumerableOrArrayType()!;
+            var single = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(eleType))!;
+            single.Add(ConvertObjectType(value, eleType, schema));
+            return single;
+        }
 
         // Default JSON deserializer will deserialize child objects in QueryVariables as this JSON type
         if (typeof(JsonElement).IsAssignableFrom(fromType))
