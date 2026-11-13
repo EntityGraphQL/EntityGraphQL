@@ -381,11 +381,19 @@ public static partial class ExpressionUtil
         }
 
         // An object built in code - an anonymous object, say - sets the members it has, in the order it declares
-        // them (an anonymous object's is the order written), as a dictionary or JSON object does
+        // them (an anonymous object's is the order written), as a dictionary or JSON object does. One that tracks
+        // what was set passes that on - only what it was given, in the order it was given
         if (newValue is IArgumentsTracker tracker)
         {
             var toNames = toType.GetFields().Select(f => f.Name).Concat(toType.GetProperties().Select(p => p.Name)).ToList();
-            foreach (var fromName in valueObjType.GetProperties().Select(p => p.Name).Concat(valueObjType.GetFields().Select(f => f.Name)))
+            var fromMembers = valueObjType.GetProperties().Select(p => p.Name).Concat(valueObjType.GetFields().Select(f => f.Name));
+            var fromNames = value switch
+            {
+                ArgumentsTracker fromTracker => fromTracker.GetSetPropertiesInOrder(),
+                IArgumentsTracker fromTracker => fromMembers.Where(fromTracker.IsSet),
+                _ => fromMembers,
+            };
+            foreach (var fromName in fromNames)
             {
                 var toName = toNames.Find(n => n.Equals(fromName, StringComparison.OrdinalIgnoreCase));
                 if (toName != null)

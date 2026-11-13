@@ -1,4 +1,5 @@
 using EntityGraphQL.Compiler.Util;
+using EntityGraphQL.Schema;
 using Xunit;
 
 namespace EntityGraphQL.Tests;
@@ -94,6 +95,35 @@ public class ConvertObjectTypeTests
     {
         var res = ExpressionUtil.ConvertObjectType(3, typeof(ImplicitOperatorConversionTest), null);
         Assert.NotNull(res);
+    }
+
+    public class TrackedInput : ArgumentsTracker
+    {
+        public string? Name;
+        public int? Age;
+    }
+
+    public class OtherTrackedInput : ArgumentsTracker
+    {
+        public string? Name;
+        public int? Age;
+    }
+
+    [Fact]
+    public void AnObjectSetsTheMembersItHasInOrder()
+    {
+        var res = (TrackedInput)ExpressionUtil.ConvertObjectType(new { age = 3, name = (string?)null }, typeof(TrackedInput), null)!;
+        Assert.Equal(["Age", "Name"], res.GetSetPropertiesInOrder());
+    }
+
+    [Fact]
+    public void ATrackedObjectPassesOnOnlyWhatWasSet()
+    {
+        var from = new OtherTrackedInput { Name = "a" };
+        from.MarkAsSet("Name");
+        var res = (TrackedInput)ExpressionUtil.ConvertObjectType(from, typeof(TrackedInput), null)!;
+        Assert.Equal("a", res.Name);
+        Assert.Equal(["Name"], res.GetSetPropertiesInOrder());
     }
 
     public struct ImplicitOperatorConversionTest
