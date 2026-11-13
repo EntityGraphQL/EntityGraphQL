@@ -81,6 +81,21 @@ public class SortTests
     }
 
     [Fact]
+    public void SupportUseSortMultipleFieldsInOrderWrittenObjectVariable()
+    {
+        // an object built in code sets its fields in the order it declares them - for an anonymous object, as written
+        Assert.Equal("c,a,b", RunMultiSort("", new QueryVariables { { "sort", new { height = SortDirection.ASC, lastName = SortDirection.DESC } } }));
+        Assert.Equal("c,b,a", RunMultiSort("", new QueryVariables { { "sort", new[] { new { lastName = SortDirection.DESC, height = SortDirection.ASC } } } }));
+    }
+
+    [Fact]
+    public void SupportUseSortEmptySortObjectFirst()
+    {
+        // an empty sort object sorts nothing - the next one is still the first sort, not a ThenBy
+        Assert.Equal("c,a,b", RunMultiSort("[{}, { height: ASC }]"));
+    }
+
+    [Fact]
     public void SupportUseSort()
     {
         var schema = SchemaBuilder.FromObject<TestDataContext>();
