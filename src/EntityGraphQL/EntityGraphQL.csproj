@@ -45,4 +45,16 @@
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="" />
   </ItemGroup>
+  <!-- Ship the Roslyn analyzers inside this package so every consumer gets them with no extra install.
+       ReferenceOutputAssembly=false: we only need the build ordering, the analyzer is not a dependency. -->
+  <ItemGroup>
+    <ProjectReference Include="../EntityGraphQL.Analyzers/EntityGraphQL.Analyzers.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <ProjectReference Include="../EntityGraphQL.Analyzers.CodeFixes/EntityGraphQL.Analyzers.CodeFixes.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="PackEntityGraphQLAnalyzers" BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <None Include="$(MSBuildThisFileDirectory)../EntityGraphQL.Analyzers/bin/$(Configuration)/netstandard2.0/EntityGraphQL.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="$(MSBuildThisFileDirectory)../EntityGraphQL.Analyzers.CodeFixes/bin/$(Configuration)/netstandard2.0/EntityGraphQL.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 </Project>
