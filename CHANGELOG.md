@@ -6,6 +6,10 @@
 - On .NET 11 a `double` value converted to `decimal` - e.g. a `Float` variable for a `decimal` argument - is rounded to 15 significant digits as on earlier .NET versions (`1.2` -> `1.2m`). .NET 11's own conversion keeps the binary value's full precision (`1.1999999999999999555910790150`), so without this the argument got that value. A filter comparing a `double` field with a `decimal` field (`amount == estimate`) is still a plain cast, so EF translates it to SQL; evaluated in memory on .NET 11 it follows the runtime's conversion.
 - On .NET 11 a filter date of `T24:00:00` (e.g. `"2023-01-15T24:00:00"`) is midnight of the next day. Filter dates are parsed by `DateTime.Parse`, which accepts the ISO 8601 end-of-day time since .NET 11; earlier versions reject it.
 
+## Fixes
+
+- An extension method that takes the field context and a service (`user.Extra(service.Current())`) failed with `unbound variable` when it was selected beside a `ResolveBulk` field under a service-resolved object or list (an `OffsetPage` from `Resolve`/`ResolveAsync`). The whole call was extracted as one context read, so the service parameter was left in the two-pass projection. The context argument is extracted on its own and the service is injected. A service used only inside a `Where`/`Select` predicate is unchanged.
+
 # 6.4.3
 
 ## Fixes
