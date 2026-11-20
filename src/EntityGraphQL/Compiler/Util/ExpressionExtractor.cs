@@ -125,7 +125,16 @@ public partial class ExpressionExtractor : ExpressionVisitor
         if (node.Object is null && isExtension)
         {
             startAt = 1;
-            if (currentExpression.Count == 0)
+            // Pushing the whole call extracts it as one context read. That is wrong when a later
+            // argument uses a service parameter: the extracted expression still contains that
+            // parameter, and the two-pass compile then fails with "unbound variable".
+            var laterArgumentUsesAnotherParameter = false;
+            for (var i = 1; i < node.Arguments.Count && !laterArgumentUsesAnotherParameter; i++)
+                laterArgumentUsesAnotherParameter = ReferencesParameterOtherThanRoot(node.Arguments[i]);
+
+            if (laterArgumentUsesAnotherParameter)
+                ProcessPotentialLeaf(node.Arguments[0]);
+            else if (currentExpression.Count == 0)
             {
                 currentExpression.Push(node);
                 Visit(node.Arguments[0]);
@@ -140,6 +149,32 @@ public partial class ExpressionExtractor : ExpressionVisitor
             ProcessPotentialLeaf(node.Arguments[i]);
         }
         return node;
+    }
+
+    /// <summary>
+    /// True when <paramref name="expression"/> uses a parameter other than the field context outside a
+    /// nested lambda. A service used only inside a <c>Where</c>/<c>Select</c> predicate stays part of
+    /// that call. A service passed beside the context (<c>user.Extra(cp.Current())</c>) does not.
+    /// </summary>
+    private bool ReferencesParameterOtherThanRoot(Expression expression)
+    {
+        var finder = new OtherParameterFinder(rootContext);
+        finder.Visit(expression);
+        return finder.Found;
+    }
+
+    private sealed class OtherParameterFinder(Expression? root) : ExpressionVisitor
+    {
+        public bool Found { get; private set; }
+
+        protected override Expression VisitLambda<T>(Expression<T> node) => node;
+
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            if (!Found && node != root)
+                Found = true;
+            return node;
+        }
     }
 
     [GeneratedRegex("[\\.\\(\\)\\!]")]
