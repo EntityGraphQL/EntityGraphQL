@@ -27,7 +27,7 @@ public class ProcessArgumentValueTests
     [Fact]
     public void NumberConversionMatchesDecimalConversionBeforeNet11()
     {
-        // before .NET 11 the runtime's own conversion is the behaviour NumberConversion keeps on every target. They
+        // before .NET 11 the runtime's own conversion is what NumberConversion uses; on .NET 11 it uses Round. They
         // agree for any value of up to 15 significant digits; for 16-17 digits the runtime's approximate rounding
         // can be one off in the 15th digit when the 16th is a 5
         var random = new System.Random(42);
@@ -36,9 +36,9 @@ public class ProcessArgumentValueTests
             var digits = random.Next(1, 16);
             var mantissa = (long)(random.NextDouble() * System.Math.Pow(10, digits));
             var d = (random.Next(2) == 0 ? -1 : 1) * mantissa * System.Math.Pow(10, random.Next(-12 - digits, 13 - digits));
-            Assert.Equal((decimal)d, EntityGraphQL.Compiler.Util.NumberConversion.ToDecimal(d));
+            Assert.Equal((decimal)d, EntityGraphQL.Compiler.Util.NumberConversion.Round(d));
             var f = (float)(mantissa % 10000000 * System.Math.Pow(10, random.Next(-6, 6)));
-            Assert.Equal((decimal)f, EntityGraphQL.Compiler.Util.NumberConversion.ToDecimal(f));
+            Assert.Equal((decimal)f, EntityGraphQL.Compiler.Util.NumberConversion.Round(f));
         }
     }
 #endif

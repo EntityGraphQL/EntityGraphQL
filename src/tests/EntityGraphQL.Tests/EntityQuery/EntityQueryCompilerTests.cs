@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery.Grammar;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
 using Xunit;
 
@@ -294,21 +295,16 @@ public class EntityQueryCompilerTests
     }
 #endif
 
-    private class Price
-    {
-        public decimal Amount { get; set; }
-        public double Estimate { get; set; }
-    }
-
     [Fact]
-    public void TestEntityQueryComparesDecimalWithDouble()
+    public void NumberConversionConvertsOnlyConstantsItself()
     {
-        // the double is converted to decimal as it reads - since .NET 11 a plain conversion gives 1.1999999999999999555910790150
-        var schemaProvider = SchemaBuilder.FromObject<Price>();
-        var compiledResult = EntityQueryCompiler.Compile("amount == estimate", schemaProvider, compileContext);
-        var list = new List<Price> { new() { Amount = 1.2m, Estimate = 1.2 }, new() { Amount = 1.3m, Estimate = 1.2 } };
-        var results = list.Where((Func<Price, bool>)compiledResult.LambdaExpression.Compile());
-        Assert.Equal(1.2m, Assert.Single(results).Amount);
+        // a constant is converted as it reads - since .NET 11 a plain conversion gives 1.1999999999999999555910790150
+        var constant = Assert.IsAssignableFrom<ConstantExpression>(NumberConversion.Convert(Expression.Constant(1.2), typeof(decimal?)));
+        Assert.Equal(1.2m, constant.Value);
+        Assert.Equal(typeof(decimal?), constant.Type);
+        // anything else stays a convert so EF can translate it to a cast
+        Assert.Equal(ExpressionType.Convert, NumberConversion.Convert(Expression.Parameter(typeof(double)), typeof(decimal)).NodeType);
+        Assert.Throws<OverflowException>(() => NumberConversion.ToDecimal(double.NaN));
     }
 
     [Theory]

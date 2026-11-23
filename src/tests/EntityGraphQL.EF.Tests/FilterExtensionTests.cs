@@ -1,5 +1,7 @@
 using EntityGraphQL.Schema;
 using EntityGraphQL.Schema.FieldExtensions;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace EntityGraphQL.EF.Tests;
@@ -62,5 +64,39 @@ public class FilterExtensionTests
         dynamic actors = ((IDictionary<string, object>)result.Data!)["actors"]!;
         Assert.Equal(1, Enumerable.Count(actors));
         Assert.Equal(1, Enumerable.First(actors).id);
+    }
+
+    public class Price
+    {
+        public int Id { get; set; }
+        public decimal Amount { get; set; }
+        public double Estimate { get; set; }
+    }
+
+    public class PriceContext(DbContextOptions<PriceContext> options) : DbContext(options)
+    {
+        public DbSet<Price> Prices { get; set; } = null!;
+    }
+
+    [Fact]
+    public void FilterComparingDecimalAndDoubleColumnsTranslatesToSql()
+    {
+        // the double column is cast by the database (sqlite throws if untranslatable)
+        var schema = SchemaBuilder.FromObject<PriceContext>();
+        schema.Query().ReplaceField("prices", db => db.Prices, "Prices").UseFilter();
+
+        using var connection = new SqliteConnection("DataSource=:memory:");
+        connection.Open();
+        using var data = new PriceContext(new DbContextOptionsBuilder<PriceContext>().UseSqlite(connection).Options);
+        data.Database.EnsureCreated();
+        data.AddRange(new Price { Id = 1, Amount = 1.5m, Estimate = 1.5 }, new Price { Id = 2, Amount = 2.5m, Estimate = 1.5 });
+        data.SaveChanges();
+
+        var result = schema.ExecuteRequestWithContext(new QueryRequest { Query = @"{ prices(filter: ""amount == estimate"") { id } }" }, data, null, null);
+
+        Assert.Null(result.Errors);
+        dynamic prices = ((IDictionary<string, object>)result.Data!)["prices"]!;
+        Assert.Equal(1, Enumerable.Count(prices));
+        Assert.Equal(1, Enumerable.First(prices).id);
     }
 }
