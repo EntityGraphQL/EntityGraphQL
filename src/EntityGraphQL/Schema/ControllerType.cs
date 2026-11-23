@@ -80,7 +80,10 @@ public abstract class ControllerType
     /// <param name="options">Options for the schema builder</param>
     public BaseField Add(string fieldName, string description, Delegate @delegate, SchemaBuilderOptions? options = null)
     {
-        return AddMethodAsField(fieldName, null, @delegate.Method, description, options);
+        var field = AddMethodAsField(fieldName, null, @delegate.Method, description, options);
+        // call the delegate on its own target so a lambda's captured variables are there
+        ((MethodField)field).Target = @delegate.Target;
+        return field;
     }
 
     private BaseField AddMethodAsField(string name, RequiredAuthorization? classLevelRequiredAuth, MethodInfo method, string? description, SchemaBuilderOptions? options)

@@ -587,15 +587,16 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         }
         catch (Exception ex)
         {
-            return HandleException(ex);
+            return HandleException(ex, cancellationToken);
         }
 
         return result;
     }
 
-    private QueryResult HandleException(Exception exception)
+    private QueryResult HandleException(Exception exception, CancellationToken cancellationToken)
     {
-        LogException(exception);
+        if (!ExecutableGraphQLStatement.IsRequestCancellation(exception, cancellationToken))
+            LogException(exception);
 
         var result = new QueryResult();
         result.AddErrors(GenerateErrors(exception).Distinct());

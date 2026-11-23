@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using EntityGraphQL.Schema;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -694,6 +696,74 @@ public class ErrorTests
 
         Assert.Contains(results.Errors!, e => e.Message.Contains("must be the same field with identical arguments"));
         Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Error);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async System.Threading.Tasks.Task CancelledField_IsNotLoggedAsAnError_ButAnUnaskedForCancellationIs(bool callerCancelled)
+    {
+        // A caller leaving (client disconnect) is not a server fault, so it is not logged at Error on every abandoned
+        // request. An OperationCanceledException nobody asked for - an HttpClient timeout, say - still is.
+        var logger = new CapturingLogger<SchemaProvider<TestDataContext>>();
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(logger: logger);
+        using var cts = new CancellationTokenSource();
+        schemaProvider
+            .Query()
+            .AddField("slow", "")
+            .ResolveAsync<CancellationTestService, CancellationToken>((ctx, srv, ct) => CancelAndThrow(cts, callerCancelled));
+        var services = new ServiceCollection().AddSingleton(new TestDataContext()).AddSingleton(new CancellationTestService()).BuildServiceProvider();
+
+        var results = await schemaProvider.ExecuteRequestAsync(new QueryRequest { Query = "{ slow }" }, services, null, null, cts.Token);
+
+        // the caller is told the same either way
+        Assert.Single(results.Errors!);
+        Assert.Equal(callerCancelled ? 0 : 1, logger.Entries.Count(e => e.Level == LogLevel.Error));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task RequestCancelledBeforeExecution_IsNotLoggedAsAnError()
+    {
+        var logger = new CapturingLogger<SchemaProvider<TestDataContext>>();
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(logger: logger);
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var results = await schemaProvider.ExecuteRequestAsync(
+            new QueryRequest { Query = "{ people { id } }" },
+            new ServiceCollection().AddSingleton(new TestDataContext()).BuildServiceProvider(),
+            null,
+            null,
+            cts.Token
+        );
+
+        Assert.Equal("The operation was canceled.", Assert.Single(results.Errors!).Message);
+        Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Error);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async System.Threading.Tasks.Task CancelledMutation_IsNotLoggedAsAnError_ButAnUnaskedForCancellationIs(bool callerCancelled)
+    {
+        // a mutation's resolver exception reaches the statement wrapped in an EntityGraphQLException
+        var logger = new CapturingLogger<SchemaProvider<TestDataContext>>();
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>(logger: logger);
+        using var cts = new CancellationTokenSource();
+        schemaProvider.Mutation().Add("slow", () => CancelAndThrow(cts, callerCancelled));
+        var services = new ServiceCollection().AddSingleton(new TestDataContext()).BuildServiceProvider();
+
+        var results = await schemaProvider.ExecuteRequestAsync(new QueryRequest { Query = "mutation { slow }" }, services, null, null, cts.Token);
+
+        Assert.Single(results.Errors!);
+        Assert.Equal(callerCancelled ? 0 : 1, logger.Entries.Count(e => e.Level == LogLevel.Error));
+    }
+
+    private static System.Threading.Tasks.Task<int> CancelAndThrow(CancellationTokenSource cts, bool cancel)
+    {
+        if (cancel)
+            cts.Cancel();
+        return System.Threading.Tasks.Task.FromException<int>(new OperationCanceledException());
     }
 
     [Fact]
