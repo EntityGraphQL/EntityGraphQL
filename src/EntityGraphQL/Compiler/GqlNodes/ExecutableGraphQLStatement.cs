@@ -206,7 +206,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                             // nothing is being swallowed and the request, not the server, is what went wrong -
                             // logging every malformed query as a server error is noise. One that wraps a real
                             // fault (it has an inner exception) is sanitised on the way out, so it is logged.
-                            if (ve.InnerException != null)
+                            if (ve.InnerException != null && !IsRequestCancellation(ve, cancellationToken))
                                 Schema.LogException(ve, expandedField.Name);
                             allErrors.AddRange(Schema.GenerateErrors(ve));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
@@ -214,7 +214,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                         }
                         catch (TargetInvocationException tie) when (tie.InnerException != null)
                         {
-                            Schema.LogException(tie.InnerException, expandedField.Name);
+                            if (!IsRequestCancellation(tie.InnerException, cancellationToken))
+                                Schema.LogException(tie.InnerException, expandedField.Name);
                             allErrors.AddRange(Schema.GenerateErrors(tie.InnerException, expandedField.Name));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
@@ -224,7 +225,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                         // than wrapped in a TargetInvocationException - flatten it to distinct errors the same way
                         catch (AggregateException ae)
                         {
-                            Schema.LogException(ae, expandedField.Name);
+                            if (!IsRequestCancellation(ae, cancellationToken))
+                                Schema.LogException(ae, expandedField.Name);
                             allErrors.AddRange(Schema.GenerateErrors(ae, expandedField.Name));
                             if (expandedField.Field?.ReturnType.TypeNotNullable == false)
                                 result[expandedField.Name] = null;
@@ -233,7 +235,8 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                         {
                             // Log the original exception so the stack trace points at the resolver failure,
                             // not the EntityGraphQLException wrapper we build for the GraphQL error payload.
-                            Schema.LogException(ex, expandedField.Name);
+                            if (!IsRequestCancellation(ex, cancellationToken))
+                                Schema.LogException(ex, expandedField.Name);
                             allErrors.AddRange(
                                 Schema.GenerateErrors(
                                     new EntityGraphQLException(
@@ -260,7 +263,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
         catch (EntityGraphQLException ce)
         {
             // as above - only worth logging when it wraps a fault the caller does not get told about
-            if (ce.InnerException != null)
+            if (ce.InnerException != null && !IsRequestCancellation(ce, cancellationToken))
                 Schema.LogException(ce);
             allErrors.AddRange(Schema.GenerateErrors(ce));
         }
@@ -270,6 +273,22 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
 
         return (result, allErrors);
     }
+
+    /// <summary>
+    /// The caller cancelled the request, so the exception is not a server fault and is not logged as one. It still
+    /// becomes a field error as before. Matched on the token as well as the exception type, so a timeout nobody asked
+    /// for (an HttpClient timeout is an OperationCanceledException too) is still logged.
+    /// </summary>
+    internal static bool IsRequestCancellation(Exception exception, CancellationToken cancellationToken) =>
+        cancellationToken.IsCancellationRequested
+        && exception switch
+        {
+            OperationCanceledException => true,
+            AggregateException ae => ae.InnerExceptions.All(e => IsRequestCancellation(e, cancellationToken)),
+            // a mutation's resolver exception comes wrapped (GraphQLMutationField.ExecuteMutationAsync)
+            EntityGraphQLException { InnerException: { } inner } => IsRequestCancellation(inner, cancellationToken),
+            _ => false,
+        };
 
     protected static TContext GetContextToUse<TContext>(TContext? context, IServiceProvider serviceProvider, BaseGraphQLField fieldNode)
     {

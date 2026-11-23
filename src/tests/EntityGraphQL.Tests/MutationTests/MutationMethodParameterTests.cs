@@ -280,4 +280,35 @@ public class MutationMethodParameterTests
         Assert.Null(res.Errors);
         Assert.True(schemaProvider.HasType(typeof(Person)));
     }
+
+    [Fact]
+    public void DelegateMutation_CallsTheLambdaWithItsCapturedVariables()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        var calls = 0;
+        schemaProvider.Mutation().Add("count", () => ++calls);
+
+        var res = schemaProvider.ExecuteRequestWithContext(new QueryRequest { Query = "mutation { count }" }, new TestDataContext(), null, null);
+
+        Assert.Null(res.Errors);
+        Assert.Equal(1, res.Data!["count"]);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public void DelegateMutation_CallsAStaticClassMethod()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Mutation().Add("double", StaticMutations.Double);
+
+        var res = schemaProvider.ExecuteRequestWithContext(new QueryRequest { Query = "mutation { double(value: 4) }" }, new TestDataContext(), null, null);
+
+        Assert.Null(res.Errors);
+        Assert.Equal(8, res.Data!["double"]);
+    }
+
+    private static class StaticMutations
+    {
+        public static int Double(int value) => value * 2;
+    }
 }

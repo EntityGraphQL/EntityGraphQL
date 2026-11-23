@@ -24,6 +24,12 @@ public abstract class MethodField : BaseField
     protected MethodInfo Method { get; set; }
     public new bool IsAsync { get; protected set; }
 
+    /// <summary>
+    /// The instance the method is called on when the field was added from a delegate. Null for a method added from a
+    /// class, which gets a new instance per request.
+    /// </summary>
+    internal object? Target { get; set; }
+
     public MethodField(
         ISchemaProvider schema,
         ISchemaType fromType,
@@ -195,7 +201,10 @@ public abstract class MethodField : BaseField
         // We kind of treat a mutation class like an asp.net controller
         // and we do not want to register them in the service provider to avoid the same issues controllers would have
         // with different lifetime objects
-        object? instance = serviceProvider != null ? ActivatorUtilities.CreateInstance(serviceProvider, Method.DeclaringType!) : Activator.CreateInstance(Method.DeclaringType!);
+        object? instance =
+            Target
+            ?? (Method.IsStatic ? null
+            : serviceProvider != null ? ActivatorUtilities.CreateInstance(serviceProvider, Method.DeclaringType!) : Activator.CreateInstance(Method.DeclaringType!));
 
         object? result;
         try
