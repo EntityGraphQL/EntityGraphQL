@@ -76,6 +76,35 @@ public class ServiceFieldBesideBulkTests
     }
 
     [Fact]
+    public void ContextReadInsideServicePredicate_KeepsLambdaParameterInScope()
+    {
+        var item = Run(schema => schema.Type<User>().AddField("extra", "Matching tags").Resolve<Creds>((user, cp) => user.Tags.Count(t => user.Id.StartsWith(t) && cp.Current() > 0)));
+        Assert.Equal(1, (int)item.extra);
+    }
+
+    private static IEnumerable<Wrapped> Catalog() => [new() { V = "abc" }, new() { V = "other" }];
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PagedStaticMethodSource_WithServicePredicate(bool connectionPaging)
+    {
+        var item = Run(
+            schema =>
+            {
+                schema.AddType<Wrapped>("Wrapped", "Catalog entry").AddAllFields();
+                var field = schema.Type<User>().AddField("extra", "Matching entries").Resolve<Creds>((user, cp) => Catalog().Where(entry => entry.V == user.Id && cp.Current() > 0));
+                if (connectionPaging)
+                    field.UseConnectionPaging();
+                else
+                    field.UseOffsetPaging();
+            },
+            connectionPaging ? "extra(first: 2) { edges { node { v } } totalCount }" : "extra(take: 2) { items { v } totalItems }"
+        );
+        Assert.Equal(1, connectionPaging ? (int)item.extra.totalCount : (int)item.extra.totalItems);
+    }
+
+    [Fact]
     public void ArgumentsStayInTheFirstPass_AndAreBoundPerAlias()
     {
         Field? field = null;

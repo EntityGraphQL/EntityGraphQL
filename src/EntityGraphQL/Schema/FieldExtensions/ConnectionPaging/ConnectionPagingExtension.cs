@@ -176,21 +176,11 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
         var fieldParam = field.FieldParam ?? throw new EntityGraphQLSchemaException($"Field {field.Name} must have a field parameter");
         var extracted = new List<GraphQLExtractedField> { new(schema, BuildExtractedName($"{fieldParam}_ctx"), [fieldParam], fieldParam) };
 
-        var baseCollection = FindBaseCollectionExpression(fieldExpression!);
+        var baseCollection = OffsetPagingExtension.FindBaseCollectionExpression(fieldExpression!);
         if (!ReferenceEquals(baseCollection, fieldParam))
             extracted.Add(new(schema, BuildExtractedName(baseCollection.ToString()), [baseCollection], fieldParam));
 
         return extracted;
-    }
-
-    private static Expression FindBaseCollectionExpression(Expression expression)
-    {
-        Expression current = expression;
-        while (current is MethodCallExpression methodCall)
-        {
-            current = methodCall.Object ?? methodCall.Arguments[0];
-        }
-        return current;
     }
 
     private static string BuildExtractedName(string value)

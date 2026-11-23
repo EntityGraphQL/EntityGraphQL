@@ -263,7 +263,7 @@ public class ParameterReplacer : ExpressionVisitor
         if (toReplace != null && toReplace == node)
             return newParam!;
 
-        bool baseCallIsEnumerable = node.Object == null && node.Arguments[0].Type.IsEnumerableOrArray();
+        bool baseCallIsEnumerable = node.Object == null && node.Arguments.Count > 0 && node.Arguments[0].Type.IsEnumerableOrArray();
         if (node.Object == null && node.Arguments.Count > 1 && node.Method.IsGenericMethod)
         {
             // Replace expression that are inside method calls that might need parameters updated (.Where() etc.)

@@ -29,20 +29,35 @@ public partial class ExpressionExtractor : ExpressionVisitor
     /// </summary>
     private readonly Stack<Expression> currentExpression = new();
     private bool matchByType;
-    private List<ParameterExpression>? serviceParameters;
+    private readonly List<ParameterExpression> unavailableParameters = [];
 
     public IDictionary<string, List<Expression>>? Extract(Expression node, Expression rootContext, bool matchByType = false) => Extract(node, rootContext, matchByType, null);
 
     /// <param name="serviceParameters">The parameters of the expression that are services. Nothing that uses one is extracted</param>
     public IDictionary<string, List<Expression>>? Extract(Expression node, Expression rootContext, bool matchByType, IEnumerable<ParameterExpression>? serviceParameters)
     {
-        this.serviceParameters = serviceParameters == null ? null : [.. serviceParameters];
+        unavailableParameters.Clear();
+        if (serviceParameters != null)
+            unavailableParameters.AddRange(serviceParameters);
         this.rootContext = rootContext;
         extractedExpressions = [];
         currentExpression.Clear();
         this.matchByType = matchByType;
         Visit(node);
         return extractedExpressions.Count > 0 ? extractedExpressions : null;
+    }
+
+    protected override Expression VisitLambda<T>(Expression<T> node)
+    {
+        var previousCount = unavailableParameters.Count;
+        foreach (var parameter in node.Parameters)
+        {
+            if (parameter != rootContext)
+                unavailableParameters.Add(parameter);
+        }
+        Visit(node.Body);
+        unavailableParameters.RemoveRange(previousCount, unavailableParameters.Count - previousCount);
+        return node;
     }
 
     protected override Expression VisitParameter(ParameterExpression node)
@@ -72,7 +87,7 @@ public partial class ExpressionExtractor : ExpressionVisitor
         // if is is a nullable type we want to extract the nullable field not the nullableField.HasValue/Value
         // node.Expression can be null if it is a static member - e.g. DateTime.MaxValue
         // if it is empty this is the end of an expression too
-        if (((currentExpression.Count == 0 && node.Expression?.Type.IsNullableType() == false) || node.Type.IsNullableType()) && !UsesService(node))
+        if (((currentExpression.Count == 0 && node.Expression?.Type.IsNullableType() == false) || node.Type.IsNullableType()) && !UsesUnavailableParameter(node))
         {
             currentExpression.Push(node);
             var result = base.VisitMember(node);
@@ -95,12 +110,14 @@ public partial class ExpressionExtractor : ExpressionVisitor
         // A construction is not a leaf - it is a wrapper around the reads that build it. Visiting it with itself on
         // the stack credits every one of those reads to the construction, so `srv.Get(new Key(ctx.A, ctx.B))` extracts
         // that one node twice instead of ctx.A and ctx.B. Visit it without pushing so each read credits itself.
-        // The same goes for anything that uses a service - see UsesService.
+        // Descend into predicates so their parameters stay inside the lambda.
         var shouldAddNotAdd =
             (node.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node).Expression?.Type.IsNullableType() == true)
             || node.NodeType == ExpressionType.New
             || node.NodeType == ExpressionType.MemberInit
-            || UsesService(node);
+            || node.NodeType == ExpressionType.Lambda
+            || node.NodeType == ExpressionType.Quote
+            || UsesUnavailableParameter(node);
         if (shouldAddNotAdd)
             Visit(node);
         else
@@ -139,8 +156,8 @@ public partial class ExpressionExtractor : ExpressionVisitor
         if (currentExpression.Count > 0)
             // part of a larger expression, which is the one to extract
             Visit(target);
-        else if (UsesService(call))
-            // the call can not be extracted whole (see UsesService) so extract what it is made on
+        else if (UsesUnavailableParameter(call))
+            // the call can not be extracted whole so extract what it is made on
             ProcessPotentialLeaf(target);
         else
         {
@@ -150,14 +167,8 @@ public partial class ExpressionExtractor : ExpressionVisitor
         }
     }
 
-    /// <summary>
-    /// True when <paramref name="expression"/> uses a service anywhere, including inside a nested lambda. An
-    /// extracted expression runs in the first pass, where no service is available, so such an expression is
-    /// never extracted whole - <c>user.Extra(srv.Current())</c> and <c>user.Tags.Count(t => srv.Ok(t))</c>
-    /// extract <c>user</c> and <c>user.Tags</c>. Everything on <see cref="currentExpression"/> is therefore
-    /// free of services, and so is everything below it.
-    /// </summary>
-    private bool UsesService(Expression expression) => serviceParameters?.Count > 0 && AggregateReductionSplit.UsesAny(expression, serviceParameters);
+    // Services and enclosing lambda parameters are unavailable when a dependency runs on its own in the first pass.
+    private bool UsesUnavailableParameter(Expression expression) => unavailableParameters.Count > 0 && AggregateReductionSplit.UsesAny(expression, unavailableParameters);
 
     [GeneratedRegex("[\\.\\(\\)\\!]")]
     private static partial Regex ReplacePattern();

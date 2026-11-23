@@ -150,10 +150,10 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         return extracted;
     }
 
-    private static Expression FindBaseCollectionExpression(Expression expression)
+    internal static Expression FindBaseCollectionExpression(Expression expression)
     {
         Expression current = expression;
-        while (current is MethodCallExpression methodCall)
+        while (current is MethodCallExpression methodCall && (methodCall.Object != null || methodCall.Arguments.Count > 0))
         {
             current = methodCall.Object ?? methodCall.Arguments[0];
         }
