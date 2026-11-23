@@ -67,11 +67,17 @@ public class GraphQLExtractedField : BaseGraphQLField
             if (argumentsParam != null && selection?.Field != null)
             {
                 // the same binding the field gets in Field.GetExpression(), which this does not go through
-                var execArgsParam = Expression.Parameter(argumentsParam.Type, $"{argumentsParam.Name}_exec");
-                object? argumentValue = null;
-                var validationErrors = new HashSet<string>();
-                compileContext.AddArgsToCompileContext(selection.Field, selection.Arguments, docParam, docVariables, ref argumentValue, validationErrors, execArgsParam);
-                GraphQLHelper.ValidateAndReplaceFieldArgs(selection.Field, argumentsParam, replacer, ref argumentValue, ref fieldExp, validationErrors, execArgsParam);
+                if (!compileContext.SelectionArguments.TryGetValue(selection, out var execArgsParam))
+                {
+                    execArgsParam = Expression.Parameter(argumentsParam.Type, $"{argumentsParam.Name}_exec");
+                    object? argumentValue = null;
+                    var validationErrors = new HashSet<string>();
+                    compileContext.AddArgsToCompileContext(selection.Field, selection.Arguments, docParam, docVariables, ref argumentValue, validationErrors, execArgsParam);
+                    // validate only - these run against the data before the field itself is built
+                    GraphQLHelper.ValidateAndReplaceFieldArgs(selection.Field, null, replacer, ref argumentValue, ref fieldExp, validationErrors, null);
+                    compileContext.SelectionArguments[selection] = execArgsParam;
+                }
+                fieldExp = replacer.Replace(fieldExp, argumentsParam, execArgsParam);
             }
             if (replacementNextFieldContext != null)
             {

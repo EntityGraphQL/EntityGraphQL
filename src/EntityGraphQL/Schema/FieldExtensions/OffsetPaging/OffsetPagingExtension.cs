@@ -131,9 +131,11 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
             return false;
         if (field.ExtractedFieldsFromServices.Any(f => f.FieldExpressions.Any(e => ReferenceEquals(e, resolve))))
             return true;
-        return field.FieldParam != null
-            && AggregateReductionSplit.UsesAny(resolve, field.Services)
-            && AggregateReductionSplit.UsesAny(FindBaseCollectionExpression(resolve), [field.FieldParam]);
+        if (field.FieldParam == null || !AggregateReductionSplit.UsesAny(resolve, field.Services))
+            return false;
+        // srv.Box(user.Tags).Items is not interleaved - the collection comes from the service, which only reads the context
+        var baseCollection = FindBaseCollectionExpression(resolve);
+        return AggregateReductionSplit.UsesAny(baseCollection, [field.FieldParam]) && !AggregateReductionSplit.UsesAny(baseCollection, field.Services);
     }
 
     private static List<GraphQLExtractedField> BuildInterleavedServiceInputs(ISchemaProvider schema, IField field, Expression? fieldExpression)

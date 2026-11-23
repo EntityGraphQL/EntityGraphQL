@@ -34,6 +34,18 @@ public class ServiceFieldBesideBulkTests
         public int Score { get; set; } = 1;
 
         public int Current() => Score;
+
+        public Box Box(IEnumerable<string> tags) => new() { Items = tags.Select(t => new Wrapped { V = t }).ToList() };
+    }
+
+    public class Wrapped
+    {
+        public string V { get; set; } = string.Empty;
+    }
+
+    public class Box
+    {
+        public List<Wrapped> Items { get; set; } = [];
     }
 
     public class Labels
@@ -76,6 +88,47 @@ public class ServiceFieldBesideBulkTests
         Assert.Equal("user.Tags.Take(args.n).Count()", Assert.Single(field!.ExtractedFieldsFromServices!).FieldExpressions.First().ToString());
         Assert.Equal(2, (int)item.a);
         Assert.Equal(3, (int)item.b);
+    }
+
+    [Fact]
+    public void ArgumentValidators_RunOncePerSelectionInTheFirstPass()
+    {
+        var count = 0;
+        var item = Run(
+            schema =>
+                schema
+                    .Type<User>()
+                    .AddField("extra", new { n = 0 }, "Service scalar")
+                    // two context reads use the arguments, so two expressions are extracted
+                    .Resolve<Creds>((user, args, cp) => cp.Current() + user.Tags.Take(args.n).Count() + user.Tags.Skip(args.n).Count())
+                    .AddValidator(_ => count++),
+            "a: extra(n: 1)"
+        );
+
+        Assert.Equal(4, (int)item.a);
+        // once where the extracted expressions are bound and once where the field itself is built
+        Assert.Equal(2, count);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PagedCollectionFromAService_IsNotInterleaved(bool connectionPaging)
+    {
+        var item = Run(
+            schema =>
+            {
+                schema.AddType<Wrapped>("Wrapped", "A wrapped tag").AddAllFields();
+                var field = schema.Type<User>().AddField("extra", "Paged service list").Resolve<Creds>((user, cp) => cp.Box(user.Tags).Items);
+                if (connectionPaging)
+                    field.UseConnectionPaging();
+                else
+                    field.UseOffsetPaging();
+            },
+            connectionPaging ? "extra(first: 2) { edges { node { v } } totalCount }" : "extra(take: 2) { items { v } totalItems }"
+        );
+
+        Assert.Equal(3, connectionPaging ? (int)item.extra.totalCount : (int)item.extra.totalItems);
     }
 
     /// <summary>

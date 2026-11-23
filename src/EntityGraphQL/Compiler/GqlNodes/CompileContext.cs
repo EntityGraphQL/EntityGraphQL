@@ -129,6 +129,12 @@ public class CompileContext
     }
 
     /// <summary>
+    /// The bound arguments parameter of each selection whose extracted expressions use its arguments, so the
+    /// arguments are built and validated once per selection however many expressions were extracted from it.
+    /// </summary>
+    internal Dictionary<BaseGraphQLField, ParameterExpression> SelectionArguments { get; } = [];
+
+    /// <summary>
     /// The dynamic types produced for an interface/union list selection during the first-pass compile, read
     /// again when building the second (services) pass. Keyed by the query node and stored here because the
     /// node belongs to the cached document shared across requests - per-request state must not live on it.
