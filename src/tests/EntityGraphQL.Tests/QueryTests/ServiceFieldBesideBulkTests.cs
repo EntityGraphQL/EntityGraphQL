@@ -17,6 +17,9 @@ public class ServiceFieldBesideBulkTests
     public class User
     {
         public string Id { get; set; } = string.Empty;
+        public List<string> Tags { get; set; } = [];
+
+        public int Instance(int current) => Id.Length + current;
     }
 
     public class PageService
@@ -41,7 +44,44 @@ public class ServiceFieldBesideBulkTests
     }
 
     [Fact]
-    public void ServiceScalarBesideBulk_UnderAsyncServiceRootObject_IsInjected()
+    public void ExtensionMethodTakingService_IsInjected()
+    {
+        // "abc".Length + Creds.Current()
+        Assert.Equal(4, (int)Run(schema => schema.Type<User>().AddField("extra", "Service scalar").Resolve<Creds>((user, cp) => user.Extra(cp.Current()))).extra);
+    }
+
+    [Fact]
+    public void InstanceMethodTakingService_IsInjected()
+    {
+        Assert.Equal(4, (int)Run(schema => schema.Type<User>().AddField("extra", "Service scalar").Resolve<Creds>((user, cp) => user.Instance(cp.Current()))).extra);
+    }
+
+    [Fact]
+    public void ServiceInsideLambda_IsInjected()
+    {
+        // tags with the length Creds.Current() returns
+        Assert.Equal(1, (int)Run(schema => schema.Type<User>().AddField("extra", "Service scalar").Resolve<Creds>((user, cp) => user.Tags.Count(t => t.Length == cp.Current()))).extra);
+    }
+
+    [Fact]
+    public void ArgumentsStayInTheFirstPass_AndAreBoundPerAlias()
+    {
+        Field? field = null;
+        var item = Run(
+            schema => field = schema.Type<User>().AddField("extra", new { n = 0 }, "Service scalar").Resolve<Creds>((user, args, cp) => cp.Current() + user.Tags.Take(args.n).Count()),
+            "a: extra(n: 1) b: extra(n: 2)"
+        );
+
+        // the whole context read is extracted, not all of user.Tags
+        Assert.Equal("user.Tags.Take(args.n).Count()", Assert.Single(field!.ExtractedFieldsFromServices!).FieldExpressions.First().ToString());
+        Assert.Equal(2, (int)item.a);
+        Assert.Equal(3, (int)item.b);
+    }
+
+    /// <summary>
+    /// Selects the field added to User beside a ResolveBulk field, on the items of a page from an async service.
+    /// </summary>
+    private static dynamic Run(System.Action<SchemaProvider<EmptyContext>> addExtraField, string selection = "extra")
     {
         var schema = SchemaBuilder.FromObject<EmptyContext>();
         schema.AddType<User>("User", "A user").AddAllFields();
@@ -50,18 +90,18 @@ public class ServiceFieldBesideBulkTests
             .AddField("label", "Bulk sibling")
             .Resolve<Labels>((user, labels) => labels.Label(user))
             .ResolveBulk<Labels, string, string>(user => user.Id, (ids, labels) => labels.LabelsFor(ids));
-        schema.Type<User>().AddField("extra", "Service scalar").Resolve<Creds>((user, cp) => user.Extra(cp.Current()));
+        addExtraField(schema);
         schema.AddType<OffsetPage<User>>("UserPage", "A page").AddAllFields();
         schema.Query().AddField("users", "A page of users").ResolveAsync<PageService>((_, pages) => pages.GetAsync());
 
         var pages = new PageService
         {
-            Page = new OffsetPage<User>(0, 1) { TotalItems = 1, Items = [new User { Id = "abc" }] },
+            Page = new OffsetPage<User>(0, 1) { TotalItems = 1, Items = [new User { Id = "abc", Tags = ["a", "bb", "ccc"] }] },
         };
         var services = new ServiceCollection().AddSingleton(pages).AddSingleton(new Creds()).AddSingleton(new Labels()).BuildServiceProvider();
 
         var result = schema.ExecuteRequestWithContext(
-            new QueryRequest { Query = "{ users { items { label extra } } }" },
+            new QueryRequest { Query = $"{{ users {{ items {{ label {selection} }} }} }}" },
             new EmptyContext(),
             services,
             null,
@@ -72,7 +112,7 @@ public class ServiceFieldBesideBulkTests
         dynamic users = result.Data!["users"]!;
         dynamic item = ((IEnumerable<dynamic>)users.items).Single();
         Assert.Equal("abc", (string)item.label);
-        Assert.Equal(4, (int)item.extra);
+        return item;
     }
 
     private sealed class EmptyContext;

@@ -242,7 +242,7 @@ public abstract class BaseGraphQLField : IGraphQLNode, IFieldKey
     internal virtual IEnumerable<BaseGraphQLField> ExpandFromServices(bool withoutServiceFields, BaseGraphQLField? field)
     {
         if (withoutServiceFields && Field?.ExtractedFieldsFromServices != null)
-            return Field.ExtractedFieldsFromServices.ToList();
+            return Field.ExtractedFieldsFromServices.Select(f => f.ForSelection(this)).ToList();
 
         return withoutServiceFields && HasServices ? [] : new List<BaseGraphQLField> { field ?? this };
     }

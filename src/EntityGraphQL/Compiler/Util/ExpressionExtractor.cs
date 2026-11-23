@@ -29,9 +29,14 @@ public partial class ExpressionExtractor : ExpressionVisitor
     /// </summary>
     private readonly Stack<Expression> currentExpression = new();
     private bool matchByType;
+    private List<ParameterExpression>? serviceParameters;
 
-    public IDictionary<string, List<Expression>>? Extract(Expression node, Expression rootContext, bool matchByType = false)
+    public IDictionary<string, List<Expression>>? Extract(Expression node, Expression rootContext, bool matchByType = false) => Extract(node, rootContext, matchByType, null);
+
+    /// <param name="serviceParameters">The parameters of the expression that are services. Nothing that uses one is extracted</param>
+    public IDictionary<string, List<Expression>>? Extract(Expression node, Expression rootContext, bool matchByType, IEnumerable<ParameterExpression>? serviceParameters)
     {
+        this.serviceParameters = serviceParameters == null ? null : [.. serviceParameters];
         this.rootContext = rootContext;
         extractedExpressions = [];
         currentExpression.Clear();
@@ -67,7 +72,7 @@ public partial class ExpressionExtractor : ExpressionVisitor
         // if is is a nullable type we want to extract the nullable field not the nullableField.HasValue/Value
         // node.Expression can be null if it is a static member - e.g. DateTime.MaxValue
         // if it is empty this is the end of an expression too
-        if ((currentExpression.Count == 0 && node.Expression?.Type.IsNullableType() == false) || node.Type.IsNullableType())
+        if (((currentExpression.Count == 0 && node.Expression?.Type.IsNullableType() == false) || node.Type.IsNullableType()) && !UsesService(node))
         {
             currentExpression.Push(node);
             var result = base.VisitMember(node);
@@ -90,10 +95,12 @@ public partial class ExpressionExtractor : ExpressionVisitor
         // A construction is not a leaf - it is a wrapper around the reads that build it. Visiting it with itself on
         // the stack credits every one of those reads to the construction, so `srv.Get(new Key(ctx.A, ctx.B))` extracts
         // that one node twice instead of ctx.A and ctx.B. Visit it without pushing so each read credits itself.
+        // The same goes for anything that uses a service - see UsesService.
         var shouldAddNotAdd =
             (node.NodeType == ExpressionType.MemberAccess && ((MemberExpression)node).Expression?.Type.IsNullableType() == true)
             || node.NodeType == ExpressionType.New
-            || node.NodeType == ExpressionType.MemberInit;
+            || node.NodeType == ExpressionType.MemberInit
+            || UsesService(node);
         if (shouldAddNotAdd)
             Visit(node);
         else
@@ -107,41 +114,14 @@ public partial class ExpressionExtractor : ExpressionVisitor
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         if (node.Object != null)
-        {
-            if (currentExpression.Count == 0)
-            {
-                // only need to extract if this is not part of a larger expression
-                currentExpression.Push(node);
-                Visit(node.Object);
-                currentExpression.Pop();
-            }
-            else
-                Visit(node.Object);
-        }
+            VisitCallTarget(node, node.Object);
         var startAt = 0;
-        // only need to extract if this is not part of a larger expression
-        // and only visit args[0] with the whole node if it is an extension method
+        // only visit args[0] with the whole node if it is an extension method
         bool isExtension = node.Method.IsDefined(typeof(ExtensionAttribute), true);
         if (node.Object is null && isExtension)
         {
             startAt = 1;
-            // Pushing the whole call extracts it as one context read. That is wrong when a later
-            // argument uses a service parameter: the extracted expression still contains that
-            // parameter, and the two-pass compile then fails with "unbound variable".
-            var laterArgumentUsesAnotherParameter = false;
-            for (var i = 1; i < node.Arguments.Count && !laterArgumentUsesAnotherParameter; i++)
-                laterArgumentUsesAnotherParameter = ReferencesParameterOtherThanRoot(node.Arguments[i]);
-
-            if (laterArgumentUsesAnotherParameter)
-                ProcessPotentialLeaf(node.Arguments[0]);
-            else if (currentExpression.Count == 0)
-            {
-                currentExpression.Push(node);
-                Visit(node.Arguments[0]);
-                currentExpression.Pop();
-            }
-            else
-                Visit(node.Arguments[0]);
+            VisitCallTarget(node, node.Arguments[0]);
         }
         for (int i = startAt; i < node.Arguments.Count; i++)
         {
@@ -152,30 +132,32 @@ public partial class ExpressionExtractor : ExpressionVisitor
     }
 
     /// <summary>
-    /// True when <paramref name="expression"/> uses a parameter other than the field context outside a
-    /// nested lambda. A service used only inside a <c>Where</c>/<c>Select</c> predicate stays part of
-    /// that call. A service passed beside the context (<c>user.Extra(cp.Current())</c>) does not.
+    /// Visit what a call is made on - the instance, or the first argument of an extension method.
     /// </summary>
-    private bool ReferencesParameterOtherThanRoot(Expression expression)
+    private void VisitCallTarget(MethodCallExpression call, Expression target)
     {
-        var finder = new OtherParameterFinder(rootContext);
-        finder.Visit(expression);
-        return finder.Found;
-    }
-
-    private sealed class OtherParameterFinder(Expression? root) : ExpressionVisitor
-    {
-        public bool Found { get; private set; }
-
-        protected override Expression VisitLambda<T>(Expression<T> node) => node;
-
-        protected override Expression VisitParameter(ParameterExpression node)
+        if (currentExpression.Count > 0)
+            // part of a larger expression, which is the one to extract
+            Visit(target);
+        else if (UsesService(call))
+            // the call can not be extracted whole (see UsesService) so extract what it is made on
+            ProcessPotentialLeaf(target);
+        else
         {
-            if (!Found && node != root)
-                Found = true;
-            return node;
+            currentExpression.Push(call);
+            Visit(target);
+            currentExpression.Pop();
         }
     }
+
+    /// <summary>
+    /// True when <paramref name="expression"/> uses a service anywhere, including inside a nested lambda. An
+    /// extracted expression runs in the first pass, where no service is available, so such an expression is
+    /// never extracted whole - <c>user.Extra(srv.Current())</c> and <c>user.Tags.Count(t => srv.Ok(t))</c>
+    /// extract <c>user</c> and <c>user.Tags</c>. Everything on <see cref="currentExpression"/> is therefore
+    /// free of services, and so is everything below it.
+    /// </summary>
+    private bool UsesService(Expression expression) => serviceParameters?.Count > 0 && AggregateReductionSplit.UsesAny(expression, serviceParameters);
 
     [GeneratedRegex("[\\.\\(\\)\\!]")]
     private static partial Regex ReplacePattern();

@@ -10,6 +10,12 @@ namespace EntityGraphQL.Compiler;
 public class GraphQLExtractedField : BaseGraphQLField
 {
     private readonly ParameterExpression originalParam;
+
+    // Set when the expressions use the field's arguments, e.g. ctx.Items.Take(args.count)
+    private readonly ParameterExpression? argumentsParam;
+
+    // The selection whose argument values the expressions are bound to. See ForSelection
+    private readonly BaseGraphQLField? selection;
     public IEnumerable<Expression> FieldExpressions { get; }
 
     public GraphQLExtractedField(ISchemaProvider schema, string name, IEnumerable<Expression> fieldExpressions, ParameterExpression originalParam)
@@ -18,6 +24,27 @@ public class GraphQLExtractedField : BaseGraphQLField
         this.originalParam = originalParam;
         this.FieldExpressions = fieldExpressions;
     }
+
+    internal GraphQLExtractedField(ISchemaProvider schema, string name, IEnumerable<Expression> fieldExpressions, ParameterExpression originalParam, ParameterExpression? argumentsParam)
+        : this(schema, name, fieldExpressions, originalParam)
+    {
+        if (argumentsParam != null && this.FieldExpressions.Any(e => AggregateReductionSplit.UsesAny(e, [argumentsParam])))
+            this.argumentsParam = argumentsParam;
+    }
+
+    private GraphQLExtractedField(GraphQLExtractedField from, BaseGraphQLField selection)
+        : this(from.Schema, $"{from.Name}_{selection.Name}", from.FieldExpressions, from.originalParam)
+    {
+        argumentsParam = from.argumentsParam;
+        this.selection = selection;
+    }
+
+    /// <summary>
+    /// An expression that uses the field's arguments has a different value for each selection of the field -
+    /// <c>a: field(count: 1) b: field(count: 2)</c> - so each selection gets its own, named for its alias and
+    /// bound to its argument values. Anything else is shared as it reads the same data whatever the arguments.
+    /// </summary>
+    internal GraphQLExtractedField ForSelection(BaseGraphQLField selection) => argumentsParam == null ? this : new GraphQLExtractedField(this, selection);
 
     protected override Expression? GetFieldExpression(
         CompileContext compileContext,
@@ -37,6 +64,15 @@ public class GraphQLExtractedField : BaseGraphQLField
         {
             // we don't need any other expression as they are the same. We just need to make sure we select the data
             var fieldExp = FieldExpressions!.First();
+            if (argumentsParam != null && selection?.Field != null)
+            {
+                // the same binding the field gets in Field.GetExpression(), which this does not go through
+                var execArgsParam = Expression.Parameter(argumentsParam.Type, $"{argumentsParam.Name}_exec");
+                object? argumentValue = null;
+                var validationErrors = new HashSet<string>();
+                compileContext.AddArgsToCompileContext(selection.Field, selection.Arguments, docParam, docVariables, ref argumentValue, validationErrors, execArgsParam);
+                GraphQLHelper.ValidateAndReplaceFieldArgs(selection.Field, argumentsParam, replacer, ref argumentValue, ref fieldExp, validationErrors, execArgsParam);
+            }
             if (replacementNextFieldContext != null)
             {
                 var newParam = replacementNextFieldContext.Type == originalParam.Type ? replacementNextFieldContext : Expression.Convert(replacementNextFieldContext, originalParam.Type);

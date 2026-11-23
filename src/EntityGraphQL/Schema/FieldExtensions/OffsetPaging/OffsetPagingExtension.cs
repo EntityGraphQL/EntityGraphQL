@@ -98,12 +98,11 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         var itemsField = returnSchemaType.GetField("items", null);
         OriginalFieldExpression = field.ResolveExpression!;
 
-        // Detect interleaved service: ExpressionExtractor extracts the whole resolver expression
-        // when a service is used inside the resolver body (e.g. ctx.People.Where(service.Filter)).
+        // Detect interleaved service: a service is used inside the resolver body (e.g. ctx.People.Where(service.Filter)).
         // In that case we cannot split into two passes and fall back to single-pass execution.
         // Compare against preAddArgsExpression because AddArguments may have replaced the expression
         // with a new object (when the field already had arguments whose params were merged/renamed).
-        IsInterleavedServiceField = field.ExtractedFieldsFromServices?.Any(f => f.FieldExpressions.Any(e => ReferenceEquals(e, preAddArgsExpression))) ?? false;
+        IsInterleavedServiceField = OffsetPagingExtension.IsInterleavedService(field, preAddArgsExpression);
 
         if (IsInterleavedServiceField && field.ExtractedFieldsFromServices != null && field.FieldParam != null)
         {
@@ -119,6 +118,22 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         // set up the field's expression so the types are all good
         var fieldExpression = BuildTotalCountExpression(null, returnType, field.ResolveExpression, field.ArgumentsParameter!);
         field.UpdateExpression(fieldExpression);
+    }
+
+    /// <summary>
+    /// True when the resolver is built on the field's context and either was extracted whole or uses a service
+    /// along the way - <c>ctx.People.Where(p => service.Filter(p))</c>. The extractor never extracts something
+    /// that uses a service, so the second has to be asked of the expression itself.
+    /// </summary>
+    internal static bool IsInterleavedService(IField field, Expression? resolve)
+    {
+        if (resolve == null || field.ExtractedFieldsFromServices == null)
+            return false;
+        if (field.ExtractedFieldsFromServices.Any(f => f.FieldExpressions.Any(e => ReferenceEquals(e, resolve))))
+            return true;
+        return field.FieldParam != null
+            && AggregateReductionSplit.UsesAny(resolve, field.Services)
+            && AggregateReductionSplit.UsesAny(FindBaseCollectionExpression(resolve), [field.FieldParam]);
     }
 
     private static List<GraphQLExtractedField> BuildInterleavedServiceInputs(ISchemaProvider schema, IField field, Expression? fieldExpression)
