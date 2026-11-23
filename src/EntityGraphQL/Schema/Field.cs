@@ -104,7 +104,12 @@ public class Field : BaseField
         if (withServices)
         {
             var extractor = new ExpressionExtractor();
-            ExtractedFieldsFromServices = extractor.Extract(ResolveExpression, FieldParam, false)?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, FieldParam)).ToList();
+            // Services is set by the caller either side of this, so take the lambda's own service parameters too
+            var services = Services.Concat(resolve.Parameters.Skip(hasArguments ? 2 : 1));
+            ExtractedFieldsFromServices = extractor
+                .Extract(ResolveExpression, FieldParam, false, services)
+                ?.Select(i => new GraphQLExtractedField(Schema, i.Key, i.Value, FieldParam, ArgumentsParameter))
+                .ToList();
         }
     }
 

@@ -98,12 +98,11 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         var itemsField = returnSchemaType.GetField("items", null);
         OriginalFieldExpression = field.ResolveExpression!;
 
-        // Detect interleaved service: ExpressionExtractor extracts the whole resolver expression
-        // when a service is used inside the resolver body (e.g. ctx.People.Where(service.Filter)).
+        // Detect interleaved service: a service is used inside the resolver body (e.g. ctx.People.Where(service.Filter)).
         // In that case we cannot split into two passes and fall back to single-pass execution.
         // Compare against preAddArgsExpression because AddArguments may have replaced the expression
         // with a new object (when the field already had arguments whose params were merged/renamed).
-        IsInterleavedServiceField = field.ExtractedFieldsFromServices?.Any(f => f.FieldExpressions.Any(e => ReferenceEquals(e, preAddArgsExpression))) ?? false;
+        IsInterleavedServiceField = OffsetPagingExtension.IsInterleavedService(field, preAddArgsExpression);
 
         if (IsInterleavedServiceField && field.ExtractedFieldsFromServices != null && field.FieldParam != null)
         {
@@ -121,6 +120,24 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         field.UpdateExpression(fieldExpression);
     }
 
+    /// <summary>
+    /// True when the resolver is built on the field's context and either was extracted whole or uses a service
+    /// along the way - <c>ctx.People.Where(p => service.Filter(p))</c>. The extractor never extracts something
+    /// that uses a service, so the second has to be asked of the expression itself.
+    /// </summary>
+    internal static bool IsInterleavedService(IField field, Expression? resolve)
+    {
+        if (resolve == null || field.ExtractedFieldsFromServices == null)
+            return false;
+        if (field.ExtractedFieldsFromServices.Any(f => f.FieldExpressions.Any(e => ReferenceEquals(e, resolve))))
+            return true;
+        if (field.FieldParam == null || !AggregateReductionSplit.UsesAny(resolve, field.Services))
+            return false;
+        // srv.Box(user.Tags).Items is not interleaved - the collection comes from the service, which only reads the context
+        var baseCollection = FindBaseCollectionExpression(resolve);
+        return AggregateReductionSplit.UsesAny(baseCollection, [field.FieldParam]) && !AggregateReductionSplit.UsesAny(baseCollection, field.Services);
+    }
+
     private static List<GraphQLExtractedField> BuildInterleavedServiceInputs(ISchemaProvider schema, IField field, Expression? fieldExpression)
     {
         var fieldParam = field.FieldParam ?? throw new EntityGraphQLSchemaException($"Field {field.Name} must have a field parameter");
@@ -133,10 +150,10 @@ public class OffsetPagingExtension : BaseFieldExtension, IPagingExtension
         return extracted;
     }
 
-    private static Expression FindBaseCollectionExpression(Expression expression)
+    internal static Expression FindBaseCollectionExpression(Expression expression)
     {
         Expression current = expression;
-        while (current is MethodCallExpression methodCall)
+        while (current is MethodCallExpression methodCall && (methodCall.Object != null || methodCall.Arguments.Count > 0))
         {
             current = methodCall.Object ?? methodCall.Arguments[0];
         }

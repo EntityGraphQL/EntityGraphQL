@@ -723,6 +723,21 @@ public class ErrorTests
         Assert.False(string.IsNullOrEmpty(logged.Exception.GetBaseException().StackTrace));
     }
 
+    [Fact]
+    public void ResolverException_ErrorHasTheFieldPath()
+    {
+        var schemaProvider = SchemaBuilder.FromObject<TestDataContext>();
+        schemaProvider.Query().AddField("boom", "Throws").Resolve(ctx => Boom(ctx));
+
+        var results = schemaProvider.ExecuteRequestWithContext(new QueryRequest { Query = "{ b: boom }" }, new TestDataContext(), null, null);
+
+        var error = Assert.Single(results.Errors!);
+        Assert.StartsWith("Field 'b' - ", error.Message);
+        Assert.Equal(["b"], error.Path);
+    }
+
+    private static int Boom(TestDataContext _) => throw new InvalidOperationException("boom");
+
     private sealed class CapturingLogger<T> : ILogger<T>
     {
         public List<(LogLevel Level, EventId EventId, Exception? Exception, string Message)> Entries { get; } = [];

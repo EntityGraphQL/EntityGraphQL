@@ -389,7 +389,7 @@ public class ConnectionEdgeExtension : BaseFieldExtension
     /// </summary>
     private (MethodCallExpression take, MethodCallExpression paging)? FindPaging(Expression expression)
     {
-        while (expression is MethodCallExpression call)
+        while (expression is MethodCallExpression call && call.Arguments.Count > 0)
         {
             // the paging Take() is the outermost one on the collection
             if (call.Method.Name == nameof(Enumerable.Take) && call.Method.IsGenericMethod && call.Method.GetGenericArguments()[0] == listType)

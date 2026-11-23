@@ -174,7 +174,7 @@ public sealed class AggregateReductionSplit
             : Expression.Call(methodClass, Method, [depsElementType], materializedDeps, isQueryable ? Expression.Quote(newSelector) : newSelector);
     }
 
-    private static bool UsesAny(Expression expression, IReadOnlyList<ParameterExpression> parameters)
+    internal static bool UsesAny(Expression expression, IReadOnlyList<ParameterExpression> parameters)
     {
         var finder = new ParameterUsageFinder(parameters);
         finder.Visit(expression);

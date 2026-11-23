@@ -120,13 +120,12 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
 
         OriginalFieldExpression = field.ResolveExpression;
 
-        // Detect interleaved service: ExpressionExtractor extracts the whole resolver expression
-        // (not just sub-expressions) when a service is used inside the resolver body
+        // Detect interleaved service: a service is used inside the resolver body
         // e.g. ctx.People.Where(p => service.Filter(p)).OrderBy(p => p.Id)
         // In that case we cannot split into two passes and fall back to single-pass execution.
         // Compare against preAddArgsExpression because AddArguments may have replaced the expression
         // with a new object (when the field already had arguments whose params were merged/renamed).
-        IsInterleavedServiceField = field.ExtractedFieldsFromServices?.Any(f => f.FieldExpressions.Any(e => ReferenceEquals(e, preAddArgsExpression))) ?? false;
+        IsInterleavedServiceField = OffsetPagingExtension.IsInterleavedService(field, preAddArgsExpression);
 
         if (IsInterleavedServiceField && field.ExtractedFieldsFromServices != null && field.FieldParam != null)
         {
@@ -177,21 +176,11 @@ public class ConnectionPagingExtension : BaseFieldExtension, IPagingExtension
         var fieldParam = field.FieldParam ?? throw new EntityGraphQLSchemaException($"Field {field.Name} must have a field parameter");
         var extracted = new List<GraphQLExtractedField> { new(schema, BuildExtractedName($"{fieldParam}_ctx"), [fieldParam], fieldParam) };
 
-        var baseCollection = FindBaseCollectionExpression(fieldExpression!);
+        var baseCollection = OffsetPagingExtension.FindBaseCollectionExpression(fieldExpression!);
         if (!ReferenceEquals(baseCollection, fieldParam))
             extracted.Add(new(schema, BuildExtractedName(baseCollection.ToString()), [baseCollection], fieldParam));
 
         return extracted;
-    }
-
-    private static Expression FindBaseCollectionExpression(Expression expression)
-    {
-        Expression current = expression;
-        while (current is MethodCallExpression methodCall)
-        {
-            current = methodCall.Object ?? methodCall.Arguments[0];
-        }
-        return current;
     }
 
     private static string BuildExtractedName(string value)

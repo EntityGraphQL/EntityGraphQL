@@ -619,15 +619,15 @@ public class SchemaProvider<TContextType> : ISchemaProvider, IDisposable
         return exception switch
         {
             AggregateException aggregateException => aggregateException.InnerExceptions.SelectMany(ie => GenerateErrors(ie, fieldName)),
-            EntityGraphQLFieldException fieldException => [new GraphQLError(AllowedExceptionMessage(fieldException, fieldName), null, null)],
+            EntityGraphQLFieldException fieldException => [new GraphQLError(AllowedExceptionMessage(fieldException, fieldName), fieldName == null ? null : [fieldName], null)],
             EntityGraphQLException graphqlException => graphqlException.Messages.Select(m => new GraphQLError(
                 m,
                 graphqlException.Path,
                 (IDictionary<string, object>?)graphqlException.Extensions,
                 graphqlException.Location != null ? [graphqlException.Location] : null
             )),
-            TargetInvocationException targetInvocationException => GenerateErrors(targetInvocationException.InnerException!),
-            _ => [new GraphQLError(AllowedExceptionMessage(exception, fieldName), null, null)],
+            TargetInvocationException targetInvocationException => GenerateErrors(targetInvocationException.InnerException!, fieldName),
+            _ => [new GraphQLError(AllowedExceptionMessage(exception, fieldName), fieldName == null ? null : [fieldName], null)],
         };
     }
 
