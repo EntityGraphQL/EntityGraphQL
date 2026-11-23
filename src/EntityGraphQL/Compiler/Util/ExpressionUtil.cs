@@ -345,6 +345,8 @@ public static partial class ExpressionUtil
                 return implicitCastOperator.Invoke(null, [value]);
             }
 
+            if (argumentNonNullType == typeof(decimal) && NumberConversion.TryToDecimal(value!) is { } asDecimal)
+                return asDecimal;
             var newVal = Convert.ChangeType(value, argumentNonNullType, CultureInfo.InvariantCulture);
             return newVal;
         }
@@ -644,7 +646,7 @@ public static partial class ExpressionUtil
         bool finalExecution
     )
     {
-        if (!fieldExpressions.Any())
+        if (fieldExpressions.Count == 0)
             return (baseExp, null);
 
         var types = LinqRuntimeTypeBuilder.For(field.Schema);

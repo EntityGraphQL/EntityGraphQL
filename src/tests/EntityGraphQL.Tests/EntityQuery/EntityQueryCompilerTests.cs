@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using EntityGraphQL.Compiler.EntityQuery.Grammar;
+using EntityGraphQL.Compiler.Util;
 using EntityGraphQL.Schema;
 using Xunit;
 
@@ -263,7 +264,10 @@ public class EntityQueryCompilerTests
 
     [Theory]
     [InlineData("\"3145-00-15T00:00:00\"")]
+#if !NET11_0_OR_GREATER
+    // .NET 11 parses 24:00 as midnight of the next day (ISO 8601) - see TestEntityQueryParsesEndOfDayDate
     [InlineData("\"2023-01-15T24:00:00\"")]
+#endif
     [InlineData("\"2023-01-15T23:60:00\"")]
     [InlineData("\"2023-01-15T23:59:60\"")]
     public void TestEntityQueryFailsOnInvalidDate(string dateValue)
@@ -276,6 +280,31 @@ public class EntityQueryCompilerTests
 
         var exception = Assert.Throws<FormatException>(() => results.ToList());
         Assert.Equal($"The DateTime represented by the string '{dateValue.Trim('"')}' is not supported in calendar 'System.Globalization.GregorianCalendar'.", exception.Message);
+    }
+
+#if NET11_0_OR_GREATER
+    [Fact]
+    public void TestEntityQueryParsesEndOfDayDate()
+    {
+        // dates are parsed by DateTime.Parse, which accepts 24:00 since .NET 11
+        var schemaProvider = SchemaBuilder.FromObject<Entry>();
+        var compiledResult = EntityQueryCompiler.Compile("when >= \"2023-01-15T24:00:00\"", schemaProvider, compileContext);
+        var list = new List<Entry> { new("Before") { When = new DateTime(2023, 01, 15, 23, 59, 59) }, new("After") { When = new DateTime(2023, 01, 16) } };
+        var results = list.Where((Func<Entry, bool>)compiledResult.LambdaExpression.Compile());
+        Assert.Equal("After", Assert.Single(results).Message);
+    }
+#endif
+
+    [Fact]
+    public void NumberConversionConvertsOnlyConstantsItself()
+    {
+        // a constant is converted as it reads - since .NET 11 a plain conversion gives 1.1999999999999999555910790150
+        var constant = Assert.IsAssignableFrom<ConstantExpression>(NumberConversion.Convert(Expression.Constant(1.2), typeof(decimal?)));
+        Assert.Equal(1.2m, constant.Value);
+        Assert.Equal(typeof(decimal?), constant.Type);
+        // anything else stays a convert so EF can translate it to a cast
+        Assert.Equal(ExpressionType.Convert, NumberConversion.Convert(Expression.Parameter(typeof(double)), typeof(decimal)).NodeType);
+        Assert.Throws<OverflowException>(() => NumberConversion.ToDecimal(double.NaN));
     }
 
     [Theory]

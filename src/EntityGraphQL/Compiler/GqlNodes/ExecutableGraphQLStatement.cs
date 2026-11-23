@@ -570,7 +570,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
                     compileContext.GetBulkFieldSelection(bulkResolverGroup.Key),
                     cancellationToken: compileContext.CancellationToken
                 );
-                if (compileContext.ConstantParameters.Any())
+                if (compileContext.ConstantParameters.Count > 0)
                 {
                     parameters.AddRange(compileContext.ConstantParameters.Keys);
                     allArgs.AddRange(compileContext.ConstantParameters.Values);
@@ -734,7 +734,7 @@ public abstract class ExecutableGraphQLStatement : IGraphQLNode
             cancellationToken: compileContext.CancellationToken
         );
 
-        if (compileContext.ConstantParameters.Any())
+        if (compileContext.ConstantParameters.Count > 0)
         {
             parameters.AddRange(compileContext.ConstantParameters.Keys);
             allArgs.AddRange(compileContext.ConstantParameters.Values);

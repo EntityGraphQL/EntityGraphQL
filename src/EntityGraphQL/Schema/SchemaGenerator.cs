@@ -150,7 +150,7 @@ public class SchemaGenerator
 
     private static string GetGqlArgs(ISchemaProvider schema, IField field, string noArgs = "")
     {
-        if (field.Arguments == null || !field.Arguments.Any() || field.ArgumentsAreInternal)
+        if (field.Arguments == null || field.Arguments.Count == 0 || field.ArgumentsAreInternal)
             return noArgs;
 
         var all = field.Arguments.Select(f =>
@@ -254,7 +254,7 @@ public class SchemaGenerator
     private static string GetDirectiveArgs(ISchemaProvider schema, IDirectiveProcessor directive)
     {
         var args = directive.GetArguments(schema);
-        if (args == null || !args.Any())
+        if (args == null || args.Count == 0)
             return string.Empty;
 
         var allArgs = string.Join(", ", args.Select(f => f.Key + ": " + f.Value.Type.GqlTypeForReturnOrArgument));

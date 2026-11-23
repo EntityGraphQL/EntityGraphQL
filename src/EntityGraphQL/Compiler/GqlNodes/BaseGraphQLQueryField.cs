@@ -91,7 +91,7 @@ public abstract class BaseGraphQLQueryField : BaseGraphQLField
                             && subField.RootParameter != null
                             && actualNextFieldContext.Type != subField.RootParameter.Type
                             && (field is GraphQLInlineFragmentField || field is GraphQLFragmentSpreadField)
-                            && (subField.FromType?.BaseTypesReadOnly.Any() == true || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union)
+                            && (subField.FromType?.BaseTypesReadOnly.Count > 0 || Field?.ReturnType.SchemaType.GqlType == GqlTypes.Union)
                         )
                         {
                             // we can do the convert here and avoid have to do a replace later
