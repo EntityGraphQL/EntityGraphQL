@@ -8,7 +8,8 @@
 
 ## Fixes
 
-- An extension method that takes the field context and a service (`user.Extra(service.Current())`) failed with `unbound variable` when it was selected beside a `ResolveBulk` field under a service-resolved object or list (an `OffsetPage` from `Resolve`/`ResolveAsync`). The whole call was extracted as one context read, so the service parameter was left in the two-pass projection. The context argument is extracted on its own and the service is injected. A service used only inside a `Where`/`Select` predicate is unchanged.
+- An extension method that takes the field context and a service (`user.Extra(service.Current())`) failed with `unbound variable` when it was selected beside a `ResolveBulk` field under a service-resolved object or list (an `OffsetPage` from `Resolve`/`ResolveAsync`). The whole call was extracted as one context read, so the service parameter was left in the two-pass projection. The context argument is extracted on its own and the service is injected. A service used inside a predicate (`user.Tags.Count(t => t.Length == srv.Current())`) is injected the same way.
+- A context read extracted from a service field that uses the field's arguments (`(user, args, srv) => srv.Score(user.Tags.Take(args.n))`) is now bound to each selection's own argument values, so aliases like `a: extra(n: 1) b: extra(n: 2)` return their own results.
 
 # 6.4.3
 
